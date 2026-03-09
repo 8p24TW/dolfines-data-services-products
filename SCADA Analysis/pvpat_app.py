@@ -46,6 +46,17 @@ if BG_PATH.exists():
 else:
     bg_css = "linear-gradient(135deg,#001a3a 0%,#003366 60%,#0a4d8c 100%)"
 
+# Encode logo and favicon as base64 for HTML injection (avoids Streamlit image expand button)
+logo_b64    = _b64(LOGO_PATH)    if LOGO_PATH.exists()    else ""
+favicon_b64 = _b64(FAVICON_PATH) if FAVICON_PATH.exists() else ""
+
+# Inject real favicon via <link> tag (overrides any stretching from page_icon)
+if favicon_b64:
+    st.markdown(
+        f'<link rel="shortcut icon" href="data:image/png;base64,{favicon_b64}">',
+        unsafe_allow_html=True,
+    )
+
 
 # ─────────────────────────────────────────────────────────────
 # GLOBAL CSS
@@ -231,8 +242,12 @@ st.markdown(f"""
 # ─────────────────────────────────────────────────────────────
 col_logo, col_title = st.columns([1, 6])
 with col_logo:
-    if LOGO_PATH.exists():
-        st.image(str(LOGO_PATH), width=200)
+    if logo_b64:
+        st.markdown(
+            f'<img src="data:image/png;base64,{logo_b64}" '
+            f'style="width:260px;max-width:100%;display:block;margin-top:0.3rem;" />',
+            unsafe_allow_html=True,
+        )
 
 with col_title:
     st.markdown(
