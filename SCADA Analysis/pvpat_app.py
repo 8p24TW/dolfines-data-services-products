@@ -17,17 +17,18 @@ import streamlit as st
 # ─────────────────────────────────────────────────────────────
 # PATHS
 # ─────────────────────────────────────────────────────────────
-SCRIPT_DIR = Path(__file__).parent
-LOGO_PATH  = SCRIPT_DIR / "8p2_logo.png"
-BG_PATH    = SCRIPT_DIR / "bg_solar.jpg"
+SCRIPT_DIR   = Path(__file__).parent
+LOGO_PATH    = SCRIPT_DIR / "8p2_logo_white.png"   # white version for dark background
+FAVICON_PATH = SCRIPT_DIR / "8p2_favicon.png"
+BG_PATH      = SCRIPT_DIR / "bg_solar.jpg"
 
 
 # ─────────────────────────────────────────────────────────────
-# FAVICON — inject 8p2.fr favicon via HTML
+# FAVICON
 # ─────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="PVPAT Data Portal | 8p2 Advisory",
-    page_icon=str(LOGO_PATH) if LOGO_PATH.exists() else "☀️",
+    page_icon=str(FAVICON_PATH) if FAVICON_PATH.exists() else "☀️",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -53,21 +54,63 @@ st.markdown(f"""
 <style>
   /* ── Full-page background ── */
   .stApp {{
-      background-image: linear-gradient(rgba(0,15,45,0.62), rgba(0,15,45,0.62)),
+      background-image: linear-gradient(rgba(0,10,35,0.70), rgba(0,10,35,0.70)),
                         {bg_css};
       background-size: cover;
       background-position: center;
       background-attachment: fixed;
   }}
 
-  /* ── Main content card (white on glass) ── */
-  .main .block-container {{
-      background: rgba(255,255,255,0.96);
-      border-radius: 12px;
+  /* ── Main content: dark glass card ── */
+  .main .block-container,
+  [data-testid="stAppViewBlockContainer"],
+  section[data-testid="stMain"] .block-container {{
+      background: rgba(0, 18, 55, 0.78) !important;
+      border-radius: 14px;
       padding: 2rem 2.5rem 2.5rem 2.5rem;
       max-width: 1100px;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.35);
+      box-shadow: 0 8px 50px rgba(0,0,0,0.55);
+      backdrop-filter: blur(6px);
   }}
+
+  /* ── All text white ── */
+  .stApp p, .stApp span, .stApp label, .stApp div,
+  .stApp h1, .stApp h2, .stApp h3, .stApp h4,
+  .stMarkdown, .stMarkdown p, .stMarkdown li,
+  [data-testid="stText"], .stCaption,
+  [data-baseweb="select"] *, [data-baseweb="input"] *,
+  [data-baseweb="radio"] *, [data-baseweb="checkbox"] *,
+  .stSelectbox label, .stMultiSelect label,
+  .stNumberInput label, .stTextInput label,
+  .stTextArea label, .stDateInput label,
+  .stRadio label, [data-testid="stCaptionContainer"] {{
+      color: white !important;
+  }}
+
+  /* ── Input fields: dark tinted ── */
+  input, textarea, [data-baseweb="input"] input,
+  [data-baseweb="textarea"] textarea {{
+      background: rgba(255,255,255,0.10) !important;
+      color: white !important;
+      border-color: rgba(255,255,255,0.25) !important;
+  }}
+  [data-baseweb="select"] > div {{
+      background: rgba(255,255,255,0.10) !important;
+      color: white !important;
+      border-color: rgba(255,255,255,0.25) !important;
+  }}
+
+  /* ── Tab labels ── */
+  [data-baseweb="tab"] button, [role="tab"] {{
+      color: rgba(255,255,255,0.75) !important;
+  }}
+  [aria-selected="true"][role="tab"] {{
+      color: white !important;
+      border-bottom-color: #F07820 !important;
+  }}
+
+  /* ── Divider ── */
+  hr {{ border-color: rgba(255,255,255,0.15) !important; }}
 
   /* ── Typography ── */
   html, body, [class*="css"] {{
@@ -76,7 +119,7 @@ st.markdown(f"""
 
   /* ── Step header bar ── */
   .step-hdr {{
-      background: #003366;
+      background: rgba(240,120,32,0.85);
       color: white;
       padding: 0.45rem 1rem;
       border-radius: 5px;
@@ -89,18 +132,18 @@ st.markdown(f"""
   .sub-hdr {{
       border-left: 4px solid #F07820;
       padding: 0.28rem 0.8rem;
-      background: #F4F6F8;
+      background: rgba(255,255,255,0.08);
       border-radius: 0 4px 4px 0;
       margin: 0.8rem 0 0.3rem 0;
       font-weight: 600;
-      color: #003366;
+      color: white;
       font-size: 0.87rem;
   }}
 
   /* ── Badges ── */
-  .req {{ background:#003366; color:white; font-size:0.64rem;
+  .req {{ background:#F07820; color:white; font-size:0.64rem;
           padding:1px 6px; border-radius:10px; margin-left:5px; vertical-align:middle; }}
-  .opt {{ background:#6B7280; color:white; font-size:0.64rem;
+  .opt {{ background:rgba(255,255,255,0.25); color:white; font-size:0.64rem;
           padding:1px 6px; border-radius:10px; margin-left:5px; vertical-align:middle; }}
 
   /* ── Submit button ── */
@@ -115,13 +158,20 @@ st.markdown(f"""
 
   /* ── Uploader ── */
   [data-testid="stFileUploaderDropzone"] {{
-      border: 1.5px dashed #B0C4DE;
+      border: 1.5px dashed rgba(255,255,255,0.30);
       border-radius: 6px;
-      background: #fafbfc;
+      background: rgba(255,255,255,0.06);
   }}
 
-  /* ── Success box ── */
-  .stSuccess {{ border-radius: 6px; }}
+  /* ── Expander ── */
+  [data-testid="stExpander"] {{
+      background: rgba(255,255,255,0.06) !important;
+      border: 1px solid rgba(255,255,255,0.15) !important;
+      border-radius: 6px;
+  }}
+
+  /* ── Success / error ── */
+  .stSuccess, .stError {{ border-radius: 6px; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -136,15 +186,15 @@ with col_logo:
 
 with col_title:
     st.markdown(
-        "<h2 style='margin:0.3rem 0 0.1rem 0;color:#003366;font-size:1.55rem'>"
+        "<h2 style='margin:0.3rem 0 0.1rem 0;color:white;font-size:1.55rem'>"
         "PVPAT — SCADA Data Submission Portal</h2>"
-        "<p style='margin:0;color:#6B7280;font-size:0.88rem'>"
+        "<p style='margin:0;color:rgba(255,255,255,0.65);font-size:0.88rem'>"
         "8p2 Advisory &nbsp;·&nbsp; A Dolfines Company</p>",
         unsafe_allow_html=True,
     )
 
 st.markdown(
-    "<p style='color:#444;font-size:0.88rem;margin:0.6rem 0 0 0;max-width:750px'>"
+    "<p style='color:rgba(255,255,255,0.80);font-size:0.88rem;margin:0.6rem 0 0 0;max-width:750px'>"
     "Please answer the setup questions below — the upload sections will adapt to your "
     "site configuration automatically. Once submitted, our team will contact you to "
     "confirm receipt and schedule the analysis.</p>",
@@ -194,7 +244,7 @@ with c3:
     data_years = st.multiselect(
         "Which years does your data cover?",
         [str(y) for y in range(2019, 2027)],
-        default=["2023", "2024"])
+        default=[])
 
 st.divider()
 
