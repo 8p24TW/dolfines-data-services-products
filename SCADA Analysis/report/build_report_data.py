@@ -256,6 +256,16 @@ def _executive_summary_page(config: dict, analysis: dict, charts: dict) -> dict:
     critical_months = int((monthly["PR"] < 65).sum()) if len(monthly) else 0
     alert_months = int(((monthly["PR"] >= 65) & (monthly["PR"] < pr_target)).sum()) if len(monthly) else 0
 
+    # ── Recoverable loss financials (€0.10/kWh = €100/MWh) ──────────────
+    TARIFF = 100.0
+    n_years = max(len(annual), 1)
+    avail_loss_mwh  = abs(float(wf.get("avail_loss", 0.0)))
+    tech_loss_mwh   = abs(float(wf.get("technical_loss", 0.0)))
+    total_recov_ann = (avail_loss_mwh + tech_loss_mwh) / n_years
+    avail_loss_eur  = avail_loss_mwh  / n_years * TARIFF
+    tech_loss_eur   = tech_loss_mwh   / n_years * TARIFF
+    total_recov_eur = total_recov_ann * TARIFF
+
     return {
         "template": "section",
         "id": "executive-summary",
@@ -285,12 +295,19 @@ def _executive_summary_page(config: dict, analysis: dict, charts: dict) -> dict:
                 )
             ),
             (f"The fleet recorded {critical_months} critical PR month(s) below 65% and {alert_months} further month(s) between 65% and {pr_target:.0f}%."),
+            (
+                f"Annualised recoverable losses are estimated at €{total_recov_eur:,.0f}/yr "
+                f"(downtime: €{avail_loss_eur:,.0f}/yr  +  technical underperformance: €{tech_loss_eur:,.0f}/yr), "
+                f"based on {TARIFF:.0f} €/MWh and averaged over {n_years} year(s). "
+                "Addressing the HIGH-priority action items is expected to recover the majority of this gap."
+            ),
         ],
         "kpis": [
             _kpi("Average PR", _fmt_pct(mean_pr), f"Target >= {pr_target:.0f}%", _pr_status(mean_pr, pr_target)),
             _kpi("Fleet availability", _fmt_pct(avail_res["mean"]), "Target >= 95%", _status_from_threshold(avail_res["mean"], 95)),
             _kpi("Actual energy", _fmt_num(total_energy_mwh, 0, " MWh")),
             _kpi("Priority actions", f"{high_actions} high / {medium_actions} medium", "", "danger" if high_actions else "warning" if medium_actions else "success"),
+            _kpi("Recoverable losses (ann.)", f"€{total_recov_eur:,.0f} /yr", f"Downtime €{avail_loss_eur:,.0f}  +  Tech. €{tech_loss_eur:,.0f}", "danger" if total_recov_eur > 50_000 else "warning"),
         ],
         "figures": [],
         "tables": [

@@ -98,141 +98,114 @@ class ReportChartFactory:
         return {"id": chart_id, "path": str(path), "alt": alt}
 
     def chart_site_map(self) -> dict:
-        """Professional France context map with star site marker."""
+        """Stylised dot-grid map of France with highlighted site point."""
         import math
+        from matplotlib.path import Path as MplPath
 
         LAT = 44.0 + 41.0 / 60.0 + 8.3 / 3600.0    # 44.6856°N
         LON = -(0.0 + 33.0 / 60.0 + 34.0 / 3600.0)  # −0.5594°W
 
-        # ── Simplified France mainland polygon (lon, lat, clockwise) ──────
-        france = [
-            (-4.70, 48.38),  # Brest (NW tip)
-            (-4.30, 47.80),  # Brittany S coast
+        # ── France mainland polygon (lon, lat) ────────────────────────────
+        france = np.array([
+            (-4.70, 48.38),  # Brest
+            (-4.78, 47.96),  # Brittany SW tip
+            (-4.30, 47.80),  # Brittany S
+            (-3.50, 47.55),
             (-2.80, 47.50),  # Loire-Atlantique
-            (-2.20, 47.25),  # Saint-Nazaire
-            (-1.20, 46.40),  # Vendée coast
+            (-2.20, 47.25),
+            (-1.55, 47.10),
+            (-1.20, 46.40),  # Vendée
             (-1.10, 45.70),  # Charente-Maritime
             (-1.10, 44.60),  # Landes
-            (-1.80, 43.40),  # Basque / Pyrenees W
+            (-1.80, 43.40),  # Basque coast
             ( 0.30, 43.00),  # Pyrenees centre
-            ( 1.60, 42.80),  # Pyrenees E
+            ( 1.60, 42.80),
             ( 3.00, 42.65),  # Roussillon
-            ( 3.10, 43.10),  # Perpignan / Gulf of Lion
-            ( 4.00, 43.20),  # Hérault
-            ( 5.05, 43.33),  # Bouches-du-Rhône
+            ( 3.10, 43.10),
+            ( 4.00, 43.20),
+            ( 5.05, 43.33),
             ( 5.35, 43.30),  # Marseille
-            ( 6.20, 43.10),  # Var coast
-            ( 7.40, 43.70),  # Nice / Italian border
-            ( 7.05, 44.10),  # Alpes-Maritimes
-            ( 6.90, 45.85),  # Haute-Savoie / Mont Blanc
-            ( 6.80, 46.15),  # Geneva area
-            ( 6.05, 46.42),  # Jura plateau
-            ( 7.60, 47.58),  # Basel / Rhine N
+            ( 6.20, 43.10),
+            ( 7.40, 43.70),  # Nice
+            ( 7.05, 44.10),
+            ( 6.90, 45.85),  # Mont Blanc
+            ( 6.80, 46.15),
+            ( 6.05, 46.42),  # Jura
+            ( 7.60, 47.58),  # Basel
             ( 7.80, 48.55),  # Strasbourg
-            ( 7.60, 49.00),  # Moselle / Rhine NE
-            ( 6.35, 49.45),  # Luxembourg border
-            ( 5.90, 49.50),  # Luxembourg W
-            ( 4.10, 50.00),  # Belgian border E
-            ( 3.15, 50.72),  # Belgian border W
+            ( 7.60, 49.00),
+            ( 6.35, 49.45),  # Luxembourg
+            ( 5.90, 49.50),
+            ( 4.10, 50.00),
+            ( 3.15, 50.72),  # Belgian border
             ( 2.55, 51.00),  # Dunkirk
             ( 1.60, 50.87),  # Calais
-            ( 0.40, 50.05),  # Le Havre
-            ( 0.20, 49.70),  # Normandy coast
+            ( 0.40, 50.05),
+            ( 0.20, 49.70),  # Normandy
             (-1.55, 49.68),  # Cherbourg tip
-            (-1.55, 49.20),  # Cherbourg base
-            (-2.00, 48.70),  # Cotentin base
-            (-3.20, 48.80),  # Normandy / Brittany
+            (-1.55, 49.20),
+            (-2.00, 48.70),
+            (-3.20, 48.80),
             (-4.70, 48.38),  # back to Brest
-        ]
+        ])
 
-        # Aspect correction at mean latitude (~46.5°N): 1°lon ≈ cos(46.5°)×111 km
-        mean_lat_rad = math.radians(46.5)
-        asp = 1.0 / math.cos(mean_lat_rad)   # ~1.45
+        france_path = MplPath(france)
 
-        fig, ax = plt.subplots(figsize=(8.5, 7.2))
+        # ── Dot grid — visually square given lat distortion at ~47°N ─────
+        mean_lat_rad = math.radians(47.0)
+        lon_step = 0.38
+        lat_step = lon_step * math.cos(mean_lat_rad)   # ~0.259°
+
+        xs = np.arange(-5.5, 9.5, lon_step)
+        ys = np.arange(41.8, 51.8, lat_step)
+        xx, yy = np.meshgrid(xs, ys)
+        pts = np.column_stack([xx.ravel(), yy.ravel()])
+        inside = france_path.contains_points(pts)
+        dx, dy = pts[inside, 0], pts[inside, 1]
+
+        # ── Figure ────────────────────────────────────────────────────────
+        asp = 1.0 / math.cos(mean_lat_rad)   # ~1.47
+        fig, ax = plt.subplots(figsize=(7.2, 7.2))
         fig.patch.set_facecolor("white")
+        ax.set_facecolor("white")
 
-        # Sea / background
-        ax.set_facecolor("#C8DCE8")
+        # France dots
+        ax.scatter(dx, dy, s=18, color="#2D3748", alpha=0.75,
+                   linewidths=0, zorder=2)
 
-        # France fill
-        from matplotlib.patches import Polygon as _Poly
-        france_patch = _Poly(
-            france, closed=True, zorder=2,
-            facecolor="#E4EBF2", edgecolor="#3E6080", linewidth=1.4,
-        )
-        ax.add_patch(france_patch)
+        # Site dot — prominent red with outer ring
+        ax.scatter([LON], [LAT], s=220, color=self.tokens["danger_red"],
+                   linewidths=2, edgecolors="white", zorder=6)
+        ax.scatter([LON], [LAT], s=440, facecolors="none",
+                   edgecolors=self.tokens["danger_red"], linewidths=1.2,
+                   alpha=0.4, zorder=5)
 
-        # Map extent (mainland France + a margin)
-        ax.set_xlim(-6.2, 9.8)
-        ax.set_ylim(41.4, 52.2)
-        ax.set_aspect(asp, adjustable="datalim")
-
-        # Lat / lon grid
-        for lon in range(-6, 10, 2):
-            ax.axvline(lon, color="white", linewidth=0.5, alpha=0.7, zorder=1)
-        for lat in range(42, 53, 2):
-            ax.axhline(lat, color="white", linewidth=0.5, alpha=0.7, zorder=1)
-        ax.set_xticks(range(-6, 10, 2))
-        ax.set_yticks(range(42, 53, 2))
-        ax.set_xticklabels(
-            [f"{abs(v)}°{'W' if v < 0 else 'E'}" for v in range(-6, 10, 2)], fontsize=8
-        )
-        ax.set_yticklabels([f"{v}°N" for v in range(42, 53, 2)], fontsize=8)
-
-        # "France" watermark label
-        ax.text(
-            3.2, 46.5, "FRANCE",
-            fontsize=18, fontweight="bold", color="#3E6080", alpha=0.22,
-            ha="center", va="center", style="italic", zorder=3,
-        )
-
-        # Reference cities
-        cities = {
-            "Paris":     ( 2.35, 48.85),
-            "Bordeaux":  (-0.58, 44.84),
-            "Lyon":      ( 4.83, 45.74),
-            "Toulouse":  ( 1.44, 43.60),
-            "Marseille": ( 5.37, 43.30),
-        }
-        for name, (cx, cy) in cities.items():
-            ax.plot(cx, cy, "o", color="#3E6080", markersize=4.5, zorder=5,
-                    markeredgecolor="white", markeredgewidth=0.6)
-            ax.text(cx + 0.18, cy + 0.15, name, fontsize=7.5,
-                    color="#2D4A6A", va="bottom", zorder=5)
-
-        # ── Site star marker ──────────────────────────────────────────────
-        ax.plot(
-            LON, LAT, marker="*",
-            color=self.tokens["danger_red"], markersize=22, zorder=8,
-            markeredgecolor="white", markeredgewidth=0.8,
-        )
+        # Callout annotation
         ax.annotate(
             "PVPAT Solar PV Farm\n44°41′N  |  0°34′W",
             xy=(LON, LAT),
-            xytext=(LON + 3.2, LAT - 1.2),
+            xytext=(LON + 3.0, LAT - 1.5),
             fontsize=8.5, fontweight="bold",
-            color=self.tokens["primary_navy"], zorder=9,
+            color=self.tokens["primary_navy"], zorder=7,
             arrowprops=dict(
                 arrowstyle="->", color=self.tokens["primary_navy"],
-                lw=1.1, connectionstyle="arc3,rad=0.15",
+                lw=1.0, connectionstyle="arc3,rad=0.2",
             ),
             bbox=dict(
-                boxstyle="round,pad=0.40", facecolor="white", alpha=0.92,
+                boxstyle="round,pad=0.38", facecolor="white", alpha=0.93,
                 edgecolor=self.tokens["primary_navy"], linewidth=0.9,
             ),
         )
 
-        # Spines
-        for spine in ax.spines.values():
-            spine.set_color("#B0BEC5")
-            spine.set_linewidth(0.8)
-
+        ax.set_aspect(asp, adjustable="datalim")
+        ax.set_xlim(-6.2, 9.8)
+        ax.set_ylim(41.0, 52.5)
+        ax.axis("off")
         ax.set_title(
-            "Site Location  —  PVPAT Solar PV Farm,  SW France",
+            "PVPAT Solar PV Farm  —  Site Location, SW France",
             fontsize=11, fontweight="bold", color=self.tokens["primary_navy"], pad=10,
         )
-        return self._save_png(fig, "site_map", "Site location map — France context")
+        return self._save_png(fig, "site_map", "Stylised dot-grid site location map")
 
     def chart_data_availability_overview(self) -> dict:
         data_avail = self.analysis["data_avail"]
