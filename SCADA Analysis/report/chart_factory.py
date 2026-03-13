@@ -98,83 +98,141 @@ class ReportChartFactory:
         return {"id": chart_id, "path": str(path), "alt": alt}
 
     def chart_site_map(self) -> dict:
-        """Site location map — GPS 44°41′08.3″N, 0°33′34.0″W."""
+        """Professional France context map with star site marker."""
         import math
 
-        # 44°41'08.3"N, 0°33'34.0"W
         LAT = 44.0 + 41.0 / 60.0 + 8.3 / 3600.0    # 44.6856°N
-        LON = -(0.0 + 33.0 / 60.0 + 34.0 / 3600.0)  # -0.5594°W
+        LON = -(0.0 + 33.0 / 60.0 + 34.0 / 3600.0)  # −0.5594°W
 
-        def _to_webmercator(lon_deg, lat_deg):
-            R = 6378137.0
-            x = math.radians(lon_deg) * R
-            y = math.log(math.tan(math.pi / 4.0 + math.radians(lat_deg) / 2.0)) * R
-            return x, y
+        # ── Simplified France mainland polygon (lon, lat, clockwise) ──────
+        france = [
+            (-4.70, 48.38),  # Brest (NW tip)
+            (-4.30, 47.80),  # Brittany S coast
+            (-2.80, 47.50),  # Loire-Atlantique
+            (-2.20, 47.25),  # Saint-Nazaire
+            (-1.20, 46.40),  # Vendée coast
+            (-1.10, 45.70),  # Charente-Maritime
+            (-1.10, 44.60),  # Landes
+            (-1.80, 43.40),  # Basque / Pyrenees W
+            ( 0.30, 43.00),  # Pyrenees centre
+            ( 1.60, 42.80),  # Pyrenees E
+            ( 3.00, 42.65),  # Roussillon
+            ( 3.10, 43.10),  # Perpignan / Gulf of Lion
+            ( 4.00, 43.20),  # Hérault
+            ( 5.05, 43.33),  # Bouches-du-Rhône
+            ( 5.35, 43.30),  # Marseille
+            ( 6.20, 43.10),  # Var coast
+            ( 7.40, 43.70),  # Nice / Italian border
+            ( 7.05, 44.10),  # Alpes-Maritimes
+            ( 6.90, 45.85),  # Haute-Savoie / Mont Blanc
+            ( 6.80, 46.15),  # Geneva area
+            ( 6.05, 46.42),  # Jura plateau
+            ( 7.60, 47.58),  # Basel / Rhine N
+            ( 7.80, 48.55),  # Strasbourg
+            ( 7.60, 49.00),  # Moselle / Rhine NE
+            ( 6.35, 49.45),  # Luxembourg border
+            ( 5.90, 49.50),  # Luxembourg W
+            ( 4.10, 50.00),  # Belgian border E
+            ( 3.15, 50.72),  # Belgian border W
+            ( 2.55, 51.00),  # Dunkirk
+            ( 1.60, 50.87),  # Calais
+            ( 0.40, 50.05),  # Le Havre
+            ( 0.20, 49.70),  # Normandy coast
+            (-1.55, 49.68),  # Cherbourg tip
+            (-1.55, 49.20),  # Cherbourg base
+            (-2.00, 48.70),  # Cotentin base
+            (-3.20, 48.80),  # Normandy / Brittany
+            (-4.70, 48.38),  # back to Brest
+        ]
 
-        sx, sy = _to_webmercator(LON, LAT)
-        margin = 3500  # ~3.5 km radius
+        # Aspect correction at mean latitude (~46.5°N): 1°lon ≈ cos(46.5°)×111 km
+        mean_lat_rad = math.radians(46.5)
+        asp = 1.0 / math.cos(mean_lat_rad)   # ~1.45
 
-        fig, ax = plt.subplots(figsize=(9.0, 5.2))
+        fig, ax = plt.subplots(figsize=(8.5, 7.2))
         fig.patch.set_facecolor("white")
-        ax.set_xlim(sx - margin, sx + margin)
-        ax.set_ylim(sy - margin, sy + margin)
 
-        map_added = False
-        try:
-            import contextily as cx
-            cx.add_basemap(
-                ax,
-                crs="EPSG:3857",
-                source=cx.providers.OpenStreetMap.Mapnik,
-                zoom=13,
-                attribution_size=6,
-            )
-            map_added = True
-        except Exception:
-            ax.set_facecolor("#D4E6F1")
-            for dx, dy, r in [
-                (0, 0, margin * 0.35), (0, 0, margin * 0.65), (0, 0, margin * 0.95)
-            ]:
-                circle = plt.Circle(
-                    (sx + dx, sy + dy), r,
-                    fill=False, edgecolor="#AACDE6", linewidth=0.8, linestyle="--"
-                )
-                ax.add_patch(circle)
-            ax.text(
-                sx, sy - margin * 0.25,
-                "(Map tiles require:  pip install contextily)",
-                ha="center", va="center", fontsize=7.5, color="#777777",
-                style="italic",
-            )
+        # Sea / background
+        ax.set_facecolor("#C8DCE8")
 
-        # Site marker
-        ax.plot(
-            sx, sy, "^",
-            color=self.tokens["danger_red"], markersize=16, zorder=6,
-            markeredgecolor="white", markeredgewidth=1.5,
+        # France fill
+        from matplotlib.patches import Polygon as _Poly
+        france_patch = _Poly(
+            france, closed=True, zorder=2,
+            facecolor="#E4EBF2", edgecolor="#3E6080", linewidth=1.4,
         )
+        ax.add_patch(france_patch)
+
+        # Map extent (mainland France + a margin)
+        ax.set_xlim(-6.2, 9.8)
+        ax.set_ylim(41.4, 52.2)
+        ax.set_aspect(asp, adjustable="datalim")
+
+        # Lat / lon grid
+        for lon in range(-6, 10, 2):
+            ax.axvline(lon, color="white", linewidth=0.5, alpha=0.7, zorder=1)
+        for lat in range(42, 53, 2):
+            ax.axhline(lat, color="white", linewidth=0.5, alpha=0.7, zorder=1)
+        ax.set_xticks(range(-6, 10, 2))
+        ax.set_yticks(range(42, 53, 2))
+        ax.set_xticklabels(
+            [f"{abs(v)}°{'W' if v < 0 else 'E'}" for v in range(-6, 10, 2)], fontsize=8
+        )
+        ax.set_yticklabels([f"{v}°N" for v in range(42, 53, 2)], fontsize=8)
+
+        # "France" watermark label
         ax.text(
-            sx, sy + margin * 0.17,
-            "PVPAT Solar PV Farm",
-            fontsize=9.5, fontweight="bold", ha="center", va="bottom",
-            color=self.tokens["primary_navy"], zorder=7,
+            3.2, 46.5, "FRANCE",
+            fontsize=18, fontweight="bold", color="#3E6080", alpha=0.22,
+            ha="center", va="center", style="italic", zorder=3,
+        )
+
+        # Reference cities
+        cities = {
+            "Paris":     ( 2.35, 48.85),
+            "Bordeaux":  (-0.58, 44.84),
+            "Lyon":      ( 4.83, 45.74),
+            "Toulouse":  ( 1.44, 43.60),
+            "Marseille": ( 5.37, 43.30),
+        }
+        for name, (cx, cy) in cities.items():
+            ax.plot(cx, cy, "o", color="#3E6080", markersize=4.5, zorder=5,
+                    markeredgecolor="white", markeredgewidth=0.6)
+            ax.text(cx + 0.18, cy + 0.15, name, fontsize=7.5,
+                    color="#2D4A6A", va="bottom", zorder=5)
+
+        # ── Site star marker ──────────────────────────────────────────────
+        ax.plot(
+            LON, LAT, marker="*",
+            color=self.tokens["danger_red"], markersize=22, zorder=8,
+            markeredgecolor="white", markeredgewidth=0.8,
+        )
+        ax.annotate(
+            "PVPAT Solar PV Farm\n44°41′N  |  0°34′W",
+            xy=(LON, LAT),
+            xytext=(LON + 3.2, LAT - 1.2),
+            fontsize=8.5, fontweight="bold",
+            color=self.tokens["primary_navy"], zorder=9,
+            arrowprops=dict(
+                arrowstyle="->", color=self.tokens["primary_navy"],
+                lw=1.1, connectionstyle="arc3,rad=0.15",
+            ),
             bbox=dict(
-                boxstyle="round,pad=0.35", facecolor="white", alpha=0.88,
-                edgecolor=self.tokens["primary_navy"], linewidth=0.8,
+                boxstyle="round,pad=0.40", facecolor="white", alpha=0.92,
+                edgecolor=self.tokens["primary_navy"], linewidth=0.9,
             ),
         )
-        ax.text(
-            sx, sy - margin * 0.82,
-            "44°41′08.3″N  |  0°33′34.0″W",
-            fontsize=7.5, ha="center", va="bottom", color="#444444", zorder=7,
-            bbox=dict(boxstyle="round,pad=0.25", facecolor="white", alpha=0.80, edgecolor="none"),
-        )
-        ax.set_axis_off()
+
+        # Spines
+        for spine in ax.spines.values():
+            spine.set_color("#B0BEC5")
+            spine.set_linewidth(0.8)
+
         ax.set_title(
-            "Site Location — PVPAT Solar PV Farm",
-            fontsize=11, fontweight="bold", color=self.tokens["primary_navy"], pad=8,
+            "Site Location  —  PVPAT Solar PV Farm,  SW France",
+            fontsize=11, fontweight="bold", color=self.tokens["primary_navy"], pad=10,
         )
-        return self._save_png(fig, "site_map", "Site location map — 44°41′08.3″N, 0°33′34.0″W")
+        return self._save_png(fig, "site_map", "Site location map — France context")
 
     def chart_data_availability_overview(self) -> dict:
         data_avail = self.analysis["data_avail"]
@@ -298,36 +356,38 @@ class ReportChartFactory:
 
     def chart_monthly_pr_energy(self) -> dict:
         monthly = self.analysis["pr_res"]["monthly"]
-        # Build figure manually (no constrained_layout) so the third axis has room
-        figsize = self.sizes["full"]
-        fig, ax1 = plt.subplots(figsize=figsize)
+        # Taller figure; manual layout so the third axis has room on the right
+        fig, ax1 = plt.subplots(figsize=(9.2, 6.0))
         fig.patch.set_facecolor("white")
-        fig.subplots_adjust(left=0.09, right=0.80, top=0.90, bottom=0.13)
+        fig.subplots_adjust(left=0.09, right=0.80, top=0.88, bottom=0.18)
+
+        pr_color  = self.tokens["secondary_slate_blue"]   # blue for PR
+        irr_color = self.tokens["accent_orange"]           # orange for irradiation
 
         ax2 = ax1.twinx()   # PR (%)
         ax3 = ax1.twinx()   # Irradiation (kWh/m²)
         ax3.spines["right"].set_position(("outward", 58))
 
-        irr_color = "#2E7D32"  # dark green for irradiation
-
         bars = ax1.bar(
             monthly.index, monthly["E_act"] / 1000.0, width=20,
-            color=self.tokens["secondary_slate_blue"], alpha=0.9,
+            color="#B0C4D8", alpha=0.95, zorder=2,
         )
         irr_line = ax3.plot(
             monthly.index, monthly["irrad"],
-            color=irr_color, marker="s", linewidth=1.6, linestyle="--", alpha=0.85,
+            color=irr_color, marker="s", markersize=5, linewidth=2.0, zorder=4,
         )[0]
         pr_line = ax2.plot(
             monthly.index, monthly["PR"],
-            color=self.tokens["accent_orange"], marker="o", linewidth=1.5,
+            color=pr_color, marker="o", markersize=5, linewidth=2.0, zorder=5,
         )[0]
-        target = ax2.axhline(78, color=self.tokens["success_green"], linestyle="--", linewidth=1.0)
+        target = ax2.axhline(
+            78, color=self.tokens["success_green"], linestyle="--", linewidth=1.1, zorder=3,
+        )
 
         ax1.set_title("Monthly Energy, Irradiation And PR", fontsize=11, fontweight="bold")
-        ax1.set_ylabel("Actual energy (MWh)")
-        ax2.set_ylabel("PR (%)")
-        ax3.set_ylabel("Irradiation (kWh/m²)")
+        ax1.set_ylabel("Actual energy (MWh)", fontsize=9)
+        ax2.set_ylabel("PR (%)", color=pr_color, fontsize=9)
+        ax3.set_ylabel("Irradiation (kWh/m²)", color=irr_color, fontsize=9)
         ax1.xaxis.set_major_formatter(mdates.DateFormatter("%b\n%Y"))
 
         self._apply_axes_style(ax1)
@@ -335,16 +395,20 @@ class ReportChartFactory:
             _ax.spines["top"].set_visible(False)
             _ax.spines["left"].set_visible(False)
             _ax.spines["bottom"].set_visible(False)
-        ax2.spines["right"].set_color(self.tokens["border_grey"])
-        ax2.tick_params(colors=self.tokens["body_text"], labelsize=8)
+        ax2.spines["right"].set_color(pr_color)
+        ax2.tick_params(colors=pr_color, labelsize=8)
+        ax2.yaxis.label.set_color(pr_color)
         ax3.spines["right"].set_color(irr_color)
         ax3.tick_params(colors=irr_color, labelsize=8)
         ax3.yaxis.label.set_color(irr_color)
 
+        # Legend placed below the plot area — clear of the bars
         ax1.legend(
             [bars, irr_line, pr_line, target],
-            ["Actual energy (MWh)", "Irradiation (kWh/m²)", "PR (%)", "78% target"],
-            frameon=False, loc="upper left", ncol=4, fontsize=7.8,
+            ["Energy (MWh)", "Irradiation (kWh/m²)", "PR (%)", "78 % target"],
+            frameon=True, framealpha=0.92, edgecolor=self.tokens["border_grey"],
+            loc="upper center", bbox_to_anchor=(0.38, -0.13),
+            ncol=4, fontsize=8.5,
         )
         return self._save(fig, "monthly_pr_energy", "Monthly energy, irradiation and PR chart")
 
