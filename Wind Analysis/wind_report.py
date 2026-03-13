@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from math import asin, cos, radians, sin, sqrt
+from math import asin, ceil, cos, radians, sin, sqrt
 from pathlib import Path
 import re
 
@@ -113,12 +113,14 @@ class WindChartFactory:
             self.chart_availability_trend,
             self.chart_waterfall,
             self.chart_monthly_availability_loss,
-            self.chart_fleet_power_curve,
+            self.chart_performance_index,
             self.chart_fault_duration_by_turbine,
         ]:
             result = builder()
             if result:
                 charts[result["id"]] = result
+        for chart in self._turbine_scatter_charts():
+            charts[chart["id"]] = chart
         return charts
 
     def _apply_axes_style(self, ax) -> None:
@@ -310,59 +312,86 @@ class WindChartFactory:
         self._apply_axes_style(ax)
         return self._save(fig, "monthly_availability_loss", "Monthly availability loss chart")
 
-    def chart_fleet_power_curve(self) -> dict:
-        curve = self.analysis["power_curve"]
-        fig, axes = plt.subplots(2, 1, figsize=(8.4, 10.6), constrained_layout=True)
-        ax1, ax2 = axes
-        ref = curve["reference_curve"]
-        ref_counts = curve.get("reference_curve_counts")
-        reliable_ref = ref.copy()
-        if ref_counts is not None:
-            reliable_ref = reliable_ref.where(ref_counts >= 12)
-        ax1.plot(reliable_ref.index, reliable_ref.values, color=self.tokens["primary_navy"], linewidth=2.1, label="Reference envelope")
-        max_reliable_wind = np.nanmax(reliable_ref.index.to_numpy(dtype=float)[np.isfinite(reliable_ref.to_numpy(dtype=float))]) if reliable_ref.notna().any() else 20.0
-        for turbine, series in curve["binned_by_turbine"].items():
-            counts = curve.get("binned_counts_by_turbine", {}).get(turbine)
-            reliable = series.copy()
-            if counts is not None:
-                reliable = reliable.where(counts >= 6)
-            reliable = reliable.where(~((reliable.index >= 18.0) & (reliable < self.config["rated_power_kw"] * 0.75)))
-            ax1.plot(reliable.index, reliable.values, linewidth=1.15, alpha=0.9, label=turbine)
-        ax1.set_title("Fleet Power Curve Envelope", fontsize=11, fontweight="bold")
-        ax1.set_xlabel("Wind speed (m/s)")
-        ax1.set_ylabel("Power (kW)")
-        ax1.set_xlim(0, min(max_reliable_wind + 0.75, 24.0))
-        ax1.set_ylim(0, self.config["rated_power_kw"] * 1.06)
-        self._apply_axes_style(ax1)
-        ax1.legend(frameon=False, ncol=3, fontsize=8.2, loc="upper left")
-        ax1.text(
-            0.99,
-            0.03,
-            "High-wind bins with too few records are hidden.",
-            transform=ax1.transAxes,
-            ha="right",
-            va="bottom",
-            fontsize=8.2,
-            color=self.tokens["muted_text"],
-        )
-
+    def chart_performance_index(self) -> dict:
+        """Standalone performance-index bar chart (separate page)."""
         deviation = self.analysis["fleet"]["performance_index_pct"].sort_values()
+        fig, ax = self._figure("full")
+        ax = ax if not isinstance(ax, np.ndarray) else ax[0]
         colors = [
-            self.tokens["danger_red"] if value < 90 else self.tokens["warning_amber"] if value < 95 else self.tokens["secondary_slate_blue"]
-            for value in deviation.values
+            self.tokens["danger_red"] if v < 90 else self.tokens["warning_amber"] if v < 95 else self.tokens["secondary_slate_blue"]
+            for v in deviation.values
         ]
-        ax2.barh(deviation.index, deviation.values, color=colors, edgecolor="white")
-        ax2.axvline(95, color=self.tokens["accent_orange"], linestyle="--", linewidth=1.0)
-        ax2.set_title("Performance Index By Turbine", fontsize=11, fontweight="bold")
-        ax2.set_xlabel("Performance index (%)")
+        ax.barh(deviation.index, deviation.values, color=colors, edgecolor="white")
+        ax.axvline(95, color=self.tokens["accent_orange"], linestyle="--", linewidth=1.0)
+        ax.set_title("Performance Index By Turbine", fontsize=11, fontweight="bold")
+        ax.set_xlabel("Performance index (%)")
         x_min = max(0.0, float(np.floor(deviation.min() / 5.0) * 5.0) - 5.0)
-        ax2.set_xlim(x_min, 102)
+        ax.set_xlim(x_min, 102)
         for turbine, value in deviation.items():
-            ax2.text(min(value + 0.5, 101.5), turbine, f"{value:.1f}%", va="center", fontsize=8.5, color=self.tokens["primary_navy"])
-        self._apply_axes_style(ax2)
-        ax2.grid(True, axis="x", color=self.tokens["border_grey"], alpha=0.45, linewidth=0.8)
-        ax2.grid(False, axis="y")
-        return self._save(fig, "fleet_power_curve", "Fleet power curve diagnostics")
+            ax.text(min(value + 0.5, 101.5), turbine, f"{value:.1f}%", va="center", fontsize=8.5, color=self.tokens["primary_navy"])
+        self._apply_axes_style(ax)
+        ax.grid(True, axis="x", color=self.tokens["border_grey"], alpha=0.45, linewidth=0.8)
+        ax.grid(False, axis="y")
+        return self._save(fig, "performance_index", "Performance index by turbine")
+
+    def _turbine_scatter_charts(self) -> list[dict]:
+        """One scatter plot per turbine, two turbines per figure/page."""
+        curve = self.analysis["power_curve"]
+        scatter_by_turbine = curve.get("scatter_by_turbine", {})
+        ref = curve["reference_curve"]
+        ref_x = ref.index.to_numpy(dtype=float)
+        ref_y = ref.to_numpy(dtype=float)
+        rated = self.config["rated_power_kw"]
+        turbines = sorted(scatter_by_turbine.keys(), key=_sort_key)
+
+        charts = []
+        pairs = [turbines[i:i + 2] for i in range(0, len(turbines), 2)]
+        for page_idx, pair in enumerate(pairs):
+            n = len(pair)
+            fig, axes = plt.subplots(1, n, figsize=(4.8 * n, 5.2), squeeze=False)
+            fig.patch.set_facecolor("white")
+
+            for col, turbine in enumerate(pair):
+                ax = axes[0][col]
+                scatter_df = scatter_by_turbine.get(turbine)
+                if scatter_df is not None and not scatter_df.empty:
+                    wind = scatter_df["wind_ms"].to_numpy(dtype=float)
+                    power = scatter_df["power_kw"].to_numpy(dtype=float)
+                    expected = np.interp(wind, ref_x, ref_y)
+                    # Flag curtailment: above rated wind speed but power well below expected
+                    curtailed = (wind >= 6.0) & (power < expected * 0.75) & (expected >= rated * 0.30)
+                    ax.scatter(
+                        wind[~curtailed], power[~curtailed],
+                        s=3, color=self.tokens["secondary_slate_blue"],
+                        alpha=0.22, linewidths=0, zorder=2, rasterized=True,
+                    )
+                    if curtailed.any():
+                        ax.scatter(
+                            wind[curtailed], power[curtailed],
+                            s=5, color=self.tokens["accent_orange"],
+                            alpha=0.55, linewidths=0, zorder=3, rasterized=True,
+                            label="Potential curtailment",
+                        )
+                # Reference curve
+                ax.plot(ref_x, ref_y, color=self.tokens["primary_navy"], linewidth=2.0, zorder=5, label="Reference curve")
+                # Turbine binned median
+                binned = curve["binned_by_turbine"].get(turbine)
+                if binned is not None:
+                    ax.plot(binned.index, binned.values, color=self.tokens["danger_red"],
+                            linewidth=1.5, linestyle="--", zorder=4, label="Turbine median")
+                ax.set_title(turbine, fontsize=11, fontweight="bold", color=self.tokens["primary_navy"])
+                ax.set_xlabel("Wind speed (m/s)")
+                ax.set_ylabel("Power (kW)")
+                ax.set_xlim(0, 26)
+                ax.set_ylim(-rated * 0.02, rated * 1.08)
+                self._apply_axes_style(ax)
+                ax.legend(frameon=False, fontsize=7.5, loc="upper left")
+
+            fig.tight_layout(pad=1.8)
+            chart_id = f"power_curve_scatter_p{page_idx + 1}"
+            charts.append(self._save_png(fig, chart_id, f"Turbine scatter power curves — page {page_idx + 1}"))
+
+        return charts
 
     def chart_site_locator_map(self) -> dict | None:
         """France image map with highlighted wind-farm location."""
@@ -677,6 +706,11 @@ def build_wind_report_data(*, config: dict, analysis: dict, charts: dict, output
         },
     ]
 
+    turbines_sorted = sorted(
+        analysis["power_curve"].get("scatter_by_turbine", analysis["power_curve"]["binned_by_turbine"]).keys(),
+        key=_sort_key,
+    )
+
     main_pages = [
         {
             "template": "section",
@@ -880,14 +914,35 @@ def build_wind_report_data(*, config: dict, analysis: dict, charts: dict, output
             "findings": [],
             "notes": [],
         },
+        *[
+            {
+                "template": "appendix",
+                "id": "appendix-power-curve",
+                "toc_group": "Appendix",
+                "toc_hide": page_idx > 0,
+                "title": "Appendix - Fleet Power Curve Diagnostics",
+                "summary": "Scatter of all 10-minute operating points per turbine against the fleet reference curve. Orange points indicate potential curtailment." if page_idx == 0 else "",
+                "commentary": [],
+                "figures": [fig for fig in [
+                    _figure_block(charts, f"power_curve_scatter_p{page_idx + 1}",
+                                  f"Power Curve Scatter — {', '.join(turbines_sorted[page_idx*2:(page_idx+1)*2])}",
+                                  "Blue = normal operating points. Orange = potential curtailment (wind ≥ 6 m/s, power < 75% of reference).",
+                                  width="full")
+                ] if fig],
+                "tables": [],
+                "findings": [],
+                "notes": [],
+            }
+            for page_idx in range(ceil(len(turbines_sorted) / 2))
+        ],
         {
             "template": "appendix",
-            "id": "appendix-power-curve",
+            "id": "appendix-performance-index",
             "toc_group": "Appendix",
-            "title": "Appendix - Fleet Power Curve Diagnostics",
-            "summary": "Reference-envelope construction and turbine-level power-curve positioning.",
+            "title": "Appendix - Turbine Performance Index",
+            "summary": "Ratio of actual energy to reference-curve potential, annualised over the full analysis period.",
             "commentary": [],
-            "figures": [_figure_block(charts, "fleet_power_curve", "Fleet Power Curve Diagnostics", "Reference and turbine-level binned power curves are shown together with the resulting performance-index ranking.", width="full")],
+            "figures": [fig for fig in [_figure_block(charts, "performance_index", "Performance Index By Turbine", "Turbines below 95% are flagged for investigation. Red < 90%, amber 90–95%, blue ≥ 95%.", width="full")] if fig],
             "tables": [],
             "findings": [],
             "notes": [],

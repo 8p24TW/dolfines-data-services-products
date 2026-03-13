@@ -1020,16 +1020,22 @@ img {
 }
 
 .page-appendix-power-curve .figure-grid,
+.page-appendix-performance-index .figure-grid,
 .page-appendix-faults .figure-grid {
   grid-template-columns: 1fr;
 }
 
-.page-appendix-power-curve .figure-card {
+.page-appendix-power-curve .figure-card,
+.page-appendix-performance-index .figure-card {
   padding: 2.2mm;
 }
 
 .page-appendix-power-curve .figure-card img {
   max-height: 198mm;
+}
+
+.page-appendix-performance-index .figure-card img {
+  max-height: 120mm;
 }
 
 .page-appendix-power-curve .figure-card figcaption {
