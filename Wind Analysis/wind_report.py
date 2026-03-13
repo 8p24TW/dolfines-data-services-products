@@ -386,16 +386,6 @@ class WindChartFactory:
                 # Reliable reference curve (no high-wind artefacts)
                 ax.plot(ref_x, ref_y, color=self.tokens["primary_navy"],
                         linewidth=2.0, zorder=5, label="Reference curve")
-                # Turbine binned median
-                binned = curve["binned_by_turbine"].get(turbine)
-                if binned is not None:
-                    reliable_binned = binned.copy()
-                    if ref_counts is not None:
-                        reliable_binned = reliable_binned.where(ref_counts.reindex(binned.index) >= 6)
-                    reliable_binned = reliable_binned.dropna()
-                    ax.plot(reliable_binned.index, reliable_binned.values,
-                            color=self.tokens["danger_red"],
-                            linewidth=1.5, linestyle="--", zorder=4, label="Turbine median")
                 ax.set_title(turbine, fontsize=10, fontweight="bold", color=self.tokens["primary_navy"])
                 ax.set_xlabel("Wind speed (m/s)", fontsize=8.5)
                 ax.set_ylabel("Power (kW)", fontsize=8.5)
