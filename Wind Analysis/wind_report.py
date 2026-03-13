@@ -335,30 +335,41 @@ class WindChartFactory:
         return self._save(fig, "performance_index", "Performance index by turbine")
 
     def _turbine_scatter_charts(self) -> list[dict]:
-        """One scatter plot per turbine, two turbines per figure/page."""
+        """Four scatter plots per page (2×2), one per turbine."""
         curve = self.analysis["power_curve"]
         scatter_by_turbine = curve.get("scatter_by_turbine", {})
-        ref = curve["reference_curve"]
-        ref_x = ref.index.to_numpy(dtype=float)
-        ref_y = ref.to_numpy(dtype=float)
         rated = self.config["rated_power_kw"]
         turbines = sorted(scatter_by_turbine.keys(), key=_sort_key)
 
+        # Build reliable reference curve — drop bins with < 12 observations
+        ref = curve["reference_curve"]
+        ref_counts = curve.get("reference_curve_counts")
+        reliable_ref = ref.copy()
+        if ref_counts is not None:
+            reliable_ref = reliable_ref.where(ref_counts >= 12)
+        reliable_ref = reliable_ref.dropna()
+        ref_x = reliable_ref.index.to_numpy(dtype=float)
+        ref_y = reliable_ref.to_numpy(dtype=float)
+        max_wind = float(ref_x.max()) + 0.5 if len(ref_x) > 0 else 20.5
+
         charts = []
-        pairs = [turbines[i:i + 2] for i in range(0, len(turbines), 2)]
-        for page_idx, pair in enumerate(pairs):
-            n = len(pair)
-            fig, axes = plt.subplots(1, n, figsize=(4.8 * n, 5.2), squeeze=False)
+        groups = [turbines[i:i + 4] for i in range(0, len(turbines), 4)]
+        for page_idx, group in enumerate(groups):
+            fig, axes = plt.subplots(2, 2, figsize=(9.5, 9.2), squeeze=False)
             fig.patch.set_facecolor("white")
 
-            for col, turbine in enumerate(pair):
-                ax = axes[0][col]
+            for idx in range(4):
+                row, col = divmod(idx, 2)
+                ax = axes[row][col]
+                if idx >= len(group):
+                    ax.set_visible(False)
+                    continue
+                turbine = group[idx]
                 scatter_df = scatter_by_turbine.get(turbine)
                 if scatter_df is not None and not scatter_df.empty:
                     wind = scatter_df["wind_ms"].to_numpy(dtype=float)
                     power = scatter_df["power_kw"].to_numpy(dtype=float)
-                    expected = np.interp(wind, ref_x, ref_y)
-                    # Flag curtailment: above rated wind speed but power well below expected
+                    expected = np.interp(wind, ref_x, ref_y, left=0.0, right=rated)
                     curtailed = (wind >= 6.0) & (power < expected * 0.75) & (expected >= rated * 0.30)
                     ax.scatter(
                         wind[~curtailed], power[~curtailed],
@@ -372,22 +383,28 @@ class WindChartFactory:
                             alpha=0.55, linewidths=0, zorder=3, rasterized=True,
                             label="Potential curtailment",
                         )
-                # Reference curve
-                ax.plot(ref_x, ref_y, color=self.tokens["primary_navy"], linewidth=2.0, zorder=5, label="Reference curve")
+                # Reliable reference curve (no high-wind artefacts)
+                ax.plot(ref_x, ref_y, color=self.tokens["primary_navy"],
+                        linewidth=2.0, zorder=5, label="Reference curve")
                 # Turbine binned median
                 binned = curve["binned_by_turbine"].get(turbine)
                 if binned is not None:
-                    ax.plot(binned.index, binned.values, color=self.tokens["danger_red"],
+                    reliable_binned = binned.copy()
+                    if ref_counts is not None:
+                        reliable_binned = reliable_binned.where(ref_counts.reindex(binned.index) >= 6)
+                    reliable_binned = reliable_binned.dropna()
+                    ax.plot(reliable_binned.index, reliable_binned.values,
+                            color=self.tokens["danger_red"],
                             linewidth=1.5, linestyle="--", zorder=4, label="Turbine median")
-                ax.set_title(turbine, fontsize=11, fontweight="bold", color=self.tokens["primary_navy"])
-                ax.set_xlabel("Wind speed (m/s)")
-                ax.set_ylabel("Power (kW)")
-                ax.set_xlim(0, 26)
+                ax.set_title(turbine, fontsize=10, fontweight="bold", color=self.tokens["primary_navy"])
+                ax.set_xlabel("Wind speed (m/s)", fontsize=8.5)
+                ax.set_ylabel("Power (kW)", fontsize=8.5)
+                ax.set_xlim(0, max_wind)
                 ax.set_ylim(-rated * 0.02, rated * 1.08)
                 self._apply_axes_style(ax)
-                ax.legend(frameon=False, fontsize=7.5, loc="upper left")
+                ax.legend(frameon=False, fontsize=7.0, loc="upper left")
 
-            fig.tight_layout(pad=1.8)
+            fig.tight_layout(pad=1.5)
             chart_id = f"power_curve_scatter_p{page_idx + 1}"
             charts.append(self._save_png(fig, chart_id, f"Turbine scatter power curves — page {page_idx + 1}"))
 
@@ -925,7 +942,7 @@ def build_wind_report_data(*, config: dict, analysis: dict, charts: dict, output
                 "commentary": [],
                 "figures": [fig for fig in [
                     _figure_block(charts, f"power_curve_scatter_p{page_idx + 1}",
-                                  f"Power Curve Scatter — {', '.join(turbines_sorted[page_idx*2:(page_idx+1)*2])}",
+                                  f"Power Curve Scatter — {', '.join(turbines_sorted[page_idx*4:(page_idx+1)*4])}",
                                   "Blue = normal operating points. Orange = potential curtailment (wind ≥ 6 m/s, power < 75% of reference).",
                                   width="full")
                 ] if fig],
@@ -933,7 +950,7 @@ def build_wind_report_data(*, config: dict, analysis: dict, charts: dict, output
                 "findings": [],
                 "notes": [],
             }
-            for page_idx in range(ceil(len(turbines_sorted) / 2))
+            for page_idx in range(ceil(len(turbines_sorted) / 4))
         ],
         {
             "template": "appendix",
