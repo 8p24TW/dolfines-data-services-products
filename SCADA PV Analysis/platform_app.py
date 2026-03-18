@@ -282,7 +282,8 @@ def _view_login():
       [data-testid="stAppViewBlockContainer"],
       section[data-testid="stMain"] .block-container {
         max-width: 580px !important;
-        padding: 1.8rem 2rem 2rem 2rem !important;
+        padding: calc(1.8rem - 1cm) 2rem calc(2rem - 0.5cm) 2rem !important;
+        margin-top: 1cm !important;
       }
     </style>
     """, unsafe_allow_html=True)
