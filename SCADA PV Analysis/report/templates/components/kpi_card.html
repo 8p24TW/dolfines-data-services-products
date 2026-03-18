@@ -1,0 +1,6 @@
+<article class="kpi-card layout-block status-{{ kpi.status }}">
+  <p class="kpi-label">{{ kpi.label }}</p>
+  <p class="kpi-value">{{ kpi.value | safe }}</p>
+  {% if kpi.target %}<p class="kpi-target">{{ kpi.target }}</p>{% endif %}
+  {% if kpi.subtext %}<p class="kpi-subtext">{{ kpi.subtext }}</p>{% endif %}
+</article>

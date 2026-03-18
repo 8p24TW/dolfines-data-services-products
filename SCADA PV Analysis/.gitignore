@@ -1,0 +1,19 @@
+# Raw SCADA data — never commit to repo
+00orig/
+
+# Generated outputs
+_report_test_output/
+previous reports/
+*.pdf
+*.manifest.json
+
+# Cache
+weather_cache.json
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Local secrets
+.env
+secrets.toml

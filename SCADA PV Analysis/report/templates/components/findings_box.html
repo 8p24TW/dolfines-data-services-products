@@ -1,0 +1,13 @@
+<section class="findings-card layout-block">
+  <div class="table-card-header">
+    <h3>{{ findings_title or "Key Findings" }}</h3>
+  </div>
+  <div class="findings-list">
+    {% for finding in page.findings %}
+    <article class="finding finding-{{ finding.severity }}">
+      <h4>{{ finding.title }}</h4>
+      <p>{{ finding.body }}</p>
+    </article>
+    {% endfor %}
+  </div>
+</section>
