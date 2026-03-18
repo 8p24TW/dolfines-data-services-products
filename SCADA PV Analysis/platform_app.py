@@ -238,9 +238,29 @@ def _render_header(show_logout=True):
         else "<span class='plan-one-shot'>ONE-SHOT</span>"
     ) if plan else ""
 
-    logout_link = ""
-    col_hdr, col_btn = st.columns([5, 1])
-    with col_hdr:
+    if show_logout and _logged_in():
+        col_hdr, col_btn = st.columns([5, 1])
+        with col_hdr:
+            st.markdown(f"""
+            <div style="display:flex;align-items:center;gap:1.4rem;margin-bottom:0.6rem;">
+              {logo_img}
+              <div>
+                <div style="font-size:1.45rem;font-weight:700;color:white;line-height:1.2;">
+                  PVPAT — Performance Analysis Platform
+                </div>
+                <div style="font-size:0.84rem;color:rgba(255,255,255,0.55);margin-top:0.15rem;">
+                  8p2 Advisory &nbsp;·&nbsp; A Dolfines Company
+                  {"&nbsp;&nbsp;" + plan_html if plan_html else ""}
+                </div>
+              </div>
+            </div>
+            """, unsafe_allow_html=True)
+        with col_btn:
+            st.markdown("<div style='margin-top:1.1rem;'>", unsafe_allow_html=True)
+            if st.button("Log out"):
+                _logout()
+            st.markdown("</div>", unsafe_allow_html=True)
+    else:
         st.markdown(f"""
         <div style="display:flex;align-items:center;gap:1.4rem;margin-bottom:0.6rem;">
           {logo_img}
@@ -250,17 +270,10 @@ def _render_header(show_logout=True):
             </div>
             <div style="font-size:0.84rem;color:rgba(255,255,255,0.55);margin-top:0.15rem;">
               8p2 Advisory &nbsp;·&nbsp; A Dolfines Company
-              {"&nbsp;&nbsp;" + plan_html if plan_html else ""}
             </div>
           </div>
         </div>
         """, unsafe_allow_html=True)
-    if show_logout and _logged_in():
-        with col_btn:
-            st.markdown("<div style='margin-top:1rem;'>", unsafe_allow_html=True)
-            if st.button("Log out"):
-                _logout()
-            st.markdown("</div>", unsafe_allow_html=True)
     st.divider()
 
 
@@ -271,19 +284,23 @@ def _render_header(show_logout=True):
 def _view_login():
     _render_header(show_logout=False)
 
-    st.markdown("""
-    <div class="login-card">
-      <div class="login-title">Client Login</div>
-      <div class="login-sub">Enter your credentials to access your portfolio.</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Centre the form
-    _, mid, _ = st.columns([1, 2, 1])
+    _, mid, _ = st.columns([2, 1, 2])
     with mid:
+        st.markdown("""
+        <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.18);
+          border-radius:10px;padding:1.2rem 1.4rem;margin-bottom:0.8rem;">
+          <div style="font-size:1.05rem;font-weight:700;color:white;margin-bottom:2px;">
+            Client Login
+          </div>
+          <div style="font-size:0.78rem;color:rgba(255,255,255,0.50);">
+            Sign in to access your portfolio.
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+
         email    = st.text_input("Email address", placeholder="you@company.com", key="login_email")
         password = st.text_input("Password", type="password", key="login_pw")
-        submit   = st.button("Sign In →")
+        submit   = st.button("Sign In →", use_container_width=True)
 
         if submit:
             user = USERS.get(email.strip().lower())
@@ -294,27 +311,19 @@ def _view_login():
             else:
                 st.error("Invalid email or password.")
 
-    st.markdown("""
-    <div style="text-align:center;margin-top:2rem;font-size:0.8rem;color:rgba(255,255,255,0.40);">
-      Demo credentials: &nbsp;<code style="color:#F07820;">demo@dolfines.com</code>
-      &nbsp;/&nbsp; <code style="color:#F07820;">pvpat2024</code>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Pricing teaser
-    st.markdown("---")
-    st.markdown("""
-    <div style="text-align:center;margin-top:0.8rem;">
-      <span style="font-size:0.88rem;color:rgba(255,255,255,0.55);">
-        No account yet?
-        &nbsp;·&nbsp; One-Shot Report: <strong style="color:#F07820;">€3 500</strong>
-        &nbsp;·&nbsp; Platform Access (unlimited reports): <strong style="color:#F07820;">€1 000/month</strong>
-      </span><br/>
-      <span style="font-size:0.8rem;color:rgba(255,255,255,0.35);margin-top:4px;display:block;">
-        Contact <a href="mailto:contact@8p2advisory.com" style="color:#F07820;">contact@8p2advisory.com</a>
-      </span>
-    </div>
-    """, unsafe_allow_html=True)
+        st.markdown("""
+        <div style="text-align:center;margin-top:0.7rem;font-size:0.76rem;">
+          <a href="mailto:consulting@8p2.fr?subject=Password%20Reset%20Request"
+             style="color:rgba(255,255,255,0.38);text-decoration:none;">
+            Forgotten your password? Contact us
+          </a>
+        </div>
+        <div style="text-align:center;margin-top:1.1rem;font-size:0.72rem;
+          color:rgba(255,255,255,0.25);">
+          Demo: <code style="color:rgba(240,120,32,0.60);">demo@dolfines.com</code>
+          &nbsp;/&nbsp; <code style="color:rgba(240,120,32,0.60);">pvpat2024</code>
+        </div>
+        """, unsafe_allow_html=True)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
