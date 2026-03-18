@@ -408,9 +408,14 @@ def _view_report_select():
     site_id = st.session_state.get("selected_site", "")
     site    = SITES.get(site_id, {})
 
+    # Initialise selection state (persists across reruns on this page)
+    if "report_choice" not in st.session_state:
+        st.session_state["report_choice"] = None
+
     col_back, _ = st.columns([1, 5])
     with col_back:
         if st.button("← Back to Portfolio"):
+            st.session_state.pop("report_choice", None)
             st.session_state["view"] = "portfolio"
             st.rerun()
 
@@ -420,21 +425,36 @@ def _view_report_select():
 
     st.markdown("""
     <p style="color:rgba(255,255,255,0.75);font-size:0.90rem;margin-bottom:1.2rem;">
-      Choose the type of report you want to generate for this site.
+      Select the type of report you want to generate, then click the button below.
     </p>""", unsafe_allow_html=True)
+
+    choice = st.session_state["report_choice"]
+
+    # ── Card styles ────────────────────────────────────────────────────────────
+    daily_sel = choice == "daily"
+    comp_sel  = choice == "comprehensive"
+
+    daily_border = "2px solid #F07820" if daily_sel else "1.5px solid rgba(255,255,255,0.18)"
+    daily_bg     = "rgba(240,120,32,0.18)" if daily_sel else "rgba(255,255,255,0.06)"
+    daily_check  = "<span style='float:right;font-size:1.1rem;color:#F07820;'>✔</span>" if daily_sel else ""
+
+    comp_border  = "2px solid #F07820" if comp_sel  else "1.5px solid rgba(255,255,255,0.18)"
+    comp_bg      = "rgba(240,120,32,0.18)" if comp_sel  else "rgba(255,255,255,0.06)"
+    comp_check   = "<span style='float:right;font-size:1.1rem;color:#F07820;'>✔</span>" if comp_sel  else ""
 
     col_a, col_b = st.columns(2)
 
     with col_a:
-        st.markdown("""
-        <div style="background:rgba(240,120,32,0.12);border:1.5px solid #F07820;
-          border-radius:10px;padding:1.4rem 1.6rem;min-height:200px;">
-          <div style="font-size:1.1rem;font-weight:700;color:#F07820;margin-bottom:8px;">
-            ☀️ Simple Daily Report
+        st.markdown(f"""
+        <div style="background:{daily_bg};border:{daily_border};
+          border-radius:10px;padding:1.4rem 1.6rem;min-height:220px;
+          cursor:pointer;transition:border 0.15s,background 0.15s;">
+          <div style="font-size:1.05rem;font-weight:700;color:#F07820;margin-bottom:8px;">
+            ☀️ Simple Daily Report {daily_check}
           </div>
-          <ul style="color:rgba(255,255,255,0.80);font-size:0.87rem;
-            line-height:1.7;padding-left:1.2rem;">
-            <li>4–5 pages, generated in seconds</li>
+          <ul style="color:rgba(255,255,255,0.82);font-size:0.87rem;
+            line-height:1.75;padding-left:1.2rem;margin:0;">
+            <li>4–5 pages, generated instantly</li>
             <li>Specific yield &amp; PR per inverter</li>
             <li>Fleet availability dashboard</li>
             <li>Daily irradiance profile</li>
@@ -442,22 +462,22 @@ def _view_report_select():
             <li>Alerts &amp; alarms with recommended fixes</li>
           </ul>
         </div>""", unsafe_allow_html=True)
-        st.markdown("<div style='margin-top:0.6rem;'>", unsafe_allow_html=True)
-        if st.button("Create Daily Report →", key="btn_daily"):
-            st.session_state["report_type"] = "daily"
-            st.session_state["view"] = "daily_config"
+        if st.button("Select Daily Report", key="btn_daily",
+                     type="primary" if daily_sel else "secondary",
+                     use_container_width=True):
+            st.session_state["report_choice"] = "daily"
             st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
 
     with col_b:
-        st.markdown("""
-        <div style="background:rgba(0,61,107,0.35);border:1.5px solid rgba(255,255,255,0.20);
-          border-radius:10px;padding:1.4rem 1.6rem;min-height:200px;">
-          <div style="font-size:1.1rem;font-weight:700;color:white;margin-bottom:8px;">
-            📊 Comprehensive Analysis Report
+        st.markdown(f"""
+        <div style="background:{comp_bg};border:{comp_border};
+          border-radius:10px;padding:1.4rem 1.6rem;min-height:220px;
+          cursor:pointer;transition:border 0.15s,background 0.15s;">
+          <div style="font-size:1.05rem;font-weight:700;color:white;margin-bottom:8px;">
+            📊 Comprehensive Analysis Report {comp_check}
           </div>
           <ul style="color:rgba(255,255,255,0.75);font-size:0.87rem;
-            line-height:1.7;padding-left:1.2rem;">
+            line-height:1.75;padding-left:1.2rem;margin:0;">
             <li>20–25 pages, full technical analysis</li>
             <li>Monthly energy, PR &amp; irradiance trends</li>
             <li>Inverter fleet comparison &amp; heatmaps</li>
@@ -466,12 +486,34 @@ def _view_report_select():
             <li>Full action punchlist with EUR impact</li>
           </ul>
         </div>""", unsafe_allow_html=True)
-        st.markdown("<div style='margin-top:0.6rem;'>", unsafe_allow_html=True)
-        if st.button("Create Comprehensive Report →", key="btn_comp"):
-            st.session_state["report_type"] = "comprehensive"
-            st.session_state["view"] = "comp_info"
+        if st.button("Select Comprehensive Report", key="btn_comp",
+                     type="primary" if comp_sel else "secondary",
+                     use_container_width=True):
+            st.session_state["report_choice"] = "comprehensive"
             st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
+
+    # ── Generate button — bottom right ─────────────────────────────────────────
+    st.markdown("<div style='margin-top:1.4rem;'>", unsafe_allow_html=True)
+    _, _, col_gen = st.columns([2, 2, 2])
+    with col_gen:
+        if choice is None:
+            st.markdown(
+                "<p style='color:rgba(255,255,255,0.40);font-size:0.85rem;"
+                "text-align:right;margin-top:0.5rem;'>← Select a report type first</p>",
+                unsafe_allow_html=True)
+        else:
+            btn_label = (
+                "⚡ Generate Daily Report →" if choice == "daily"
+                else "📊 Generate Comprehensive Report →"
+            )
+            if st.button(btn_label, key="btn_generate", use_container_width=True):
+                st.session_state["report_type"] = choice
+                st.session_state.pop("report_choice", None)
+                st.session_state["view"] = (
+                    "daily_config" if choice == "daily" else "comp_info"
+                )
+                st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
