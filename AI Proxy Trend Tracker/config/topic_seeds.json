@@ -1,0 +1,114 @@
+[
+  {
+    "topic": "AI agents",
+    "category": "Core AI",
+    "aliases": ["ai agent", "ai agents", "agentic ai", "autonomous agent", "autonomous agents", "multi agent", "multi-agent", "agent workflow"],
+    "commercial_cues": ["orchestration", "workflow", "enterprise", "ops"],
+    "tool_idea": "8p2 Internal Ops Agent: agentic pipeline that auto-ingests SCADA data, runs PVPAT/WINDPAT, renders the client PDF, and dispatches the report pack — eliminating manual monthly reporting steps across the solar and wind portfolio."
+  },
+  {
+    "topic": "Workflow automation",
+    "category": "Operations",
+    "aliases": ["workflow automation", "process automation", "back office automation", "ops automation", "task automation"],
+    "commercial_cues": ["automation", "ops", "back office", "process"],
+    "tool_idea": "8p2 Report Factory: scheduling layer on top of PVPAT and WINDPAT that automates recurring monthly data ingestion, chart generation, and PDF delivery — removing repetitive analyst coordination steps on recurring advisory mandates."
+  },
+  {
+    "topic": "AI note taking",
+    "category": "Productivity",
+    "aliases": ["ai note taking", "meeting notes ai", "meeting copilot", "note taking ai", "meeting summary"],
+    "commercial_cues": ["meeting", "notes", "copilot", "summary"],
+    "tool_idea": "8p2 Meeting-to-Action Copilot: captures client site-visit or kick-off call notes and auto-generates a structured action log, open-question register, and follow-up email draft — relevant for DD kick-offs, O&M review calls, and lender reporting."
+  },
+  {
+    "topic": "AI coding tools",
+    "category": "Developer Tools",
+    "aliases": ["ai coding", "coding copilot", "code generation", "ai dev tool", "software engineer ai", "vibe coding"],
+    "commercial_cues": ["developer", "repository", "code", "copilot"],
+    "tool_idea": "Internal developer accelerator for the 8p2 data-products team: AI pair-programming on PVPAT, WINDPAT, and BESS pipeline code to speed up feature delivery and reduce regression risk as new SCADA connectors and report pages are added."
+  },
+  {
+    "topic": "Legal AI",
+    "category": "Vertical SaaS",
+    "aliases": ["legal ai", "contract ai", "legal copilot", "compliance ai", "document review ai"],
+    "commercial_cues": ["compliance", "contract", "review", "legal"],
+    "tool_idea": "O&M and PPA contract reviewer for 8p2 DD mandates: AI extraction of key obligations, performance guarantees, curtailment caps, and termination clauses — accelerating the contract-review workstream in solar and wind acquisitions."
+  },
+  {
+    "topic": "Finance AI",
+    "category": "Vertical SaaS",
+    "aliases": ["finance ai", "fp&a ai", "financial modeling ai", "accounting ai", "treasury ai"],
+    "commercial_cues": ["finance", "forecast", "reporting", "pricing"],
+    "tool_idea": "Renewables financial model reviewer: AI assistant that checks energy-yield-to-revenue assumptions in project finance models against 8p2 SCADA benchmarks, flags inconsistent loss stacks or degradation curves before lender submission."
+  },
+  {
+    "topic": "Recruiting AI",
+    "category": "Vertical SaaS",
+    "aliases": ["recruiting ai", "hiring ai", "talent ai", "candidate screening ai", "recruiter copilot"],
+    "commercial_cues": ["candidate", "screening", "talent", "hiring"],
+    "tool_idea": "Technical talent screener for renewables advisory: AI-assisted CV and assessment screening for solar/wind/BESS engineers — relevant as 8p2 and Dolfines scale data-services and advisory headcount."
+  },
+  {
+    "topic": "Solar AI",
+    "category": "Energy",
+    "aliases": ["solar ai", "pv ai", "solar forecasting ai", "pv monitoring ai", "solar performance ai", "agrivoltaic ai"],
+    "commercial_cues": ["monitoring", "forecasting", "asset", "reporting", "owner engineering", "yield"],
+    "tool_idea": "PVPAT Copilot: extend the 8p2 solar SCADA pipeline with AI-assisted fault triage, monthly PR-vs-budget variance commentary, satellite irradiance screening, and auto-drafted owner's-engineering PDF delivery — turning a manual recurring service into a scalable data product."
+  },
+  {
+    "topic": "Wind AI",
+    "category": "Energy",
+    "aliases": ["wind ai", "wind farm ai", "wind optimization ai", "wind monitoring ai", "wind scada ai", "turbine diagnostics ai"],
+    "commercial_cues": ["monitoring", "optimization", "availability", "reporting", "power curve", "lifetime"],
+    "tool_idea": "WINDPAT Copilot: add NLP fault-code enrichment, power-curve degradation detection, RPM/pitch anomaly classification, and auto-drafted narrative to the 8p2 wind SCADA report pipeline — replacing manual commentary on recurring wind performance mandates."
+  },
+  {
+    "topic": "BESS AI",
+    "category": "Energy",
+    "aliases": ["bess ai", "battery optimization ai", "storage dispatch ai", "battery analytics ai", "battery storage ai"],
+    "commercial_cues": ["dispatch", "optimization", "storage", "trading", "augmentation", "degradation"],
+    "tool_idea": "BESS Technical Review Copilot: SOH-adjusted capacity forecasting, dispatch back-testing against price curves, augmentation timing optimiser, and commissioning document checker — covering all four phases of the 8p2 BESS advisory workflow in one AI-assisted workbench."
+  },
+  {
+    "topic": "Project management AI",
+    "category": "Operations",
+    "aliases": ["project management ai", "pm ai", "delivery copilot", "project copilot"],
+    "commercial_cues": ["delivery", "planning", "risk", "project"],
+    "tool_idea": "Advisory mandate tracker: AI-assisted status reporting for 8p2 advisory projects — auto-summarising open actions, milestone delays, and client dependencies from email and document context, reducing internal coordination overhead."
+  },
+  {
+    "topic": "Due diligence AI",
+    "category": "Advisory",
+    "aliases": ["due diligence ai", "dd ai", "technical due diligence ai", "investment memo ai", "data room ai"],
+    "commercial_cues": ["diligence", "investment", "memo", "review", "data room", "acquisition"],
+    "tool_idea": "8p2 DD Copilot: data-room document classifier and gap-list generator, yield-report analyser (P50/P90, loss stack, curtailment), cross-technology red-flag synthesis, and IC memo drafter — covering the full technical DD workflow for solar, wind, and BESS acquisitions."
+  },
+  {
+    "topic": "Reporting automation",
+    "category": "Advisory",
+    "aliases": ["reporting automation", "report automation", "slide automation", "automated reporting"],
+    "commercial_cues": ["reporting", "dashboard", "slides", "summary"],
+    "tool_idea": "8p2 Report Factory: automated cron-driven PVPAT/WINDPAT pipeline with variance commentary engine, multi-site portfolio rollup, and client-portal PDF delivery — scaling the 8p2 recurring analytics service without proportional headcount growth."
+  },
+  {
+    "topic": "RFP / tender AI",
+    "category": "Advisory",
+    "aliases": ["rfp ai", "tender ai", "proposal ai", "bid ai", "bid management ai"],
+    "commercial_cues": ["rfp", "proposal", "tender", "bid"],
+    "tool_idea": "8p2 Tender Copilot: scope extractor from RFP documents, precedent-matcher to past 8p2 mandates, technical section drafter pre-filled with PVPAT/WINDPAT methodology, and bid qualification scorer — reducing bid preparation time for solar, wind, and BESS advisory tenders."
+  },
+  {
+    "topic": "Knowledge management AI",
+    "category": "Productivity",
+    "aliases": ["knowledge management ai", "internal search ai", "knowledge base ai", "enterprise search ai"],
+    "commercial_cues": ["knowledge", "search", "internal", "retrieval"],
+    "tool_idea": "8p2 Knowledge Assistant: internal RAG system over 8p2 methodology documents, past reports, and technical templates — enabling analysts to instantly retrieve past mandate assumptions, benchmark values, and methodology precedents rather than searching shared drives."
+  },
+  {
+    "topic": "RAG systems",
+    "category": "Core AI",
+    "aliases": ["rag", "retrieval augmented generation", "retrieval-augmented generation", "vector search", "embedding pipeline"],
+    "commercial_cues": ["search", "retrieval", "knowledge", "enterprise"],
+    "tool_idea": "8p2 internal RAG infrastructure: retrieval layer over PVPAT/WINDPAT outputs, past DD reports, and methodology documents — the technical foundation enabling the DD Copilot, Tender Copilot, and Knowledge Assistant products to cite source material accurately."
+  }
+]

@@ -1,0 +1,10 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# SQLite cache — ephemeral, rebuilt on startup
+cache/*.sqlite
+
+# Local Streamlit secrets
+.streamlit/secrets.toml
