@@ -285,6 +285,13 @@ def _view_login():
         padding: calc(1.8rem - 1cm) 2rem calc(2rem - 0.5cm) 2rem !important;
         margin-top: 1cm !important;
       }
+      /* Tighten element gaps and divider on login page only */
+      section[data-testid="stMain"] .block-container hr {
+        margin: 0.4rem 0 0.6rem 0 !important;
+      }
+      section[data-testid="stMain"] .block-container [data-testid="stVerticalBlock"] > div {
+        gap: 0.35rem !important;
+      }
     </style>
     """, unsafe_allow_html=True)
 
@@ -292,7 +299,7 @@ def _view_login():
 
     st.markdown("""
     <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.18);
-      border-radius:10px;padding:1.4rem 1.6rem;margin-bottom:1rem;">
+      border-radius:10px;padding:1rem 1.4rem;margin-bottom:0.4rem;">
       <div style="font-size:1.05rem;font-weight:700;color:white;margin-bottom:3px;">
         Client Login
       </div>
