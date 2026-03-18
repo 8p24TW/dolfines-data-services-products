@@ -161,6 +161,7 @@ st.markdown(f"""
     background:#F07820 !important; color:white !important; border:none !important;
     border-radius:6px !important; font-weight:700 !important; font-size:1rem !important;
     padding:0.65rem 2rem !important; width:100%; transition:background 0.2s;
+    white-space:nowrap !important;
   }}
   .stButton > button:hover {{ background:#cc6415 !important; }}
 
@@ -245,13 +246,10 @@ def _render_header(show_logout=True):
             <div style="display:flex;align-items:center;gap:1.4rem;margin-bottom:0.6rem;">
               {logo_img}
               <div>
-                <div style="font-size:1.45rem;font-weight:700;color:white;line-height:1.2;">
+                <div style="font-size:1.45rem;font-weight:700;color:white;line-height:1.2;white-space:nowrap;">
                   PVPAT — Performance Analysis Platform
                 </div>
-                <div style="font-size:0.84rem;color:rgba(255,255,255,0.55);margin-top:0.15rem;">
-                  8p2 Advisory &nbsp;·&nbsp; A Dolfines Company
-                  {"&nbsp;&nbsp;" + plan_html if plan_html else ""}
-                </div>
+                {('<div style="font-size:0.84rem;color:rgba(255,255,255,0.55);margin-top:0.15rem;white-space:nowrap;">' + plan_html + '</div>') if plan_html else ''}
               </div>
             </div>
             """, unsafe_allow_html=True)
@@ -265,11 +263,8 @@ def _render_header(show_logout=True):
         <div style="display:flex;align-items:center;gap:1.4rem;margin-bottom:0.6rem;">
           {logo_img}
           <div>
-            <div style="font-size:1.45rem;font-weight:700;color:white;line-height:1.2;">
+            <div style="font-size:1.45rem;font-weight:700;color:white;line-height:1.2;white-space:nowrap;">
               PVPAT — Performance Analysis Platform
-            </div>
-            <div style="font-size:0.84rem;color:rgba(255,255,255,0.55);margin-top:0.15rem;">
-              8p2 Advisory &nbsp;·&nbsp; A Dolfines Company
             </div>
           </div>
         </div>
@@ -431,7 +426,7 @@ def _view_report_select():
     if "report_choice" not in st.session_state:
         st.session_state["report_choice"] = None
 
-    col_back, _ = st.columns([1, 5])
+    col_back, _ = st.columns([2, 4])
     with col_back:
         if st.button("← Back to Portfolio"):
             st.session_state.pop("report_choice", None)
@@ -455,17 +450,44 @@ def _view_report_select():
 
     daily_border = "2px solid #F07820" if daily_sel else "1.5px solid rgba(255,255,255,0.18)"
     daily_bg     = "rgba(240,120,32,0.18)" if daily_sel else "rgba(255,255,255,0.06)"
-    daily_check  = "<span style='float:right;font-size:1.1rem;color:#F07820;'>✔</span>" if daily_sel else ""
+    daily_check  = "<span style='float:right;font-size:1.1rem;color:#22c55e;'>✔</span>" if daily_sel else ""
 
     comp_border  = "2px solid #F07820" if comp_sel  else "1.5px solid rgba(255,255,255,0.18)"
     comp_bg      = "rgba(240,120,32,0.18)" if comp_sel  else "rgba(255,255,255,0.06)"
-    comp_check   = "<span style='float:right;font-size:1.1rem;color:#F07820;'>✔</span>" if comp_sel  else ""
+    comp_check   = "<span style='float:right;font-size:1.1rem;color:#22c55e;'>✔</span>" if comp_sel  else ""
+
+    # CSS: make entire card area clickable by overlaying the invisible button
+    st.markdown("""
+    <style>
+      [data-testid="stVerticalBlock"]:has(.pvpat-report-card) {
+        position: relative !important;
+      }
+      [data-testid="stVerticalBlock"]:has(.pvpat-report-card) .pvpat-report-card {
+        pointer-events: none;
+      }
+      [data-testid="stVerticalBlock"]:has(.pvpat-report-card) [data-testid="stButton"] {
+        position: absolute !important;
+        inset: 0 !important;
+        z-index: 5 !important;
+      }
+      [data-testid="stVerticalBlock"]:has(.pvpat-report-card) [data-testid="stButton"] > button {
+        width: 100% !important;
+        height: 100% !important;
+        min-height: 240px !important;
+        opacity: 0 !important;
+        cursor: pointer !important;
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+      }
+    </style>
+    """, unsafe_allow_html=True)
 
     col_a, col_b = st.columns(2)
 
     with col_a:
         st.markdown(f"""
-        <div style="background:{daily_bg};border:{daily_border};
+        <div class="pvpat-report-card" style="background:{daily_bg};border:{daily_border};
           border-radius:10px;padding:1.4rem 1.6rem;min-height:220px;
           cursor:pointer;transition:border 0.15s,background 0.15s;">
           <div style="font-size:1.05rem;font-weight:700;color:#F07820;margin-bottom:8px;">
@@ -481,15 +503,13 @@ def _view_report_select():
             <li>Alerts &amp; alarms with recommended fixes</li>
           </ul>
         </div>""", unsafe_allow_html=True)
-        if st.button("Select Daily Report", key="btn_daily",
-                     type="primary" if daily_sel else "secondary",
-                     use_container_width=True):
+        if st.button("Select Daily Report", key="btn_daily", use_container_width=True):
             st.session_state["report_choice"] = "daily"
             st.rerun()
 
     with col_b:
         st.markdown(f"""
-        <div style="background:{comp_bg};border:{comp_border};
+        <div class="pvpat-report-card" style="background:{comp_bg};border:{comp_border};
           border-radius:10px;padding:1.4rem 1.6rem;min-height:220px;
           cursor:pointer;transition:border 0.15s,background 0.15s;">
           <div style="font-size:1.05rem;font-weight:700;color:white;margin-bottom:8px;">
@@ -505,9 +525,7 @@ def _view_report_select():
             <li>Full action punchlist with EUR impact</li>
           </ul>
         </div>""", unsafe_allow_html=True)
-        if st.button("Select Comprehensive Report", key="btn_comp",
-                     type="primary" if comp_sel else "secondary",
-                     use_container_width=True):
+        if st.button("Select Comprehensive Report", key="btn_comp", use_container_width=True):
             st.session_state["report_choice"] = "comprehensive"
             st.rerun()
 
