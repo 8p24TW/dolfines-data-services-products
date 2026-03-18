@@ -260,7 +260,7 @@ def _render_header(show_logout=True):
             st.markdown("</div>", unsafe_allow_html=True)
     else:
         st.markdown(f"""
-        <div style="display:flex;flex-direction:column;align-items:center;gap:0.7rem;margin-bottom:0.6rem;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:10mm;margin-bottom:0.6rem;">
           {logo_img}
           <div style="font-size:1.35rem;font-weight:700;color:white;line-height:1.2;text-align:center;">
             PVPAT — Performance Analysis Platform
