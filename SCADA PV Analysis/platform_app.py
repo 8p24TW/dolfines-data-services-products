@@ -959,10 +959,12 @@ def _view_daily_config():
     st.divider()
 
     # Disable generate button if files uploaded but mapping not yet confirmed
-    _files_pending = (data_source == "Upload files" and
-                      (uploaded_inv or uploaded_irr) and
-                      ((uploaded_inv and mapped_inv is None) or
-                       (uploaded_irr and mapped_irr is None)))
+    _files_pending = bool(
+        data_source == "Upload files" and
+        (uploaded_inv or uploaded_irr) and
+        ((uploaded_inv and mapped_inv is None) or
+         (uploaded_irr and mapped_irr is None))
+    )
     if _files_pending:
         st.info("✏️ Confirm the column mapping above, then click Generate.")
 
@@ -1507,7 +1509,7 @@ def _view_site_detail():
             st.markdown(f"""
             <iframe
               src="https://www.openstreetmap.org/export/embed.html?bbox={bbox}&layer=mapnik&marker={lat},{lon}"
-              style="width:100%;height:310px;border:1px solid rgba(255,255,255,0.15);
+              style="width:100%;height:230px;border:1px solid rgba(255,255,255,0.15);
                      border-radius:8px;" loading="lazy">
             </iframe>
             <div style="font-size:0.70rem;color:rgba(255,255,255,0.35);
@@ -1521,6 +1523,58 @@ def _view_site_detail():
                 "<p style='color:rgba(255,255,255,0.45);font-size:0.85rem;margin-top:2rem;'>"
                 "No GPS coordinates configured for this site.</p>",
                 unsafe_allow_html=True)
+
+        # ── Performance Overview card ──────────────────────────────────────
+        st.markdown(
+            "<div class='sub-hdr' style='margin-top:1.1rem;'>Performance Overview</div>",
+            unsafe_allow_html=True)
+
+        import numpy as _np
+        import matplotlib.pyplot as _plt
+        import matplotlib.patches as _mpatches
+
+        design_pr = site.get("design_pr") or 0.80
+        target_pr = max(design_pr - 0.02, 0.55)
+
+        _months = ["Jan","Feb","Mar","Apr","May","Jun",
+                   "Jul","Aug","Sep","Oct","Nov","Dec"]
+        # Seasonal swing: PR higher in cool months, lower in summer heat
+        _seasonal = _np.array([0.02,0.02,0.01,0,-0.01,-0.03,
+                                -0.04,-0.03,-0.01, 0, 0.01,0.02])
+        _pr_vals  = _np.clip(design_pr + _seasonal - 0.03, 0.55, 0.99)
+
+        _fig, _ax = _plt.subplots(figsize=(4.2, 2.0))
+        _fig.patch.set_facecolor("#0d1b2a")
+        _ax.set_facecolor("#0d1b2a")
+
+        _colors = ["#2E8B57" if v >= target_pr else "#E67E22" for v in _pr_vals]
+        _ax.bar(_months, _pr_vals * 100, color=_colors, width=0.65, zorder=3)
+        _ax.axhline(target_pr * 100, color="#f0c040", linewidth=1.2,
+                    linestyle="--", zorder=4)
+
+        _ymin = max(0,   (float(_pr_vals.min()) - 0.06) * 100)
+        _ymax = min(100, (float(_pr_vals.max()) + 0.06) * 100)
+        _ax.set_ylim(_ymin, _ymax)
+        _ax.tick_params(colors="white", labelsize=6.5)
+        for spine in _ax.spines.values():
+            spine.set_visible(False)
+        _ax.set_ylabel("PR (%)", color="rgba(255,255,255,0.55)", fontsize=6.5)
+        _ax.yaxis.label.set_color("white")
+        _ax.grid(axis="y", color="white", alpha=0.08, zorder=0)
+
+        _patch = _mpatches.Patch(color="#f0c040",
+                                  label=f"Target {target_pr*100:.0f}%")
+        _ax.legend(handles=[_patch], fontsize=6, facecolor="#0d1b2a",
+                   labelcolor="white", framealpha=0.5, loc="lower right")
+
+        _plt.tight_layout(pad=0.3)
+        st.pyplot(_fig, use_container_width=True)
+        _plt.close(_fig)
+
+        st.markdown(
+            "<p style='color:rgba(255,255,255,0.38);font-size:0.70rem;margin-top:0;'>"
+            "Indicative monthly PR — connect SCADA for live data.</p>",
+            unsafe_allow_html=True)
 
     st.divider()
     _, col_gen, _ = st.columns([2, 2, 2])
