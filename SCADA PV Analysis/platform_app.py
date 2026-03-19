@@ -242,11 +242,10 @@ def _apply_wind_bg():
 _ROLE_KEYWORDS = {
     "time":         ["time", "date", "ts", "timestamp", "datetime", "horodatage",
                      "udt", "heure", "periode"],
-    "equip":        ["equip", "equipment", "inverter", "inv", "unit", "machine",
-                     "equipement", "onduleur"],
     "power":        ["pac", "power", "p_ac", "kw", "puissance", "activepow",
-                     "kwac", "pout", "p_kw", "energie_active"],
-    "ghi":          ["ghi", "irr", "irradiance", "solar", "poa", "radiation",
+                     "kwac", "pout", "p_kw", "energie_active", "eond", "eac",
+                     "onduleur", "inverter", "inv_", "cb_", "combiner"],
+    "irradiance":   ["ghi", "irr", "irradiance", "solar", "poa", "radiation",
                      "rayonnement", "g_inc", "g_poa", "soleil"],
     "turbine":      ["turbine", "turb", "wt", "windturbine", "generator",
                      "eolienne", "aerogenerateur"],
@@ -261,10 +260,9 @@ _ROLE_KEYWORDS = {
 # Maps role → standard column name expected by the pipeline
 _STANDARD_NAMES = {
     "solar": {
-        "time":  "Time_UDT",
-        "equip": "EQUIP",
-        "power": "PAC",
-        "ghi":   "GHI",
+        "time":       "Time_UDT",
+        "power":      "PAC",        # multi-select: all selected cols are summed
+        "irradiance": "GHI",        # optional
     },
     "wind": {
         "time":         "Time_UDT",
@@ -274,6 +272,29 @@ _STANDARD_NAMES = {
         "wind_dir":     "WIND_DIR_DEG",
         "availability": "AVAILABILITY_PCT",
     },
+}
+
+# Roles that are optional (skipping does not block generation)
+_ROLE_OPTIONAL = {
+    "solar": {"irradiance"},
+    "wind":  {"wind_dir", "availability"},
+}
+
+# Roles where user can select multiple columns (values will be summed)
+_ROLE_MULTI = {
+    "solar": {"power"},
+    "wind":  set(),
+}
+
+# Display labels shown in the mapper UI
+_ROLE_LABEL = {
+    "time":       "Time",
+    "power":      "Power columns",
+    "irradiance": "Irradiance",
+    "turbine":    "Turbine ID",
+    "wind_speed": "Wind Speed",
+    "wind_dir":   "Wind Direction",
+    "availability": "Availability",
 }
 
 
@@ -304,28 +325,39 @@ def _detect_role(col: str) -> str | None:
 
 
 def _auto_map_columns(df, site_type="solar") -> dict:
-    """Return {role: col_name} for detected roles in df."""
-    mapping = {}
+    """Return {role: col_or_list} for detected roles in df.
+    Multi roles (e.g. power) return a list of all matching columns."""
     roles_needed = set(_STANDARD_NAMES.get(site_type, {}).keys())
+    multi_roles  = _ROLE_MULTI.get(site_type, set())
+    mapping: dict = {r: [] for r in roles_needed if r in multi_roles}
     for col in df.columns:
         role = _detect_role(col)
-        if role and role in roles_needed and role not in mapping:
-            mapping[role] = col
+        if role and role in roles_needed:
+            if role in multi_roles:
+                mapping[role].append(col)
+            elif role not in mapping:
+                mapping[role] = col
+    # Remove empty multi lists so callers can check truthiness uniformly
+    mapping = {k: v for k, v in mapping.items() if v or v == []}
     return mapping
 
 
 def _show_column_mapper(files, site_type="solar", state_key="col_maps"):
     """
     Render column-mapping UI for a list of uploaded files.
-    Returns a dict {filename: {role: col_name}} when all required roles are confirmed,
-    or None if user has not yet confirmed.
+    - Multi roles (e.g. power) use st.multiselect.
+    - Optional roles do not block generation if skipped.
+    Returns {filename: (df, {role: col_or_list})} when all required roles are
+    satisfied, or None if the user still needs to complete the mapping.
     """
     import pandas as pd
 
     roles_needed = _STANDARD_NAMES.get(site_type, {})
+    optional     = _ROLE_OPTIONAL.get(site_type, set())
+    multi_roles  = _ROLE_MULTI.get(site_type, set())
+
     if not files:
         return None
-
     if state_key not in st.session_state:
         st.session_state[state_key] = {}
 
@@ -345,33 +377,83 @@ def _show_column_mapper(files, site_type="solar", state_key="col_maps"):
         auto = _auto_map_columns(df, site_type)
         saved = st.session_state[state_key].get(fname, auto.copy())
 
-        with st.expander(f"📄 {fname} — {len(df):,} rows × {len(cols)} columns",
-                         expanded=(not auto or set(auto) != set(roles_needed))):
+        # Determine if all required roles are already satisfied
+        req_ok = all(
+            (bool(saved.get(r)) if r in multi_roles else saved.get(r))
+            for r in roles_needed if r not in optional
+        )
+
+        with st.expander(
+            f"📄 {fname} — {len(df):,} rows × {len(cols)} columns",
+            expanded=not req_ok,
+        ):
             st.caption("Auto-detected column mapping — adjust if needed:")
-            row_cols = st.columns(len(roles_needed))
+
+            # Layout: one column per role
+            n_cols = len(roles_needed)
+            row_cols = st.columns(max(n_cols, 1))
             updated = {}
-            all_found = True
+            req_satisfied = True
+
             for i, (role, std_name) in enumerate(roles_needed.items()):
+                label     = _ROLE_LABEL.get(role, role)
+                is_multi  = role in multi_roles
+                is_opt    = role in optional
+
                 with row_cols[i]:
-                    default_idx = cols.index(saved[role]) if saved.get(role) in cols else 0
-                    chosen = st.selectbox(
-                        f"`{std_name}`",
-                        options=["— skip —"] + cols,
-                        index=default_idx + 1 if saved.get(role) in cols else 0,
-                        key=f"{state_key}_{fname}_{role}",
-                        help=f"Which column contains **{role}** data?",
-                    )
-                    if chosen == "— skip —":
-                        all_found = False
-                    else:
+                    lbl_text = (f"**{label}**"
+                                + (" *(optional)*" if is_opt else ""))
+                    st.markdown(lbl_text)
+
+                    if is_multi:
+                        # Multiselect — saved value is a list
+                        default_sel = [c for c in saved.get(role, []) if c in cols]
+                        chosen = st.multiselect(
+                            f"_{std_name}_",
+                            options=cols,
+                            default=default_sel,
+                            key=f"{state_key}_{fname}_{role}",
+                            help=f"Select **all** columns that contain {label} data. "
+                                 "They will be summed.",
+                            label_visibility="collapsed",
+                        )
                         updated[role] = chosen
+                        if not chosen and role not in optional:
+                            req_satisfied = False
+                    else:
+                        # Single selectbox — optional roles allow "— skip —"
+                        sv = saved.get(role, "")
+                        default_idx = (cols.index(sv) + 1) if sv in cols else 0
+                        options = (["— skip —"] if is_opt else []) + cols
+                        if not is_opt:
+                            options = ["— skip —"] + cols
+                        chosen = st.selectbox(
+                            f"_{std_name}_",
+                            options=options,
+                            index=default_idx if sv in cols else 0,
+                            key=f"{state_key}_{fname}_{role}",
+                            help=f"Column containing **{label}** data.",
+                            label_visibility="collapsed",
+                        )
+                        if chosen == "— skip —":
+                            if role not in optional:
+                                req_satisfied = False
+                        else:
+                            updated[role] = chosen
 
             st.session_state[state_key][fname] = updated
-            if not all_found:
+
+            if not req_satisfied:
                 st.warning("Some required columns are not mapped — please select them above.")
                 all_confirmed = False
             else:
-                st.success("All columns mapped ✔")
+                mapped_summary = []
+                for role, val in updated.items():
+                    if isinstance(val, list):
+                        mapped_summary.append(f"**Power**: {', '.join(val)} ({len(val)} cols)")
+                    else:
+                        mapped_summary.append(f"**{_ROLE_LABEL.get(role, role)}**: {val}")
+                st.success("Mapping confirmed ✔  —  " + "  ·  ".join(mapped_summary))
 
         result[fname] = (df, st.session_state[state_key].get(fname, {}))
 
@@ -381,15 +463,31 @@ def _show_column_mapper(files, site_type="solar", state_key="col_maps"):
 def _normalise_files(mapped_result, site_type="solar") -> list:
     """
     Given output of _show_column_mapper, return list of (filename, normalised_df).
-    Renames columns to standard names and drops the rest.
+    - Multi roles (power): selected columns are summed into the standard name.
+    - Single roles: column is renamed to the standard name.
+    - Missing optional roles are silently skipped.
     """
     import pandas as pd
-    std = _STANDARD_NAMES.get(site_type, {})
+    std        = _STANDARD_NAMES.get(site_type, {})
+    multi_roles = _ROLE_MULTI.get(site_type, set())
     out = []
     for fname, (df, mapping) in mapped_result.items():
-        rename = {v: std[k] for k, v in mapping.items() if k in std and v in df.columns}
-        normalised = df.rename(columns=rename)[list(rename.values())]
-        out.append((fname, normalised))
+        series = {}
+        for role, std_name in std.items():
+            val = mapping.get(role)
+            if not val:
+                continue
+            if role in multi_roles:
+                # val is a list of column names — sum them numerically
+                valid = [c for c in val if c in df.columns]
+                if valid:
+                    series[std_name] = df[valid].apply(
+                        pd.to_numeric, errors="coerce").sum(axis=1)
+            else:
+                if val in df.columns:
+                    series[std_name] = df[val]
+        if series:
+            out.append((fname, pd.DataFrame(series)))
     return out
 
 
@@ -918,52 +1016,36 @@ def _view_daily_config():
         )
 
     _ACCEPTED = ["csv", "xlsx", "xls", "txt"]
-    uploaded_inv  = []
-    uploaded_irr  = []
-    mapped_inv    = None
-    mapped_irr    = None
-    tmp_data_dir  = None
+    uploaded_files = []
+    mapped_files   = None
+    tmp_data_dir   = None
 
     if data_source == "Upload files":
         st.markdown("""<div class="sub-hdr">Upload SCADA Data</div>""",
                     unsafe_allow_html=True)
         st.caption(
-            "Upload CSV or Excel files — the platform will auto-detect columns "
-            "and prompt you to confirm or correct the mapping before generating."
+            "Upload one or more CSV / Excel files. Each file can contain "
+            "time, power (inverters, combiner boxes — all selected columns are summed) "
+            "and irradiance columns. The platform auto-detects and lets you confirm."
         )
-        cu1, cu2 = st.columns(2)
-        with cu1:
-            st.markdown("**Inverter / power files**")
-            uploaded_inv = st.file_uploader(
-                "Power data (CSV / Excel)", type=_ACCEPTED,
-                accept_multiple_files=True, key="up_inv")
-        with cu2:
-            st.markdown("**Irradiance / meteo file**")
-            uploaded_irr = st.file_uploader(
-                "Irradiance data (CSV / Excel)", type=_ACCEPTED,
-                accept_multiple_files=True, key="up_irr")
+        uploaded_files = st.file_uploader(
+            "SCADA data files (CSV / Excel)", type=_ACCEPTED,
+            accept_multiple_files=True, key="up_files")
 
         # ── Column mapping preview ─────────────────────────────────────────────
-        if uploaded_inv:
-            st.markdown("<div class='sub-hdr'>Column Mapping — Inverter Files</div>",
+        if uploaded_files:
+            st.markdown("<div class='sub-hdr'>Column Mapping</div>",
                         unsafe_allow_html=True)
-            mapped_inv = _show_column_mapper(
-                uploaded_inv, site_type="solar", state_key="cm_inv")
-        if uploaded_irr:
-            st.markdown("<div class='sub-hdr'>Column Mapping — Irradiance File</div>",
-                        unsafe_allow_html=True)
-            # Irradiance: only time + ghi roles needed
-            mapped_irr = _show_column_mapper(
-                uploaded_irr, site_type="solar", state_key="cm_irr")
+            mapped_files = _show_column_mapper(
+                uploaded_files, site_type="solar", state_key="cm_files")
 
     st.divider()
 
     # Disable generate button if files uploaded but mapping not yet confirmed
     _files_pending = bool(
         data_source == "Upload files" and
-        (uploaded_inv or uploaded_irr) and
-        ((uploaded_inv and mapped_inv is None) or
-         (uploaded_irr and mapped_irr is None))
+        uploaded_files and
+        mapped_files is None
     )
     if _files_pending:
         st.info("✏️ Confirm the column mapping above, then click Generate.")
@@ -977,33 +1059,18 @@ def _view_daily_config():
         from pathlib import Path as _Path
 
         # Resolve data directory
-        if data_source == "Upload files" and (uploaded_inv or uploaded_irr):
+        if data_source == "Upload files" and uploaded_files:
             tmp = tempfile.mkdtemp(prefix="pvpat_daily_")
             tmp_data_dir = _Path(tmp)
 
-            # Write normalised inverter files
-            if mapped_inv:
-                for fname, norm_df in _normalise_files(mapped_inv, "solar"):
+            if mapped_files:
+                # Write normalised files (power summed, irradiance included if mapped)
+                for fname, norm_df in _normalise_files(mapped_files, "solar"):
                     norm_df.to_csv(tmp_data_dir / fname, index=False, sep=";")
-            elif uploaded_inv:
-                for f in uploaded_inv:
+            else:
+                # Fallback: write raw files as-is
+                for f in uploaded_files:
                     (tmp_data_dir / f.name).write_bytes(f.getbuffer().tobytes())
-
-            # Write normalised irradiance files
-            if mapped_irr:
-                for fname, norm_df in _normalise_files(mapped_irr, "solar"):
-                    out_name = fname
-                    if not any(k in out_name.lower()
-                               for k in ("irr","ghi","irradiance","meteo")):
-                        out_name = "irradiance_" + out_name
-                    norm_df.to_csv(tmp_data_dir / out_name, index=False, sep=";")
-            elif uploaded_irr:
-                for f in uploaded_irr:
-                    name = f.name
-                    if not any(k in name.lower()
-                               for k in ("irr","ghi","irradiance","meteo")):
-                        name = "irradiance_" + name
-                    (tmp_data_dir / name).write_bytes(f.getbuffer().tobytes())
         else:
             raw_dir = site.get("data_dir")
             tmp_data_dir = _Path(raw_dir) if raw_dir else None
