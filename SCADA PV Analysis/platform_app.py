@@ -754,28 +754,31 @@ def _view_report_select():
     st.markdown("<style>.pvpat-report-card { cursor: pointer; }</style>",
                 unsafe_allow_html=True)
     # Inject JS via components iframe so clicking a card triggers its Select button
-    import streamlit.components.v1 as _comp
-    _comp.html("""
-    <script>
-    (function() {
-      function wire() {
-        try {
-          var doc = window.parent.document;
-          doc.querySelectorAll('.pvpat-report-card').forEach(function(card) {
-            if (card.dataset.wired) return;
-            card.dataset.wired = '1';
-            card.addEventListener('click', function() {
-              var col = card.closest('[data-testid="stColumn"]');
-              if (col) { var b = col.querySelector('button'); if (b) b.click(); }
-            });
-          });
-          new MutationObserver(wire).observe(doc.body, {childList:true, subtree:true});
-        } catch(e) {}
-      }
-      wire();
-    })();
-    </script>
-    """, height=0)
+    try:
+        import streamlit.components.v1 as _comp
+        _comp.html("""
+        <script>
+        (function() {
+          function wire() {
+            try {
+              var doc = window.parent.document;
+              doc.querySelectorAll('.pvpat-report-card').forEach(function(card) {
+                if (card.dataset.wired) return;
+                card.dataset.wired = '1';
+                card.addEventListener('click', function() {
+                  var col = card.closest('[data-testid="stColumn"]');
+                  if (col) { var b = col.querySelector('button'); if (b) b.click(); }
+                });
+              });
+              new MutationObserver(wire).observe(doc.body, {childList:true, subtree:true});
+            } catch(e) {}
+          }
+          wire();
+        })();
+        </script>
+        """, height=1)
+    except Exception:
+        pass
 
     col_a, col_b = st.columns(2)
 
@@ -1000,55 +1003,69 @@ def _view_daily_config():
                         name = "irradiance_" + name
                     (tmp_data_dir / name).write_bytes(f.getbuffer().tobytes())
         else:
-            tmp_data_dir = _Path(site["data_dir"]) if "data_dir" in site else None
+            raw_dir = site.get("data_dir")
+            tmp_data_dir = _Path(raw_dir) if raw_dir else None
 
-        with st.spinner("Installing browser runtime… (first run only, ~30 s)"):
-            pw_ok = _ensure_playwright()
-
-        with st.spinner("Analysing data and generating report…"):
-            try:
-                from report.build_daily_report_data import build_daily_report
-
-                pdf_path, html_path = build_daily_report(
-                    site_cfg    = site,
-                    report_date = report_date,
-                    data_dir    = tmp_data_dir,
-                    skip_pdf    = not pw_ok,
+        # Guard: if data dir doesn't exist (e.g. running on Cloud) abort early
+        if tmp_data_dir is None or not tmp_data_dir.exists():
+            if data_source != "Upload files":
+                st.warning(
+                    "⚠️ No SCADA data files found for this site on this server. "
+                    "Switch to **'Upload files'** and provide your CSV or Excel exports "
+                    "to generate the report."
                 )
+            else:
+                st.error("Could not write uploaded files to a temp directory.")
+        else:
+            with st.spinner("Installing browser runtime… (first run only, ~30 s)"):
+                pw_ok = _ensure_playwright()
 
-                if pdf_path and pdf_path.exists():
-                    pdf_bytes = pdf_path.read_bytes()
-                    st.success(f"✅ Daily report generated: **{pdf_path.name}**")
-                    st.download_button(
-                        label    = "⬇️  Download PDF Report",
-                        data     = pdf_bytes,
-                        file_name= pdf_path.name,
-                        mime     = "application/pdf",
-                    )
-                else:
-                    # PDF unavailable (no browser binary on this server) — offer HTML
-                    html_bytes = html_path.read_bytes()
-                    st.warning(
-                        "PDF generation requires a local installation. "
-                        "Downloading the report as HTML instead — open in any browser "
-                        "and use **File → Print → Save as PDF**."
-                    )
-                    st.download_button(
-                        label    = "⬇️  Download Report (HTML)",
-                        data     = html_bytes,
-                        file_name= html_path.name,
-                        mime     = "text/html",
+            with st.spinner("Analysing data and generating report…"):
+                try:
+                    from report.build_daily_report_data import build_daily_report
+
+                    pdf_path, html_path = build_daily_report(
+                        site_cfg    = site,
+                        report_date = report_date,
+                        data_dir    = tmp_data_dir,
+                        skip_pdf    = not pw_ok,
                     )
 
-            except Exception as exc:
-                st.error(f"Report generation failed: {exc}")
-                st.exception(exc)
-            finally:
-                if data_source == "Upload CSV files" and tmp_data_dir:
-                    try:
-                        shutil.rmtree(str(tmp_data_dir), ignore_errors=True)
-                    except Exception:
-                        pass
+                    if pdf_path and pdf_path.exists():
+                        pdf_bytes = pdf_path.read_bytes()
+                        st.success(f"✅ Daily report generated: **{pdf_path.name}**")
+                        st.download_button(
+                            label    = "⬇️  Download PDF Report",
+                            data     = pdf_bytes,
+                            file_name= pdf_path.name,
+                            mime     = "application/pdf",
+                        )
+                    elif html_path and html_path.exists():
+                        html_bytes = html_path.read_bytes()
+                        st.warning(
+                            "PDF generation requires a local installation. "
+                            "Downloading the report as HTML instead — open in any browser "
+                            "and use **File → Print → Save as PDF**."
+                        )
+                        st.download_button(
+                            label    = "⬇️  Download Report (HTML)",
+                            data     = html_bytes,
+                            file_name= html_path.name,
+                            mime     = "text/html",
+                        )
+                    else:
+                        st.error("Report generation produced no output file. "
+                                 "Check that your SCADA data covers the selected date.")
+
+                except Exception as exc:
+                    st.error(f"Report generation failed: {exc}")
+                    st.exception(exc)
+                finally:
+                    if data_source == "Upload files" and tmp_data_dir:
+                        try:
+                            shutil.rmtree(str(tmp_data_dir), ignore_errors=True)
+                        except Exception:
+                            pass
 
 
 # ─────────────────────────────────────────────────────────────────────────────
