@@ -539,27 +539,6 @@ def _view_portfolio():
     # ── Portfolio-specific CSS ─────────────────────────────────────────────────
     st.markdown("""
     <style>
-      /* Clickable site card overlay */
-      [data-testid="stHorizontalBlock"] [data-testid="stVerticalBlock"]:has(.pvpat-site-card-click) {
-        position: relative !important;
-      }
-      [data-testid="stHorizontalBlock"] [data-testid="stVerticalBlock"]:has(.pvpat-site-card-click) .pvpat-site-card-click {
-        pointer-events: none;
-      }
-      [data-testid="stHorizontalBlock"] [data-testid="stVerticalBlock"]:has(.pvpat-site-card-click) [data-testid="stButton"] {
-        position: absolute !important;
-        inset: 0 !important;
-        z-index: 5 !important;
-      }
-      [data-testid="stHorizontalBlock"] [data-testid="stVerticalBlock"]:has(.pvpat-site-card-click) [data-testid="stButton"] > button {
-        width: 100% !important;
-        height: 100% !important;
-        opacity: 0 !important;
-        cursor: pointer !important;
-        background: transparent !important;
-        border: none !important;
-        padding: 0 !important;
-      }
       /* Red delete button */
       [data-testid="stHorizontalBlock"] [data-testid="stVerticalBlock"]:has([id^="pvpat-del-"]) .stButton > button {
         background: #e53935 !important;
@@ -657,10 +636,10 @@ def _view_portfolio():
                     st.markdown("</div>", unsafe_allow_html=True)
             else:
                 # ── Normal site row ──────────────────────────────────────────
-                col_info, col_rep, col_del = st.columns([4, 2, 1.5])
+                col_info, col_view, col_rep, col_del = st.columns([3.5, 1.2, 1.8, 1.2])
                 with col_info:
                     st.markdown(f"""
-                    <div class="site-card pvpat-site-card-click">
+                    <div class="site-card">
                       <div class="site-card-name">
                         {site_icon} {site['display_name']}
                         <span style="background:{status_col};color:white;font-size:0.62rem;
@@ -670,10 +649,13 @@ def _view_portfolio():
                       <div class="site-card-sub">{cap_mwp:.2f} {cap_label}</div>
                     </div>
                     """, unsafe_allow_html=True)
-                    if st.button("View Site", key=f"sc_{site_id}"):
+                with col_view:
+                    st.markdown("<div style='margin-top:1.2rem;'>", unsafe_allow_html=True)
+                    if st.button("View Site →", key=f"sc_{site_id}"):
                         st.session_state["selected_site"] = site_id
                         st.session_state["view"] = "site_detail"
                         st.rerun()
+                    st.markdown("</div>", unsafe_allow_html=True)
                 with col_rep:
                     st.markdown("<div style='margin-top:1.2rem;'>", unsafe_allow_html=True)
                     if st.button("Generate Report →", key=f"go_{site_id}"):
