@@ -314,8 +314,11 @@ def _smart_read_df(f) -> "pd.DataFrame":
     return pd.read_csv(_io.StringIO(raw), sep=sep, decimal=decimal)
 
 
-def _detect_role(col: str) -> str | None:
-    """Return the best-matching role for a column name, or None."""
+def _detect_role(col) -> str | None:
+    """Return the best-matching role for a column name, or None.
+    Accepts any column type (str, int, None) — non-string columns return None."""
+    if not isinstance(col, str):
+        return None
     c = col.lower().replace(" ", "_").replace("(", "").replace(")", "")
     for role, kws in _ROLE_KEYWORDS.items():
         for kw in kws:
@@ -326,7 +329,8 @@ def _detect_role(col: str) -> str | None:
 
 def _auto_map_columns(df, site_type="solar") -> dict:
     """Return {role: col_or_list} for detected roles in df.
-    Multi roles (e.g. power) return a list of all matching columns."""
+    Multi roles (e.g. power) return a list of all matching columns.
+    Skips non-string or None column names safely."""
     roles_needed = set(_STANDARD_NAMES.get(site_type, {}).keys())
     multi_roles  = _ROLE_MULTI.get(site_type, set())
     mapping: dict = {r: [] for r in roles_needed if r in multi_roles}
@@ -337,8 +341,6 @@ def _auto_map_columns(df, site_type="solar") -> dict:
                 mapping[role].append(col)
             elif role not in mapping:
                 mapping[role] = col
-    # Remove empty multi lists so callers can check truthiness uniformly
-    mapping = {k: v for k, v in mapping.items() if v or v == []}
     return mapping
 
 
@@ -368,13 +370,18 @@ def _show_column_mapper(files, site_type="solar", state_key="col_maps"):
         fname = f.name
         try:
             df = _smart_read_df(f)
+            # Normalise column names: convert anything non-string to "col_N"
+            df.columns = [
+                c if isinstance(c, str) else f"col_{i}"
+                for i, c in enumerate(df.columns)
+            ]
+            cols = list(df.columns)
+            auto = _auto_map_columns(df, site_type)
         except Exception as exc:
             st.error(f"Could not read **{fname}**: {exc}")
             all_confirmed = False
             continue
 
-        cols = list(df.columns)
-        auto = _auto_map_columns(df, site_type)
         saved = st.session_state[state_key].get(fname, auto.copy())
 
         # Determine if all required roles are already satisfied
