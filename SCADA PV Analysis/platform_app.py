@@ -401,21 +401,45 @@ def _view_portfolio():
                 st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # Pricing reminder
+    # ── Add new site ───────────────────────────────────────────────────────────
     st.divider()
-    plan = user.get("plan", "")
-    if plan == "unlimited":
+    with st.expander("➕  Add a new site to your portfolio"):
         st.markdown("""
-        <div style="font-size:0.82rem;color:rgba(255,255,255,0.45);text-align:center;">
-          ✅ Your plan includes <strong>unlimited reports</strong> for all sites.
-          &nbsp;·&nbsp; €1 000/month
-        </div>""", unsafe_allow_html=True)
-    else:
-        st.markdown("""
-        <div style="font-size:0.82rem;color:rgba(255,255,255,0.45);text-align:center;">
-          One-Shot plan: each report generation counts as one use.
-          Upgrade to unlimited for €1 000/month.
-        </div>""", unsafe_allow_html=True)
+        <p style="color:rgba(255,255,255,0.70);font-size:0.88rem;margin-bottom:0.6rem;">
+          Fill in the details below and the 8p2 team will configure your site
+          and get back to you within 48 hours.
+        </p>""", unsafe_allow_html=True)
+
+        c1, c2 = st.columns(2)
+        with c1:
+            new_name     = st.text_input("Site name", placeholder="e.g. Sahara Solar Park", key="ns_name")
+            new_capacity = st.text_input("Capacity (kWp DC)", placeholder="e.g. 9 500", key="ns_cap")
+            new_location = st.text_input("Location / Country", placeholder="e.g. Morocco", key="ns_loc")
+        with c2:
+            new_cod      = st.text_input("Commercial Operation Date", placeholder="e.g. 2022-06", key="ns_cod")
+            new_inverter = st.text_input("Inverter model (optional)", placeholder="e.g. Sungrow SG250HX", key="ns_inv")
+            new_notes    = st.text_area("Additional notes (optional)", placeholder="Data available, special config…", height=68, key="ns_notes")
+
+        if st.button("📨  Send site request to 8p2", key="btn_add_site"):
+            missing = [f for f, v in [("Site name", new_name), ("Capacity", new_capacity), ("Location", new_location)] if not v.strip()]
+            if missing:
+                st.error(f"Please fill in: {', '.join(missing)}.")
+            else:
+                body = (
+                    f"New site request from {user['display_name']} ({user['email']})%0A%0A"
+                    f"Site name: {new_name}%0A"
+                    f"Capacity: {new_capacity} kWp DC%0A"
+                    f"Location: {new_location}%0A"
+                    f"COD: {new_cod}%0A"
+                    f"Inverter: {new_inverter}%0A"
+                    f"Notes: {new_notes}"
+                )
+                mailto = f"mailto:consulting@8p2.fr?subject=New%20Site%20Request%20—%20{new_name.replace(' ','%20')}&body={body}"
+                st.success(f"✅ Site request ready. Click the link below to send it to the 8p2 team.")
+                st.markdown(
+                    f'<a href="{mailto}" style="color:#F07820;font-weight:700;">'
+                    f'📧 Open email to submit request for {new_name}</a>',
+                    unsafe_allow_html=True)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
