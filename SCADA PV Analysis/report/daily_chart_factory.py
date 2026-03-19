@@ -59,30 +59,62 @@ def _to_png(fig) -> bytes:
 # 1. DAILY IRRADIANCE PROFILE
 # ─────────────────────────────────────────────────────────────────────────────
 
-def chart_daily_irradiance(irradiance: dict) -> bytes:
-    """Line chart: GHI vs time, with insolation annotation."""
+def chart_daily_irradiance(irradiance: dict,
+                           hourly_kwh: "pd.Series | None" = None) -> bytes:
+    """GHI line/fill (left axis) + hourly AC production bars (right axis)."""
+    import matplotlib.dates as mdates
+
     ts: pd.Series = irradiance["timeseries"]
-    fig, ax = plt.subplots(figsize=(7.0, 2.6), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(7.0, 2.8), constrained_layout=True)
 
     if ts.empty:
         ax.text(0.5, 0.5, "No irradiance data available",
                 ha="center", va="center", transform=ax.transAxes,
                 color=_GREY, fontsize=9)
-    else:
-        ax.fill_between(ts.index, ts.values, alpha=0.18, color=_ORANGE)
-        ax.plot(ts.index, ts.values, color=_ORANGE, lw=1.4)
-        ax.axhline(1000, color=_GREY, ls="--", lw=0.8, label="STC (1 000 W/m²)")
-        ax.set_ylabel("GHI  (W/m²)")
-        import matplotlib.dates as mdates
-        ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
-        ax.xaxis.set_major_locator(mdates.HourLocator(interval=2))
-        ax.tick_params(axis="x", rotation=0)
-        ax.legend(loc="upper right", framealpha=0.5)
-        insol = irradiance["insolation_kwh_m2"]
-        ax.set_title(
-            f"Daily Irradiance Profile  |  Insolation: {insol:.2f} kWh/m²  |  "
-            f"Peak GHI: {irradiance['peak_ghi']:.0f} W/m²",
-            fontsize=8.5, pad=4)
+        return _to_png(fig)
+
+    # ── Left axis: GHI line ───────────────────────────────────────────────
+    ax.fill_between(ts.index, ts.values, alpha=0.18, color=_ORANGE)
+    ax.plot(ts.index, ts.values, color=_ORANGE, lw=1.4, label="GHI (W/m²)")
+    ax.axhline(1000, color=_GREY, ls="--", lw=0.8, label="STC 1 000 W/m²")
+    ax.set_ylabel("GHI  (W/m²)", color=_ORANGE)
+    ax.tick_params(axis="y", labelcolor=_ORANGE)
+    ax.set_ylim(bottom=0)
+
+    # ── Right axis: hourly AC production bars ─────────────────────────────
+    has_prod = hourly_kwh is not None and not hourly_kwh.empty
+    if has_prod:
+        ax2 = ax.twinx()
+        # Bar width = 55 min in data units (matplotlib uses days)
+        bar_width = 55 / (24 * 60)
+        ax2.bar(hourly_kwh.index, hourly_kwh.values,
+                width=bar_width, align="edge",
+                color=_BLUE, alpha=0.55, label="Prod. (kWh/h)", zorder=2)
+        ax2.set_ylabel("AC Production  (kWh/h)", color=_BLUE)
+        ax2.tick_params(axis="y", labelcolor=_BLUE)
+        ax2.set_ylim(bottom=0)
+        ax2.spines["right"].set_visible(True)
+
+    # ── X axis ───────────────────────────────────────────────────────────
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+    ax.xaxis.set_major_locator(mdates.HourLocator(interval=2))
+    ax.tick_params(axis="x", rotation=0)
+
+    # ── Legend ───────────────────────────────────────────────────────────
+    handles, labels = ax.get_legend_handles_labels()
+    if has_prod:
+        h2, l2 = ax2.get_legend_handles_labels()
+        handles += h2
+        labels  += l2
+    ax.legend(handles, labels, loc="upper left", fontsize=7, framealpha=0.6)
+
+    insol = irradiance["insolation_kwh_m2"]
+    total_kwh = hourly_kwh.sum() if has_prod else 0
+    title = (f"Irradiance & Production  |  Insolation: {insol:.2f} kWh/m²  |  "
+             f"Peak GHI: {irradiance['peak_ghi']:.0f} W/m²")
+    if has_prod:
+        title += f"  |  Daily output: {total_kwh:,.0f} kWh"
+    ax.set_title(title, fontsize=8.5, pad=4)
 
     return _to_png(fig)
 

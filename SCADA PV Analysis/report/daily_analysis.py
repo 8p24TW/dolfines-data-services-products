@@ -157,16 +157,18 @@ class DailyAnalysis:
         site_totals     = self._site_totals(per_inv, irradiance)
         waterfall       = self._waterfall(site_totals, irradiance)
         alerts          = self._detect_alerts(per_inv, irr_day)
+        site_power_ts   = self._site_power_timeseries(inv_day)
 
         self._results = {
-            "date":         self.date,
-            "site_name":    self.cfg["display_name"],
-            "irradiance":   irradiance,
-            "per_inverter": per_inv,
-            "site_totals":  site_totals,
-            "waterfall":    waterfall,
-            "alerts":       alerts,
-            "used_demo":    getattr(self, "_used_demo", False),
+            "date":           self.date,
+            "site_name":      self.cfg["display_name"],
+            "irradiance":     irradiance,
+            "per_inverter":   per_inv,
+            "site_totals":    site_totals,
+            "waterfall":      waterfall,
+            "alerts":         alerts,
+            "site_power_ts":  site_power_ts,
+            "used_demo":      getattr(self, "_used_demo", False),
         }
         return self._results
 
@@ -276,6 +278,13 @@ class DailyAnalysis:
 
         df = pd.DataFrame(records).sort_values("inverter").reset_index(drop=True)
         return df
+
+    def _site_power_timeseries(self, inv_day: pd.DataFrame) -> pd.Series:
+        """Return site-level total AC power (kW) as a 10-min timeseries."""
+        if inv_day.empty or "PAC" not in inv_day.columns or "Time_UDT" not in inv_day.columns:
+            return pd.Series(dtype=float)
+        ts = inv_day.groupby("Time_UDT")["PAC"].sum().clip(lower=0).sort_index()
+        return ts
 
     def _demo_per_inverter(self, insolation: float, pr_target: float,
                             cap_ac_kw: float, cap_dc_kwp: float) -> pd.DataFrame:

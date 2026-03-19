@@ -77,9 +77,18 @@ def build_daily_report(
     alerts      = results["alerts"]
 
     # ── 2. Charts ───────────────────────────────────────────────────────────
+    import pandas as _pd
     pr_target = site_cfg["operating_pr_target"]
 
-    chart_irr    = _b64_png(chart_daily_irradiance(irradiance))
+    # Hourly AC production (kWh) for overlay on irradiance chart
+    _power_ts = results.get("site_power_ts", _pd.Series(dtype=float))
+    if not _power_ts.empty:
+        _interval_h = site_cfg["interval_min"] / 60.0
+        hourly_kwh = _power_ts.resample("1h").sum() * _interval_h
+    else:
+        hourly_kwh = _pd.Series(dtype=float)
+
+    chart_irr    = _b64_png(chart_daily_irradiance(irradiance, hourly_kwh))
     chart_yield  = _b64_png(chart_per_inverter_yield(per_inv, pr_target))
     chart_avail  = _b64_png(chart_per_inverter_availability(per_inv))
     chart_pr     = _b64_png(chart_per_inverter_pr(per_inv, pr_target))
