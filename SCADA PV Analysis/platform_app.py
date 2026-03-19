@@ -539,35 +539,25 @@ def _view_portfolio():
     # ── Portfolio-specific CSS ─────────────────────────────────────────────────
     st.markdown("""
     <style>
-      /* Collapse the zero-content span marker containers so they add no height */
-      [data-testid="stMarkdownContainer"]:has(span[id^="pvpat-del-"]),
-      [data-testid="stMarkdownContainer"]:has(span[id^="pvpat-confirm-"]),
-      [data-testid="stMarkdownContainer"]:has(span[id^="pvpat-cancel-"]) {
-        height: 0 !important;
-        overflow: hidden !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        line-height: 0 !important;
-      }
-      /* Red delete button */
-      [data-testid="stHorizontalBlock"] [data-testid="stVerticalBlock"]:has([id^="pvpat-del-"]) .stButton > button {
+      /* Red delete button — last column in any site-card row */
+      [data-testid="stHorizontalBlock"]:has(.site-card) [data-testid="stColumn"]:last-child .stButton > button {
         background: #e53935 !important;
       }
-      [data-testid="stHorizontalBlock"] [data-testid="stVerticalBlock"]:has([id^="pvpat-del-"]) .stButton > button:hover {
+      [data-testid="stHorizontalBlock"]:has(.site-card) [data-testid="stColumn"]:last-child .stButton > button:hover {
         background: #b71c1c !important;
       }
-      /* Red confirm-delete button */
-      [data-testid="stHorizontalBlock"] [data-testid="stVerticalBlock"]:has([id^="pvpat-confirm-"]) .stButton > button {
+      /* Red confirm button — 2nd column in a confirmation row */
+      [data-testid="stHorizontalBlock"]:has(.pvpat-confirm-banner) [data-testid="stColumn"]:nth-child(2) .stButton > button {
         background: #e53935 !important;
       }
-      [data-testid="stHorizontalBlock"] [data-testid="stVerticalBlock"]:has([id^="pvpat-confirm-"]) .stButton > button:hover {
+      [data-testid="stHorizontalBlock"]:has(.pvpat-confirm-banner) [data-testid="stColumn"]:nth-child(2) .stButton > button:hover {
         background: #b71c1c !important;
       }
-      /* Grey cancel button */
-      [data-testid="stHorizontalBlock"] [data-testid="stVerticalBlock"]:has([id^="pvpat-cancel-"]) .stButton > button {
+      /* Grey cancel button — last column in a confirmation row */
+      [data-testid="stHorizontalBlock"]:has(.pvpat-confirm-banner) [data-testid="stColumn"]:last-child .stButton > button {
         background: rgba(255,255,255,0.18) !important;
       }
-      [data-testid="stHorizontalBlock"] [data-testid="stVerticalBlock"]:has([id^="pvpat-cancel-"]) .stButton > button:hover {
+      [data-testid="stHorizontalBlock"]:has(.pvpat-confirm-banner) [data-testid="stColumn"]:last-child .stButton > button:hover {
         background: rgba(255,255,255,0.30) !important;
       }
     </style>
@@ -619,14 +609,13 @@ def _view_portfolio():
                 col_msg, col_yes, col_no = st.columns([4, 1.5, 1.2], vertical_alignment="center")
                 with col_msg:
                     st.markdown(
-                        f"<div style='background:rgba(229,57,53,0.15);border:1px solid #e53935;"
-                        f"border-radius:8px;padding:0.75rem 1.1rem;color:white;font-size:0.92rem;'>"
+                        f"<div class='pvpat-confirm-banner' style='background:rgba(229,57,53,0.15);"
+                        f"border:1px solid #e53935;border-radius:8px;padding:0.75rem 1.1rem;"
+                        f"color:white;font-size:0.92rem;'>"
                         f"⚠️ Permanently delete <strong>{site['display_name']}</strong>? "
                         f"This cannot be undone.</div>",
                         unsafe_allow_html=True)
                 with col_yes:
-                    st.markdown(f'<span id="pvpat-confirm-{site_id}"></span>',
-                                unsafe_allow_html=True)
                     if st.button("Confirm Delete", key=f"yes_del_{site_id}"):
                         st.session_state["pending_delete"] = None
                         if is_custom:
@@ -635,8 +624,6 @@ def _view_portfolio():
                             st.session_state["deleted_sites"].add(site_id)
                         st.rerun()
                 with col_no:
-                    st.markdown(f'<span id="pvpat-cancel-{site_id}"></span>',
-                                unsafe_allow_html=True)
                     if st.button("Cancel", key=f"cancel_del_{site_id}"):
                         st.session_state["pending_delete"] = None
                         st.rerun()
@@ -667,8 +654,6 @@ def _view_portfolio():
                         st.session_state["view"] = "report_select"
                         st.rerun()
                 with col_del:
-                    st.markdown(f'<span id="pvpat-del-{site_id}"></span>',
-                                unsafe_allow_html=True)
                     if st.button("🗑 Delete", key=f"del_{site_id}"):
                         st.session_state["pending_delete"] = site_id
                         st.rerun()
@@ -766,34 +751,31 @@ def _view_report_select():
     comp_bg      = "rgba(240,120,32,0.18)" if comp_sel  else "rgba(255,255,255,0.06)"
     comp_check   = "<span style='float:right;font-size:1.1rem;color:#22c55e;'>✔</span>" if comp_sel  else ""
 
-    # CSS: make entire card area clickable — scoped to column-level blocks only
-    # Using [data-testid="column"] ancestor prevents the outer page stVerticalBlock
-    # from matching :has(.pvpat-report-card), which would make ALL buttons invisible.
-    st.markdown("""
-    <style>
-      [data-testid="stHorizontalBlock"] [data-testid="stVerticalBlock"]:has(.pvpat-report-card) {
-        position: relative !important;
+    st.markdown("<style>.pvpat-report-card { cursor: pointer; }</style>",
+                unsafe_allow_html=True)
+    # Inject JS via components iframe so clicking a card triggers its Select button
+    import streamlit.components.v1 as _comp
+    _comp.html("""
+    <script>
+    (function() {
+      function wire() {
+        try {
+          var doc = window.parent.document;
+          doc.querySelectorAll('.pvpat-report-card').forEach(function(card) {
+            if (card.dataset.wired) return;
+            card.dataset.wired = '1';
+            card.addEventListener('click', function() {
+              var col = card.closest('[data-testid="stColumn"]');
+              if (col) { var b = col.querySelector('button'); if (b) b.click(); }
+            });
+          });
+          new MutationObserver(wire).observe(doc.body, {childList:true, subtree:true});
+        } catch(e) {}
       }
-      [data-testid="stHorizontalBlock"] [data-testid="stVerticalBlock"]:has(.pvpat-report-card) .pvpat-report-card {
-        pointer-events: none;
-      }
-      [data-testid="stHorizontalBlock"] [data-testid="stVerticalBlock"]:has(.pvpat-report-card) [data-testid="stButton"] {
-        position: absolute !important;
-        inset: 0 !important;
-        z-index: 5 !important;
-      }
-      [data-testid="stHorizontalBlock"] [data-testid="stVerticalBlock"]:has(.pvpat-report-card) [data-testid="stButton"] > button {
-        width: 100% !important;
-        height: 100% !important;
-        min-height: 240px !important;
-        opacity: 0 !important;
-        cursor: pointer !important;
-        background: transparent !important;
-        border: none !important;
-        padding: 0 !important;
-      }
-    </style>
-    """, unsafe_allow_html=True)
+      wire();
+    })();
+    </script>
+    """, height=0)
 
     col_a, col_b = st.columns(2)
 
