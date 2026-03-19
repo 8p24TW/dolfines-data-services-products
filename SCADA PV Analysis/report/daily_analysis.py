@@ -21,6 +21,25 @@ warnings.filterwarnings("ignore")
 # HELPERS
 # ─────────────────────────────────────────────────────────────────────────────
 
+def _find_time_col(df: pd.DataFrame) -> str | None:
+    """Return the column name that represents the timestamp, or None."""
+    _TIME_ALIASES = {
+        "time_udt", "time_utc", "time_local", "time", "datetime",
+        "timestamp", "date_time", "horodate", "date",
+    }
+    for c in df.columns:
+        if c.lower() in _TIME_ALIASES:
+            return c
+    # Fallback: any column whose first non-null value looks like a date string
+    for c in df.columns:
+        sample = df[c].dropna().head(3).astype(str)
+        if sample.str.match(
+            r"\d{1,2}[/\-]\d{1,2}[/\-]\d{2,4}|\d{4}[/\-]\d{2}[/\-]\d{2}|\d{8}:"
+        ).any():
+            return c
+    return None
+
+
 def _load_inverter_csv(data_dir: Path) -> pd.DataFrame:
     """Load all inverter CSVs from data_dir, concatenate, return tidy DataFrame."""
     frames = []
@@ -34,12 +53,12 @@ def _load_inverter_csv(data_dir: Path) -> pd.DataFrame:
                              low_memory=False)
             # Normalise column names
             df.columns = [c.strip() for c in df.columns]
-            if "Time_UDT" not in df.columns and "time_udt" not in df.columns.str.lower().tolist():
-                # Try first column as timestamp
-                df = df.rename(columns={df.columns[0]: "Time_UDT"})
-            else:
-                col_map = {c: "Time_UDT" for c in df.columns if c.lower() == "time_udt"}
-                df = df.rename(columns=col_map)
+            if "Time_UDT" not in df.columns:
+                t = _find_time_col(df)
+                if t:
+                    df = df.rename(columns={t: "Time_UDT"})
+                else:
+                    df = df.rename(columns={df.columns[0]: "Time_UDT"})
             frames.append(df)
         except Exception:
             continue
@@ -72,7 +91,11 @@ def _load_irradiance_csv(data_dir: Path) -> pd.DataFrame:
                              low_memory=False)
             df.columns = [c.strip() for c in df.columns]
             if "Time_UDT" not in df.columns:
-                df = df.rename(columns={df.columns[0]: "Time_UDT"})
+                t = _find_time_col(df)
+                if t:
+                    df = df.rename(columns={t: "Time_UDT"})
+                else:
+                    df = df.rename(columns={df.columns[0]: "Time_UDT"})
             frames.append(df)
         except Exception:
             continue

@@ -477,7 +477,7 @@ def _render_html(*, site_cfg, report_date, logo_b64, irradiance, site_totals,
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: var(--font); font-size: 9pt; color: var(--c-txt); background: #fff; }
 @page { size: A4; margin: 0; }
-.page { position: relative; min-height: 257mm; background: #fff;
+.page { position: relative; min-height: 297mm; background: #fff;
         page-break-after: always; display: flex; flex-direction: column; }
 .page:last-child { page-break-after: auto; }
 
@@ -501,7 +501,7 @@ body { font-family: var(--font); font-size: 9pt; color: var(--c-txt); background
 }
 
 /* ── Cover ── */
-.cover-page { min-height: 257mm; background: #fff;
+.cover-page { min-height: 297mm; background: #fff;
               page-break-after: always; display: flex; flex-direction: column; }
 .cover-band {
   background: var(--c-pri); display: flex; align-items: center;
@@ -560,8 +560,8 @@ body { font-family: var(--font); font-size: 9pt; color: var(--c-txt); background
 /* ── Commentary card ── */
 .commentary-card {
   background: linear-gradient(180deg, #fbfcfd, #f6f8fa);
-  border-left: 3px solid var(--c-acc); padding: 3mm 3.5mm;
-  margin-bottom: 3mm; border: 1px solid var(--c-bdr);
+  border: 1px solid var(--c-bdr); border-left: 3px solid var(--c-acc);
+  padding: 3mm 3.5mm; margin-bottom: 3mm;
   border-radius: 8px; break-inside: avoid;
 }
 .commentary-card h3 { font-size: 9.5pt; font-weight: 700; color: var(--c-pri);
