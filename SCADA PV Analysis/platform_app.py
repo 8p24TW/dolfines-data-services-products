@@ -202,13 +202,36 @@ st.markdown(f"""
   .stSuccess,.stError,.stWarning,.stInfo {{ border-radius:6px; }}
   [data-testid="stFileUploaderDropzone"] {{
     border:1.5px dashed rgba(255,255,255,0.30); border-radius:6px;
-    background:rgba(255,255,255,0.06);
+    background:rgba(255,255,255,0.06); transition:border-color 0.2s, background 0.2s;
+  }}
+  [data-testid="stFileUploaderDropzone"]:hover,
+  [data-testid="stFileUploaderDropzone"].drag-over {{
+    border:2px dashed #F07820 !important; background:rgba(240,120,32,0.12) !important;
   }}
   [data-testid="stFileUploaderDropzoneInstructions"] span,
   [data-testid="stFileUploaderDropzoneInstructions"] p {{
     color:rgba(255,255,255,0.65) !important;
   }}
 </style>
+<script>
+(function() {{
+  function attachDragListeners() {{
+    document.querySelectorAll('[data-testid="stFileUploaderDropzone"]').forEach(function(el) {{
+      if (el._dragBound) return;
+      el._dragBound = true;
+      el.addEventListener('dragenter', function(e) {{ el.classList.add('drag-over'); }});
+      el.addEventListener('dragover',  function(e) {{ el.classList.add('drag-over'); }});
+      el.addEventListener('dragleave', function(e) {{
+        if (!el.contains(e.relatedTarget)) el.classList.remove('drag-over');
+      }});
+      el.addEventListener('drop', function(e) {{ el.classList.remove('drag-over'); }});
+    }});
+  }}
+  // Run on load and re-run when Streamlit re-renders DOM
+  attachDragListeners();
+  new MutationObserver(attachDragListeners).observe(document.body, {{childList:true, subtree:true}});
+}})();
+</script>
 """, unsafe_allow_html=True)
 
 

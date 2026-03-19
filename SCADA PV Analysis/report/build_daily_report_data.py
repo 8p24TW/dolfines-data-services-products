@@ -388,10 +388,10 @@ def _build_data_quality(has_real_inv, has_irr, site_cfg, results):
     rows = []
     inv_status  = ("✓ Available", "#2E8B57") if has_real_inv else ("⚠ Demo data used", "#E67E22")
     irr_status  = ("✓ Available", "#2E8B57") if has_irr    else ("✗ Not found",       "#C0392B")
-    rows.append(("Per-inverter power data",  inv_status[0], inv_status[1],
+    rows.append(("Per-inverter power data",  inv_status, inv_status[1],
                   "Energy, PR, specific yield per inverter",
                   "SCADA CSV with EQUIP + PAC columns" if not has_real_inv else "—"))
-    rows.append(("Irradiance / GHI data",    irr_status[0], irr_status[1],
+    rows.append(("Irradiance / GHI data",    irr_status, irr_status[1],
                   "Insolation, PR calculation, waterfall losses",
                   "Pyranometer CSV with GHI column" if not has_irr else "—"))
     rows.append(("Performance Ratio",
