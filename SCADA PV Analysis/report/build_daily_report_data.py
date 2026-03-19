@@ -166,6 +166,78 @@ def build_daily_report(
 # COMMENTARY & DATA QUALITY HELPERS
 # ─────────────────────────────────────────────────────────────────────────────
 
+def _load_kb_relevant_faults(alerts: list, site_cfg: dict) -> list:
+    """Return up to 4 knowledge-base fault entries relevant to detected alerts."""
+    import json
+    kb_path = _ROOT / "fault_knowledge_base.json"
+    if not kb_path.exists():
+        return []
+    try:
+        kb = json.loads(kb_path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+
+    # Detect preferred manufacturer from inverter model name
+    inv_model = site_cfg.get("inverter_model", "").lower()
+    if "sungrow" in inv_model or inv_model.startswith("sg"):
+        preferred_mfr = "Sungrow"
+    elif "sma" in inv_model or "sunny" in inv_model:
+        preferred_mfr = "SMA"
+    else:
+        preferred_mfr = None
+
+    # Flatten all inverter faults with manufacturer tag
+    all_faults: list[dict] = []
+    for mfr in kb.get("inverter_manufacturers", []):
+        mfr_name = mfr.get("manufacturer", "")
+        for fault in mfr.get("faults", []):
+            all_faults.append({**fault, "_mfr": mfr_name})
+    # Flatten any other top-level fault lists (module_degradation_modes, etc.)
+    for key in ("module_degradation_modes", "string_and_combiner_faults",
+                "soiling_degradation", "grid_and_curtailment_faults"):
+        for fault in kb.get(key, []):
+            all_faults.append({**fault, "_mfr": key})
+
+    alert_codes = {a.get("code", "") for a in alerts}
+
+    # Map alert codes → preferred KB fault IDs (Sungrow-first; SMA alternatives included)
+    wanted: list[str] = []
+    if "OFFLINE" in alert_codes:
+        wanted += ["SUN-008", "SUN-003", "SMA-003"]       # AC relay / contactor
+    if "LOW_PR" in alert_codes:
+        wanted += ["SUN-002", "SUN-010", "SUN-011", "SMA-001"]  # DC insulation, MPPT mismatch
+    if "LOW_AVAILABILITY" in alert_codes:
+        wanted += ["SUN-001", "SUN-009", "SUN-004", "SMA-002"]  # grid, thermal
+    if "BELOW_TARGET_PR" in alert_codes:
+        wanted += ["SUN-014", "SUN-005", "SUN-012"]        # curtailment, low-irradiance start, clipping
+
+    # Collect, preferring manufacturer match, deduplicated, max 4
+    seen: set[str] = set()
+    relevant: list[dict] = []
+    # First pass: preferred manufacturer
+    for fid in wanted:
+        if fid in seen:
+            continue
+        match = next((f for f in all_faults
+                      if f.get("id") == fid and
+                      (preferred_mfr is None or f["_mfr"] == preferred_mfr)), None)
+        if match:
+            relevant.append(match)
+            seen.add(fid)
+    # Second pass: any manufacturer for missed IDs
+    for fid in wanted:
+        if fid in seen:
+            continue
+        match = next((f for f in all_faults if f.get("id") == fid), None)
+        if match:
+            relevant.append(match)
+            seen.add(fid)
+        if len(relevant) >= 4:
+            break
+
+    return relevant[:4]
+
+
 def _build_commentary(site_cfg, site_totals, per_inv, irradiance,
                        alerts, has_real_inv, has_irr):
     """Generate automatic interpretive text for the report."""
@@ -279,6 +351,33 @@ def _build_commentary(site_cfg, site_totals, per_inv, irradiance,
             f"<strong>{len(high_alerts)} HIGH-severity alert(s)</strong> require "
             f"immediate attention. Refer to the Alerts &amp; Alarms section for "
             f"recommended corrective actions."
+        )
+
+    # Knowledge base diagnostic insights
+    kb_faults = _load_kb_relevant_faults(alerts, site_cfg)
+    if kb_faults:
+        sub_items = ""
+        for f in kb_faults:
+            mfr   = f.get("_mfr", "")
+            fid   = f.get("id", "")
+            fname = f.get("name", "")
+            cats  = f.get("root_causes", [])[:2]
+            acts  = f.get("actions", [])[:2]
+            causes_str  = "; ".join(cats) if cats else "—"
+            actions_str = "; ".join(acts) if acts else "—"
+            sev   = f.get("severity", "")
+            sub_items += (
+                f"<li style='margin-bottom:4px;'>"
+                f"<em style='color:#003D6B;'>[{fid} · {mfr} · {fname}]</em> "
+                f"<span style='color:#888;font-size:7pt;'>({sev})</span> — "
+                f"<strong>Typical causes:</strong> {causes_str}. "
+                f"<strong>Recommended actions:</strong> {actions_str}."
+                f"</li>"
+            )
+        lines.append(
+            f"<strong>Knowledge Base — Diagnostic Guidance:</strong> "
+            f"Based on the alerts detected, the following known fault patterns are relevant:"
+            f"<ul style='margin-top:4px;margin-bottom:0;padding-left:18px;'>{sub_items}</ul>"
         )
 
     return lines
