@@ -345,6 +345,10 @@ def _view_portfolio():
     _render_header()
     user = st.session_state["user"]
 
+    # Session-state stores for user-managed sites
+    if "deleted_sites"  not in st.session_state: st.session_state["deleted_sites"]  = set()
+    if "custom_sites"   not in st.session_state: st.session_state["custom_sites"]   = {}
+
     st.markdown(f"""
     <div style="margin-bottom:1.2rem;">
       <span style="font-size:1.05rem;color:rgba(255,255,255,0.90);">
@@ -358,84 +362,95 @@ def _view_portfolio():
         "<div class='step-hdr'>Your Site Portfolio</div>",
         unsafe_allow_html=True)
 
-    site_ids = user.get("sites", [])
-    if not site_ids:
-        st.info("No sites configured for your account. Contact your 8p2 advisor.")
-        return
+    # Build the full list: built-in sites (minus deleted) + user-added sites
+    builtin_ids = [s for s in user.get("sites", [])
+                   if s not in st.session_state["deleted_sites"]]
+    all_items = (
+        [(sid, SITES[sid], False) for sid in builtin_ids if sid in SITES]
+        + [(sid, cfg, True)
+           for sid, cfg in st.session_state["custom_sites"].items()]
+    )
 
-    for site_id in site_ids:
-        site = SITES.get(site_id, {})
-        if not site:
-            continue
-        status     = site.get("status", "operational")
-        status_lbl = {"operational": "OPERATIONAL", "maintenance": "MAINTENANCE",
-                      "offline": "OFFLINE"}.get(status, status.upper())
-        status_col = {"operational": "#2E8B57", "maintenance": "#E67E22",
-                      "offline": "#C0392B"}.get(status, "#888")
+    if not all_items:
+        st.info("No sites in your portfolio. Add one below.")
+    else:
+        for site_id, site, is_custom in all_items:
+            cap_mwp    = site.get("cap_dc_kwp", 0) / 1000
+            status     = site.get("status", "operational")
+            status_lbl = {"operational": "OPERATIONAL", "maintenance": "MAINTENANCE",
+                          "offline": "OFFLINE"}.get(status, status.upper())
+            status_col = {"operational": "#2E8B57", "maintenance": "#E67E22",
+                          "offline": "#C0392B"}.get(status, "#888")
 
-        col_info, col_btn = st.columns([4, 1])
-        with col_info:
-            cap_mwp = site.get('cap_dc_kwp', 0) / 1000
-            st.markdown(f"""
-            <div class="site-card">
-              <div class="site-card-name">
-                {site['display_name']}
-                <span style="background:{status_col};color:white;font-size:0.62rem;
-                  padding:2px 8px;border-radius:10px;margin-left:8px;vertical-align:middle;
-                  font-weight:700;">{status_lbl}</span>
-              </div>
-              <div class="site-card-sub">
-                {cap_mwp:.2f} MWp
-              </div>
-            </div>
-            """, unsafe_allow_html=True)
-        with col_btn:
-            st.markdown("<div style='margin-top:1.2rem;'>", unsafe_allow_html=True)
-            if st.button("Generate Report →", key=f"go_{site_id}"):
-                st.session_state["selected_site"] = site_id
-                st.session_state["view"] = "report_select"
-                st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
+            col_info, col_rep, col_del = st.columns([4, 1, 1])
+            with col_info:
+                st.markdown(f"""
+                <div class="site-card">
+                  <div class="site-card-name">
+                    {site['display_name']}
+                    <span style="background:{status_col};color:white;font-size:0.62rem;
+                      padding:2px 8px;border-radius:10px;margin-left:8px;vertical-align:middle;
+                      font-weight:700;">{status_lbl}</span>
+                  </div>
+                  <div class="site-card-sub">{cap_mwp:.2f} MWp</div>
+                </div>
+                """, unsafe_allow_html=True)
+            with col_rep:
+                st.markdown("<div style='margin-top:1.2rem;'>", unsafe_allow_html=True)
+                if st.button("Generate Report →", key=f"go_{site_id}"):
+                    # Register custom site in SITES so report views can find it
+                    if is_custom:
+                        SITES[site_id] = site
+                    st.session_state["selected_site"] = site_id
+                    st.session_state["view"] = "report_select"
+                    st.rerun()
+                st.markdown("</div>", unsafe_allow_html=True)
+            with col_del:
+                st.markdown("<div style='margin-top:1.2rem;'>", unsafe_allow_html=True)
+                if st.button("🗑 Delete", key=f"del_{site_id}"):
+                    if is_custom:
+                        st.session_state["custom_sites"].pop(site_id, None)
+                    else:
+                        st.session_state["deleted_sites"].add(site_id)
+                    st.rerun()
+                st.markdown("</div>", unsafe_allow_html=True)
 
     # ── Add new site ───────────────────────────────────────────────────────────
     st.divider()
-    with st.expander("➕  Add a new site to your portfolio"):
-        st.markdown("""
-        <p style="color:rgba(255,255,255,0.70);font-size:0.88rem;margin-bottom:0.6rem;">
-          Fill in the details below and the 8p2 team will configure your site
-          and get back to you within 48 hours.
-        </p>""", unsafe_allow_html=True)
-
+    with st.expander("➕  Add a new site"):
         c1, c2 = st.columns(2)
         with c1:
-            new_name     = st.text_input("Site name", placeholder="e.g. Sahara Solar Park", key="ns_name")
-            new_capacity = st.text_input("Capacity (kWp DC)", placeholder="e.g. 9 500", key="ns_cap")
-            new_location = st.text_input("Location / Country", placeholder="e.g. Morocco", key="ns_loc")
+            new_name = st.text_input("Site name *", placeholder="e.g. Sahara Solar Park", key="ns_name")
         with c2:
-            new_cod      = st.text_input("Commercial Operation Date", placeholder="e.g. 2022-06", key="ns_cod")
-            new_inverter = st.text_input("Inverter model (optional)", placeholder="e.g. Sungrow SG250HX", key="ns_inv")
-            new_notes    = st.text_area("Additional notes (optional)", placeholder="Data available, special config…", height=68, key="ns_notes")
+            new_cap  = st.text_input("Capacity (MWp DC) *", placeholder="e.g. 9.84", key="ns_cap")
 
-        if st.button("📨  Send site request to 8p2", key="btn_add_site"):
-            missing = [f for f, v in [("Site name", new_name), ("Capacity", new_capacity), ("Location", new_location)] if not v.strip()]
-            if missing:
-                st.error(f"Please fill in: {', '.join(missing)}.")
+        if st.button("Add site", key="btn_add_site"):
+            if not new_name.strip():
+                st.error("Site name is required.")
+            elif not new_cap.strip():
+                st.error("Capacity is required.")
             else:
-                body = (
-                    f"New site request from {user['display_name']} ({user['email']})%0A%0A"
-                    f"Site name: {new_name}%0A"
-                    f"Capacity: {new_capacity} kWp DC%0A"
-                    f"Location: {new_location}%0A"
-                    f"COD: {new_cod}%0A"
-                    f"Inverter: {new_inverter}%0A"
-                    f"Notes: {new_notes}"
-                )
-                mailto = f"mailto:consulting@8p2.fr?subject=New%20Site%20Request%20—%20{new_name.replace(' ','%20')}&body={body}"
-                st.success(f"✅ Site request ready. Click the link below to send it to the 8p2 team.")
-                st.markdown(
-                    f'<a href="{mailto}" style="color:#F07820;font-weight:700;">'
-                    f'📧 Open email to submit request for {new_name}</a>',
-                    unsafe_allow_html=True)
+                try:
+                    cap_kwp = float(new_cap.replace(",", ".")) * 1000
+                except ValueError:
+                    st.error("Capacity must be a number (e.g. 9.84).")
+                    cap_kwp = None
+                if cap_kwp is not None:
+                    slug = "USR_" + "".join(c if c.isalnum() else "_" for c in new_name.upper())[:20]
+                    st.session_state["custom_sites"][slug] = {
+                        "display_name": new_name.strip(),
+                        "cap_dc_kwp":   cap_kwp,
+                        "cap_ac_kw":    cap_kwp * 0.9,
+                        "status":       "operational",
+                        "n_inverters":  0,
+                        "inverter_model": "—",
+                        "inv_ac_kw":    0,
+                        "region": "", "country": "", "cod": "—", "technology": "—",
+                    }
+                    # Clear input fields
+                    st.session_state.pop("ns_name", None)
+                    st.session_state.pop("ns_cap",  None)
+                    st.rerun()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
