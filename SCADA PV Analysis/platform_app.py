@@ -375,6 +375,7 @@ def _view_portfolio():
 
         col_info, col_btn = st.columns([4, 1])
         with col_info:
+            cap_mwp = site.get('cap_dc_kwp', 0) / 1000
             st.markdown(f"""
             <div class="site-card">
               <div class="site-card-name">
@@ -384,12 +385,7 @@ def _view_portfolio():
                   font-weight:700;">{status_lbl}</span>
               </div>
               <div class="site-card-sub">
-                📍 {site.get('region','')}, {site.get('country','')}
-                &nbsp;·&nbsp; COD {site.get('cod','—')}
-                &nbsp;·&nbsp; {site.get('n_inverters','?')} × {site.get('inverter_model','—')}
-                &nbsp;·&nbsp; {site.get('cap_dc_kwp',0):.0f} kWp DC
-                / {site.get('cap_ac_kw',0):.0f} kW AC
-                &nbsp;·&nbsp; {site.get('technology','—')}
+                {cap_mwp:.2f} MWp
               </div>
             </div>
             """, unsafe_allow_html=True)
