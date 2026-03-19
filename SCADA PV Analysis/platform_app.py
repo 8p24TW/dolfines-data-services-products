@@ -223,18 +223,28 @@ _components.html("""
 <script>
 (function() {
   var doc = window.parent.document;
+  function clearAll() {
+    doc.querySelectorAll('[data-testid="stFileUploaderDropzone"].drag-over')
+       .forEach(function(el) { el.classList.remove('drag-over'); });
+  }
   function attach() {
     doc.querySelectorAll('[data-testid="stFileUploaderDropzone"]').forEach(function(el) {
       if (el._db) return;
       el._db = true;
-      el.addEventListener('dragenter', function() { el.classList.add('drag-over'); }, true);
-      el.addEventListener('dragover',  function(e) { e.stopPropagation(); el.classList.add('drag-over'); }, true);
+      // Do NOT stopPropagation — Streamlit needs dragover to call preventDefault
+      el.addEventListener('dragenter', function() { el.classList.add('drag-over'); });
+      el.addEventListener('dragover',  function() { el.classList.add('drag-over'); });
       el.addEventListener('dragleave', function(e) {
         if (!el.contains(e.relatedTarget)) el.classList.remove('drag-over');
-      }, true);
-      el.addEventListener('drop', function() { el.classList.remove('drag-over'); }, true);
+      });
     });
   }
+  // Clear class on any drop or drag cancel anywhere in the document
+  doc.addEventListener('drop',    clearAll);
+  doc.addEventListener('dragend', clearAll);
+  doc.addEventListener('dragleave', function(e) {
+    if (!e.relatedTarget) clearAll(); // pointer left the browser window
+  });
   attach();
   new MutationObserver(attach).observe(doc.body, {childList: true, subtree: true});
 })();
