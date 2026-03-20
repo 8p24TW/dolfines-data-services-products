@@ -1040,6 +1040,9 @@ def _latin1(text: str) -> str:
         "\u00d7": "x",  "\u00b2": "2",  "\u00b0": "deg",
         "\u2019": "'",  "\u2018": "'",  "\u201c": '"', "\u201d": '"',
         "\u2022": "-",  "\u2026": "...",
+        "\u2713": "OK", "\u2714": "OK", "\u2717": "X", "\u2718": "X",
+        "\u26a0": "(!)", "\u2713": "OK", "\u2192": "->",
+        "\u00e9": "e",  "\u00e8": "e",  "\u00ea": "e",
     }
     for ch, rep in _MAP.items():
         text = text.replace(ch, rep)
@@ -1510,7 +1513,7 @@ def _fpdf2_pdf(
             except Exception:
                 sc = DTXT
             dx = 10
-            row_vals = [analysis, status_text, impact, remedy]
+            row_vals = [_latin1(analysis), _latin1(status_text), _latin1(impact), _latin1(remedy)]
             for rv, dcw in zip(row_vals, dq_cws):
                 pdf.rect(dx, cy, dcw, 7, "D")
                 pdf.set_xy(dx + 1, cy + 1.5)
