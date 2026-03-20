@@ -564,36 +564,32 @@ def chart_period_overview(overview: pd.DataFrame, pr_target: float,
     fig, ax1 = plt.subplots(figsize=(11, 4.8))
     _apply_spine(ax1)
 
-    # Energy bars
+    # Irradiance / irradiation bars (orange)
     ax_irr = None
     ax_pr  = None
+    if irr_col in overview.columns:
+        ax_irr = ax1.twinx()
+        iv = overview[irr_col]
+        iv_max = max(iv.max(), 0.1)
+        ax_irr.bar(x, iv, width=bar_offset * 2,
+                   color=_T["orange"], alpha=0.75, label=irr_label, zorder=2)
+        ax_irr.set_ylabel(irr_label, color=_T["orange"], fontsize=9)
+        ax_irr.set_ylim(0, iv_max * 1.45)
+        ax_irr.spines["top"].set_visible(False)
+        ax_irr.spines["left"].set_visible(False)
+        ax_irr.tick_params(colors=_T["orange"], labelsize=8.5)
+        ax_irr.grid(False)
+
+    # Energy line (slate grey)
     if energy_col in overview.columns:
         raw = overview[energy_col]
         ev  = raw / 1000 if freq == "ME" else raw   # MWh for monthly, kWh otherwise
         ev_max = max(ev.max(), 0.1)
-        bars = ax1.bar(x - bar_offset, ev, width=bar_offset * 2,
-                       color=_T["orange"], alpha=0.88, label=energy_label, zorder=2)
-        ax1.set_ylabel(energy_label, color=_T["text"], fontsize=9)
+        ax1.plot(x, ev, color=_T["slate"], linewidth=1.8, marker="o",
+                 markersize=marker_size, label=energy_label, zorder=3)
+        ax1.set_ylabel(energy_label, color=_T["slate"], fontsize=9)
         ax1.set_ylim(0, ev_max * 1.45)
-        # Value labels only when not too many bars
-        if len(x) <= 50:
-            for bar, v in zip(bars, ev):
-                ax1.text(bar.get_x() + bar.get_width() / 2,
-                         bar.get_height() + ev_max * 0.02,
-                         f"{v:.1f}", ha="center", va="bottom", fontsize=6.5,
-                         color=_T["text"])
-
-    # Irradiance / irradiation bars
-    if irr_col in overview.columns:
-        ax_irr = ax1.twinx()
-        iv = overview[irr_col]
-        ax_irr.bar(x + bar_offset, iv, width=bar_offset * 2,
-                   color=_T["slate"], alpha=0.55, label=irr_label, zorder=2)
-        ax_irr.set_ylabel(irr_label, color=_T["slate"], fontsize=9)
-        ax_irr.spines["top"].set_visible(False)
-        ax_irr.spines["left"].set_visible(False)
-        ax_irr.tick_params(colors=_T["slate"], labelsize=8.5)
-        ax_irr.grid(False)
+        ax1.tick_params(axis="y", colors=_T["slate"])
 
     # PR line
     if "pr_pct" in overview.columns:
