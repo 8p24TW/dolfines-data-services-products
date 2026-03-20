@@ -250,27 +250,72 @@ def _detect_interval(df: pd.DataFrame, fallback_min: int = 10) -> float:
     return fallback_min / 60.0
 
 
-def _completeness_pivot(inv: pd.DataFrame, interval_h: float) -> pd.DataFrame:
+def _choose_freq(inv: pd.DataFrame) -> str:
+    """Return granularity for heatmap columns: 'interval', 'D', or 'ME'."""
+    if inv.empty or "Time_UDT" not in inv.columns:
+        return "D"
+    span_days = (inv["Time_UDT"].max() - inv["Time_UDT"].min()).total_seconds() / 86400
+    if span_days <= 3:
+        return "interval"
+    elif span_days <= 90:
+        return "D"
+    else:
+        return "ME"
+
+
+def _completeness_pivot(inv: pd.DataFrame, interval_h: float, freq: str = "D") -> pd.DataFrame:
     if inv.empty or "EQUIP" not in inv.columns:
         return pd.DataFrame()
-    expected = round(24 / interval_h)
     inv = inv.copy()
-    inv["date"] = inv["Time_UDT"].dt.date
-    counts = inv.groupby(["EQUIP", "date"])["PAC"].count().reset_index()
-    counts["pct"] = (counts["PAC"] / expected).clip(0, 1)
-    pivot = counts.pivot(index="EQUIP", columns="date", values="pct")
-    return pivot
+    if freq == "interval":
+        slot_min = max(1, round(interval_h * 60))
+        inv["slot"] = inv["Time_UDT"].dt.floor(f"{slot_min}min")
+        all_slots = sorted(inv["slot"].unique())
+        all_equip = sorted(inv["EQUIP"].unique())
+        pres = inv.groupby(["EQUIP", "slot"])["PAC"].count().clip(0, 1)
+        idx = pd.MultiIndex.from_product([all_equip, all_slots], names=["EQUIP", "slot"])
+        pres = pres.reindex(idx, fill_value=0).reset_index()
+        pres.columns = ["EQUIP", "slot", "pct"]
+        pivot = pres.pivot(index="EQUIP", columns="slot", values="pct")
+        pivot.columns = [pd.Timestamp(c).strftime("%H:%M") for c in pivot.columns]
+        return pivot
+    elif freq == "ME":
+        inv["period"] = inv["Time_UDT"].dt.to_period("M").astype(str)
+        inv["date"] = inv["Time_UDT"].dt.date
+        all_days = inv.groupby("period")["date"].nunique()
+        days_inv = inv.groupby(["EQUIP", "period"])["date"].nunique().reset_index()
+        days_inv["pct"] = days_inv.apply(lambda r: r["date"] / all_days[r["period"]], axis=1)
+        return days_inv.pivot(index="EQUIP", columns="period", values="pct").clip(0, 1)
+    else:  # "D"
+        expected = round(24 / interval_h)
+        inv["date"] = inv["Time_UDT"].dt.date
+        counts = inv.groupby(["EQUIP", "date"])["PAC"].count().reset_index()
+        counts["pct"] = (counts["PAC"] / expected).clip(0, 1)
+        return counts.pivot(index="EQUIP", columns="date", values="pct")
 
 
 def _specific_yield_pivot(inv: pd.DataFrame, cap_per_inv: float,
-                           interval_h: float) -> pd.DataFrame:
+                           interval_h: float, freq: str = "D") -> pd.DataFrame:
     if inv.empty or "EQUIP" not in inv.columns:
         return pd.DataFrame()
     inv = inv.copy()
-    inv["date"] = inv["Time_UDT"].dt.date
-    daily = inv.groupby(["EQUIP", "date"])["PAC"].sum() * interval_h  # kWh
-    pivot = daily.reset_index().pivot(index="EQUIP", columns="date", values="PAC")
-    return pivot / cap_per_inv   # kWh/kWp
+    if freq == "interval":
+        slot_min = max(1, round(interval_h * 60))
+        inv["slot"] = inv["Time_UDT"].dt.floor(f"{slot_min}min")
+        energy = inv.groupby(["EQUIP", "slot"])["PAC"].sum() * interval_h
+        pivot = energy.reset_index().pivot(index="EQUIP", columns="slot", values="PAC")
+        pivot.columns = [pd.Timestamp(c).strftime("%H:%M") for c in pivot.columns]
+        return pivot / cap_per_inv
+    elif freq == "ME":
+        inv["period"] = inv["Time_UDT"].dt.to_period("M").astype(str)
+        energy = inv.groupby(["EQUIP", "period"])["PAC"].sum() * interval_h
+        pivot = energy.reset_index().pivot(index="EQUIP", columns="period", values="PAC")
+        return pivot / cap_per_inv
+    else:  # "D"
+        inv["date"] = inv["Time_UDT"].dt.date
+        daily = inv.groupby(["EQUIP", "date"])["PAC"].sum() * interval_h
+        pivot = daily.reset_index().pivot(index="EQUIP", columns="date", values="PAC")
+        return pivot / cap_per_inv
 
 
 def _monthly_overview(inv: pd.DataFrame, irr: pd.DataFrame,
@@ -403,15 +448,20 @@ def _apply_spine(ax):
     ax.grid(True, axis="y", color=_T["border"], alpha=0.5, linewidth=0.7, zorder=0)
 
 
-def chart_completeness(pivot: pd.DataFrame) -> str:
+def chart_completeness(pivot: pd.DataFrame, freq: str = "D") -> str:
     if pivot.empty:
         return ""
-    # Limit width for readability
     cols = list(pivot.columns)
-    if len(cols) > 90:
-        step = max(1, len(cols) // 90)
+    max_cols = 288 if freq == "interval" else 90
+    if len(cols) > max_cols:
+        step = max(1, len(cols) // max_cols)
         pivot = pivot.iloc[:, ::step]
         cols = list(pivot.columns)
+
+    _titles = {"interval": "Data Completeness — by Inverter & Time Slot",
+               "D":        "Data Completeness Heatmap — by Inverter & Day",
+               "ME":       "Data Completeness Heatmap — by Inverter & Month"}
+    _xlabels = {"interval": "Time", "D": "Date", "ME": "Month"}
 
     n_inv = len(pivot)
     fig, ax = plt.subplots(figsize=(11, max(3.5, n_inv * 0.35 + 1.5)))
@@ -419,17 +469,17 @@ def chart_completeness(pivot: pd.DataFrame) -> str:
                    interpolation="nearest")
     ax.set_yticks(range(n_inv))
     ax.set_yticklabels(list(pivot.index), fontsize=8)
-    # X-axis date labels
-    step = max(1, len(cols) // 20)
+    max_ticks = 30 if freq == "interval" else 20
+    step = max(1, len(cols) // max_ticks)
     ax.set_xticks(range(0, len(cols), step))
     ax.set_xticklabels([str(cols[i]) for i in range(0, len(cols), step)],
                        rotation=45, ha="right", fontsize=7)
     cbar = plt.colorbar(im, ax=ax, fraction=0.02, pad=0.02)
     cbar.ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f"{v:.0%}"))
     cbar.ax.tick_params(labelsize=8)
-    ax.set_title("Data Completeness Heatmap — by Inverter & Day",
+    ax.set_title(_titles.get(freq, _titles["D"]),
                  color=_T["navy"], fontsize=10, fontweight="bold", pad=8)
-    ax.set_xlabel("Date", fontsize=8.5, color=_T["text"])
+    ax.set_xlabel(_xlabels.get(freq, "Date"), fontsize=8.5, color=_T["text"])
     ax.set_ylabel("Inverter / Unit", fontsize=8.5, color=_T["text"])
     fig.patch.set_facecolor("white")
     plt.tight_layout()
@@ -503,14 +553,22 @@ def chart_monthly_overview(monthly: pd.DataFrame, pr_target: float) -> str:
     return _b64_png(fig)
 
 
-def chart_specific_yield(pivot: pd.DataFrame) -> str:
+def chart_specific_yield(pivot: pd.DataFrame, freq: str = "D") -> str:
     if pivot.empty:
         return ""
     cols = list(pivot.columns)
-    if len(cols) > 90:
-        step = max(1, len(cols) // 90)
+    max_cols = 288 if freq == "interval" else 90
+    if len(cols) > max_cols:
+        step = max(1, len(cols) // max_cols)
         pivot = pivot.iloc[:, ::step]
         cols = list(pivot.columns)
+
+    _titles = {"interval": "Per-Inverter Specific Yield (kWh/kWp per Interval)",
+               "D":        "Per-Inverter Specific Yield Heatmap (kWh/kWp per Day)",
+               "ME":       "Per-Inverter Specific Yield Heatmap (kWh/kWp per Month)"}
+    _xlabels = {"interval": "Time", "D": "Date", "ME": "Month"}
+    _cbarlabels = {"interval": "kWh/kWp / interval", "D": "kWh/kWp / day",
+                   "ME": "kWh/kWp / month"}
 
     n_inv = len(pivot)
     fig, ax = plt.subplots(figsize=(11, max(3.5, n_inv * 0.35 + 1.5)))
@@ -519,16 +577,17 @@ def chart_specific_yield(pivot: pd.DataFrame) -> str:
                    vmin=0, vmax=vmax, interpolation="nearest")
     ax.set_yticks(range(n_inv))
     ax.set_yticklabels(list(pivot.index), fontsize=8)
-    step = max(1, len(cols) // 20)
+    max_ticks = 30 if freq == "interval" else 20
+    step = max(1, len(cols) // max_ticks)
     ax.set_xticks(range(0, len(cols), step))
     ax.set_xticklabels([str(cols[i]) for i in range(0, len(cols), step)],
                        rotation=45, ha="right", fontsize=7)
     cbar = plt.colorbar(im, ax=ax, fraction=0.02, pad=0.02)
-    cbar.set_label("kWh/kWp", fontsize=8)
+    cbar.set_label(_cbarlabels.get(freq, "kWh/kWp"), fontsize=8)
     cbar.ax.tick_params(labelsize=8)
-    ax.set_title("Per-Inverter Specific Yield Heatmap (kWh/kWp per Day)",
+    ax.set_title(_titles.get(freq, _titles["D"]),
                  color=_T["navy"], fontsize=10, fontweight="bold", pad=8)
-    ax.set_xlabel("Date", fontsize=8.5, color=_T["text"])
+    ax.set_xlabel(_xlabels.get(freq, "Date"), fontsize=8.5, color=_T["text"])
     ax.set_ylabel("Inverter / Unit", fontsize=8.5, color=_T["text"])
     fig.patch.set_facecolor("white")
     plt.tight_layout()
@@ -941,8 +1000,9 @@ def build_scada_analysis_html(
     pr_target   = site_cfg.get("operating_pr_target", 0.80)
 
     # ── Analysis ──────────────────────────────────────────────────────────
-    comp_pivot = _completeness_pivot(inv, interval_h)
-    sy_pivot   = _specific_yield_pivot(inv, cap_per_inv, interval_h)
+    freq       = _choose_freq(inv)
+    comp_pivot = _completeness_pivot(inv, interval_h, freq)
+    sy_pivot   = _specific_yield_pivot(inv, cap_per_inv, interval_h, freq)
     monthly    = _monthly_overview(inv, irr, cap_dc, interval_h)
     wf         = _waterfall(inv, irr, cap_dc, pr_target, interval_h)
     issues     = _punchlist(inv, irr, site_cfg, interval_h)
@@ -956,9 +1016,9 @@ def build_scada_analysis_html(
         period_str = "n/a"
 
     # ── Charts ────────────────────────────────────────────────────────────
-    img_completeness = chart_completeness(comp_pivot)
+    img_completeness = chart_completeness(comp_pivot, freq)
     img_monthly      = chart_monthly_overview(monthly, pr_target)
-    img_sy           = chart_specific_yield(sy_pivot)
+    img_sy           = chart_specific_yield(sy_pivot, freq)
     img_wf           = chart_waterfall(wf)
 
     # ── Assets ────────────────────────────────────────────────────────────
