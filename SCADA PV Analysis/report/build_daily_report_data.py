@@ -179,20 +179,21 @@ def build_daily_report(
 
     _fpdf2_pdf(
         pdf_path,
-        site_cfg     = site_cfg,
-        report_date  = report_date,
-        site_totals  = site_totals,
-        irradiance   = irradiance,
-        per_inv      = per_inv,
-        alerts       = alerts,
-        chart_irr    = chart_irr,
-        chart_yield  = chart_yield,
-        chart_avail  = chart_avail,
-        chart_pr     = chart_pr,
-        chart_wfall  = chart_wfall,
-        logo_b64     = logo_b64,
-        commentary   = commentary,
-        data_quality = data_quality,
+        site_cfg       = site_cfg,
+        report_date    = report_date,
+        site_totals    = site_totals,
+        irradiance     = irradiance,
+        per_inv        = per_inv,
+        alerts         = alerts,
+        chart_irr      = chart_irr,
+        chart_yield    = chart_yield,
+        chart_avail    = chart_avail,
+        chart_pr       = chart_pr,
+        chart_wfall    = chart_wfall,
+        logo_b64       = logo_b64,
+        cover_img_b64  = cover_img_b64,
+        commentary     = commentary,
+        data_quality   = data_quality,
     )
     return pdf_path, html_path
 
@@ -1065,8 +1066,9 @@ def _fpdf2_pdf(
     chart_pr: str,
     chart_wfall: str,
     logo_b64: str,
-    commentary: list,
-    data_quality: list,
+    cover_img_b64: str = "",
+    commentary: list = None,
+    data_quality: list = None,
 ) -> None:
     import io
     from fpdf import FPDF
@@ -1213,23 +1215,37 @@ def _fpdf2_pdf(
     pdf.set_fill_color(*ORANGE)
     pdf.rect(0, 22, PAGE_W, 2, "F")
 
-    pdf.set_xy(10, 35)
+    # Hero image (solar farm photo)
+    hero_y = 26
+    if cover_img_b64:
+        try:
+            hero_bytes = base64.b64decode(cover_img_b64.split(",", 1)[1])
+            pdf.image(io.BytesIO(hero_bytes), x=10, y=hero_y, w=190, h=65)
+        except Exception:
+            pass
+        text_y = hero_y + 68
+    else:
+        text_y = hero_y + 8
+
+    pdf.set_xy(10, text_y)
     pdf.set_font("Helvetica", "B", 8)
     pdf.set_text_color(*MGRAY)
     pdf.cell(0, 5, "DAILY PERFORMANCE REPORT")
-    pdf.set_xy(10, 43)
-    pdf.set_font("Helvetica", "B", 20)
+    pdf.set_xy(10, text_y + 7)
+    pdf.set_font("Helvetica", "B", 18)
     pdf.set_text_color(*NAVY)
-    pdf.multi_cell(190, 11, site_name)
-    pdf.set_xy(10, pdf.get_y() + 2)
-    pdf.set_font("Helvetica", "", 10)
+    pdf.multi_cell(190, 10, site_name)
+    pdf.set_xy(10, pdf.get_y() + 1)
+    pdf.set_font("Helvetica", "", 9)
     pdf.set_text_color(*MGRAY)
-    pdf.cell(0, 6, "Automated SCADA-based daily performance analysis")
+    pdf.cell(0, 5, "Automated SCADA-based daily performance analysis")
 
-    # Orange border box
+    # Orange border box for metadata
+    box_y = pdf.get_y() + 8
+    box_h = 75
     pdf.set_draw_color(*ORANGE)
     pdf.set_line_width(0.8)
-    pdf.rect(10, 80, 190, 75)
+    pdf.rect(10, box_y, 190, box_h)
     pdf.set_line_width(0.2)
 
     meta = [
@@ -1243,7 +1259,7 @@ def _fpdf2_pdf(
         col = i % 2
         row = i // 2
         mx = 18 + col * 97
-        my = 88 + row * 22
+        my = box_y + 8 + row * 22
         pdf.set_xy(mx, my)
         pdf.set_font("Helvetica", "B", 7)
         pdf.set_text_color(*MGRAY)
@@ -1251,7 +1267,7 @@ def _fpdf2_pdf(
         pdf.set_xy(mx, my + 5)
         pdf.set_font("Helvetica", "B", 10)
         pdf.set_text_color(*NAVY)
-        pdf.cell(90, 6, val)
+        pdf.cell(90, 6, _latin1(val))
 
     # ─────────────────────────────────────────────────────────────────────────
     # PAGE 2 — DAILY KPIs + IRRADIANCE CHART
@@ -1457,31 +1473,45 @@ def _fpdf2_pdf(
                     "Automated interpretation and data quality assessment.", y=22)
 
     cy = 42
-    # Commentary card
-    pdf.set_fill_color(251, 252, 253)
-    pdf.set_draw_color(*BDRG)
+    # Commentary card — orange left stripe + border
+    card_x, card_w = 10, 190
+    stripe = 3
+    pad_l  = stripe + 4   # text starts after stripe
+    text_w = card_w - pad_l - 3
     card_start = cy
-    pdf.set_xy(10, cy)
+
+    # Title
+    pdf.set_xy(card_x + pad_l, cy + 2)
     pdf.set_font("Helvetica", "B", 9)
     pdf.set_text_color(*NAVY)
-    pdf.cell(0, 5, "Automated Interpretation")
-    cy += 7
+    pdf.cell(text_w, 5, "Automated Interpretation")
+    cy += 9
+
     for para in (commentary or []):
         clean = _strip_html(para)
         if not clean:
             continue
-        pdf.set_xy(13, cy)
+        # Truncate very long paragraphs (KB guidance) to keep readable
+        if len(clean) > 600:
+            clean = clean[:597] + "..."
+        pdf.set_xy(card_x + pad_l, cy)
         pdf.set_font("Helvetica", "", 8)
         pdf.set_text_color(*DTXT)
-        pdf.multi_cell(183, 4.5, clean)
-        cy = pdf.get_y() + 2
-        if cy > 200:
+        pdf.multi_cell(text_w, 5, clean)
+        cy = pdf.get_y() + 3
+        if cy > 205:
             break
-    # Draw border around commentary
-    pdf.set_fill_color(240, 120, 32)
-    pdf.rect(10, card_start - 2, 3, cy - card_start + 2, "F")
+
+    cy += 2
+    card_h = cy - card_start
+
+    # Draw card background + orange stripe + border
+    pdf.set_fill_color(251, 252, 253)
+    pdf.rect(card_x, card_start, card_w, card_h, "F")
+    pdf.set_fill_color(*ORANGE)
+    pdf.rect(card_x, card_start, stripe, card_h, "F")
     pdf.set_draw_color(*BDRG)
-    pdf.rect(10, card_start - 2, 190, cy - card_start + 2)
+    pdf.rect(card_x, card_start, card_w, card_h)
 
     # Data quality table
     cy += 4

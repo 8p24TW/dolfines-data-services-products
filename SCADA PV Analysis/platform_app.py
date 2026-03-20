@@ -525,10 +525,14 @@ def _normalise_files(mapped_result, site_type="solar") -> list:
                 power_cols = [power_val] if power_val in df.columns else []
 
             if power_cols:
+                # Convert timestamps to unambiguous ISO format so _filter_day
+                # can reliably match dates regardless of original locale format
+                time_iso = pd.to_datetime(time_series, dayfirst=True, errors="coerce")
+                time_iso_str = time_iso.dt.strftime("%Y-%m-%d %H:%M:%S")
                 frames = []
                 for pcol in power_cols:
                     tmp = pd.DataFrame({
-                        "Time_UDT": time_series.values,
+                        "Time_UDT": time_iso_str.values,
                         "EQUIP":    pcol,
                         "PAC":      pd.to_numeric(df[pcol], errors="coerce").fillna(0.0).values,
                     })
