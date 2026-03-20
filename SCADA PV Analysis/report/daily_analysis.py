@@ -185,7 +185,14 @@ class DailyAnalysis:
         if df.empty or "Time_UDT" not in df.columns:
             return df
         mask = df["Time_UDT"].dt.date == self.date
-        return df[mask].copy()
+        filtered = df[mask].copy()
+        # Fallback: if the file only contains one unique date (user uploaded a
+        # single-day file), use all rows regardless of the selected report date.
+        if filtered.empty:
+            unique_dates = df["Time_UDT"].dt.date.dropna().unique()
+            if len(unique_dates) == 1:
+                return df.copy()
+        return filtered
 
     # ── irradiance ────────────────────────────────────────────
 
