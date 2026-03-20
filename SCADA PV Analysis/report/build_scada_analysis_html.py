@@ -38,6 +38,12 @@ warnings.filterwarnings("ignore")
 _HERE = Path(__file__).parent
 _ROOT = _HERE.parent          # SCADA PV Analysis/
 
+import re as _re
+
+def _natural_key(s: str) -> list:
+    """Sort key for natural ordering: BJ1, BJ2 … BJ21 instead of BJ1, BJ10, BJ11 …"""
+    return [int(t) if t.isdigit() else t.lower() for t in _re.split(r"(\d+)", str(s))]
+
 # ── Design tokens (match style_tokens.py) ────────────────────────────────────
 _T = {
     "navy":    "#0B2A3D",
@@ -354,8 +360,7 @@ def _period_overview(inv: pd.DataFrame, irr: pd.DataFrame,
         return pd.DataFrame()
     overview = pd.DataFrame(rows)
 
-    irr_min  = 50   # W/m² — minimum irradiance for reliable PR
-    pr_max   = 105  # % — anything above is a sensor artefact (e.g. irradiance floor)
+    irr_min = 50   # W/m² — only compute PR where irradiance > 50 W/m²
 
     if "energy_kwh" in overview:
         if "irradiation_kwh_m2" in overview:
@@ -368,12 +373,8 @@ def _period_overview(inv: pd.DataFrame, irr: pd.DataFrame,
             actual_kw = overview["energy_kwh"] / interval_h
             ref_kw    = overview["ghi_w_m2"] / 1000 * cap_dc
             overview["pr_pct"] = actual_kw / ref_kw.replace(0, np.nan) * 100
+            # Only suppress slots below irradiance threshold; show all other values as-is
             overview.loc[overview["ghi_w_m2"] < irr_min, "pr_pct"] = np.nan
-
-        # Mask slots where PR > pr_max: indicates irradiance sensor under-reporting
-        # (e.g. sensor floor during morning ramp-up — not a real PR value)
-        if "pr_pct" in overview.columns:
-            overview.loc[overview["pr_pct"] > pr_max, "pr_pct"] = np.nan
 
     return overview.dropna(how="all")
 
@@ -455,6 +456,35 @@ def _punchlist(inv: pd.DataFrame, irr: pd.DataFrame,
                            description=desc, action=action))
 
     issues.sort(key=lambda x: x["energy_loss"], reverse=True)
+
+    # ── Irradiance sensor quality check ────────────────────────────────────
+    if not irr.empty and "GHI" in irr.columns:
+        ghi = irr["GHI"].clip(lower=0).sort_values().reset_index(drop=True)
+        active = ghi[ghi > 0]
+        if len(active) >= 10:
+            # Detect sensor floor: if the first 10 non-zero readings are all the same value
+            first10_std = active.iloc[:10].std()
+            sensor_floor = active.iloc[:10].min()
+            if first10_std < 1.0 and sensor_floor > 50:
+                issues.append(dict(
+                    equip="Site",
+                    type="Irradiance Sensor",
+                    severity="MEDIUM",
+                    sy="-", avail="-", pr="-",
+                    energy_loss=0,
+                    description=(
+                        f"Irradiance sensor (irr_sat) appears to have a measurement floor at "
+                        f"{sensor_floor:.0f}\u00a0W/m\u00b2. The sensor reports a constant minimum "
+                        f"during morning and evening ramp-up instead of the actual irradiance. "
+                        f"This inflates per-slot PR calculations and may affect energy yield assessments."
+                    ),
+                    action=(
+                        "Recalibrate or replace the irradiance sensor. Clean the sensor surface. "
+                        "Verify wiring and data logger settings. "
+                        "Cross-check against an alternative GHI measurement source."
+                    ),
+                ))
+
     return issues
 
 
@@ -496,6 +526,7 @@ def _apply_spine(ax):
 def chart_completeness(pivot: pd.DataFrame, freq: str = "D") -> str:
     if pivot.empty:
         return ""
+    pivot = pivot.loc[sorted(pivot.index, key=_natural_key)]
     cols = list(pivot.columns)
     max_cols = 288 if freq == "interval" else 90
     if len(cols) > max_cols:
@@ -600,14 +631,15 @@ def chart_period_overview(overview: pd.DataFrame, pr_target: float,
         ax_pr = ax1.twinx()
         if ax_irr:
             ax_pr.spines["right"].set_position(("axes", 1.10))
-        pr_vals = overview["pr_pct"].clip(0, 120)
+        pr_vals = overview["pr_pct"].clip(lower=0)
+        pr_ymax = max(pr_vals.dropna().max() * 1.15, 110) if not pr_vals.dropna().empty else 110
         ax_pr.plot(x, pr_vals, color=_T["green"],
                    marker="o", markersize=marker_size, linewidth=1.5,
                    zorder=4, label="PR (%)")
         ax_pr.axhline(pr_target * 100, color=_T["green"], linestyle=":",
                       linewidth=1, alpha=0.7)
         ax_pr.set_ylabel("PR (%)", color=_T["green"], fontsize=9)
-        ax_pr.set_ylim(0, 130)
+        ax_pr.set_ylim(0, pr_ymax)
         ax_pr.spines["top"].set_visible(False)
         ax_pr.spines["left"].set_visible(False)
         ax_pr.tick_params(colors=_T["green"], labelsize=8.5)
@@ -636,6 +668,7 @@ def chart_period_overview(overview: pd.DataFrame, pr_target: float,
 def chart_specific_yield(pivot: pd.DataFrame, freq: str = "D") -> str:
     if pivot.empty:
         return ""
+    pivot = pivot.loc[sorted(pivot.index, key=_natural_key)]
     cols = list(pivot.columns)
     max_cols = 288 if freq == "interval" else 90
     if len(cols) > max_cols:
