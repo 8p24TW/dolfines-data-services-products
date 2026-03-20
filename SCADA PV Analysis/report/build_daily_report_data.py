@@ -1025,11 +1025,26 @@ def _playwright_pdf(html_path: Path, pdf_path: Path) -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _strip_html(text: str) -> str:
-    """Remove HTML tags and decode common entities."""
-    import re, html
+    """Remove HTML tags, decode entities, and strip non-latin1 chars for fpdf2."""
+    import re, html as _html
     text = re.sub(r"<[^>]+>", " ", text)
-    text = html.unescape(text)
-    return re.sub(r"\s+", " ", text).strip()
+    text = _html.unescape(text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return _latin1(text)
+
+
+def _latin1(text: str) -> str:
+    """Replace common Unicode chars with latin-1 equivalents for Helvetica font."""
+    _MAP = {
+        "\u2014": "--", "\u2013": "-",  "\u00b7": ".",
+        "\u00d7": "x",  "\u00b2": "2",  "\u00b0": "deg",
+        "\u2019": "'",  "\u2018": "'",  "\u201c": '"', "\u201d": '"',
+        "\u2022": "-",  "\u2026": "...",
+    }
+    for ch, rep in _MAP.items():
+        text = text.replace(ch, rep)
+    # Drop any remaining non-latin1 chars
+    return text.encode("latin-1", errors="replace").decode("latin-1")
 
 
 def _fpdf2_pdf(
@@ -1066,8 +1081,8 @@ def _fpdf2_pdf(
     BDRG   = (217, 224, 230)
 
     pr_target = site_cfg["operating_pr_target"]
-    site_name = site_cfg["display_name"]
-    date_str  = report_date.strftime("%d %B %Y")
+    site_name = _latin1(site_cfg["display_name"])
+    date_str  = _latin1(report_date.strftime("%d %B %Y"))
     gen_dt    = datetime.now().strftime("%d/%m/%Y %H:%M")
 
     # ── Decode helpers ────────────────────────────────────────────────────────
@@ -1123,7 +1138,7 @@ def _fpdf2_pdf(
         pdf.set_xy(10, 11)
         pdf.set_font("Helvetica", "", 8)
         pdf.set_text_color(200, 220, 240)
-        pdf.cell(PAGE_W - 15, 5, f"Daily Performance Report \u00b7 {date_str}", align="R")
+        pdf.cell(PAGE_W - 15, 5, f"Daily Performance Report - {date_str}", align="R")
         pdf.set_fill_color(*ORANGE)
         pdf.rect(0, 18, PAGE_W, 1.5, "F")
         pdf.set_text_color(*DTXT)
@@ -1133,8 +1148,8 @@ def _fpdf2_pdf(
         pdf.set_xy(10, PAGE_H - 10)
         pdf.set_font("Helvetica", "", 7)
         pdf.set_text_color(*MGRAY)
-        pdf.cell(63, 5, f"PVPAT \u2014 Daily Performance Report \u00b7 {site_name}", align="L")
-        pdf.cell(64, 5, "CONFIDENTIAL \u2014 Dolfines", align="C")
+        pdf.cell(63, 5, f"PVPAT -- Daily Performance Report - {site_name}", align="L")
+        pdf.cell(64, 5, "CONFIDENTIAL -- Dolfines", align="C")
         pdf.cell(63, 5, f"Page {n} of {total}", align="R")
 
     # ── Shared: section heading ───────────────────────────────────────────────
@@ -1217,8 +1232,8 @@ def _fpdf2_pdf(
     meta = [
         ("Report Date",  date_str),
         ("Asset",        f"{site_cfg['cap_dc_kwp']:.0f} kWp DC / {site_cfg['cap_ac_kw']:.0f} kW AC"),
-        ("Technology",   site_cfg.get("technology", "\u2014")),
-        ("Inverters",    f"{site_cfg.get('n_inverters','\u2014')} \u00d7 {site_cfg.get('inverter_model','\u2014')}"),
+        ("Technology",   site_cfg.get("technology", "-")),
+        ("Inverters",    f"{site_cfg.get('n_inverters','-')} x {site_cfg.get('inverter_model','-')}"),
         ("Generated",    gen_dt),
     ]
     for i, (lbl, val) in enumerate(meta):
@@ -1245,7 +1260,7 @@ def _fpdf2_pdf(
 
     high_c = sum(1 for a in alerts if a["severity"] == "HIGH")
     med_c  = sum(1 for a in alerts if a["severity"] == "MEDIUM")
-    alert_txt = f"{high_c}H \u00b7 {med_c}M" if (high_c or med_c) else "None"
+    alert_txt = f"{high_c}H / {med_c}M" if (high_c or med_c) else "None"
     alert_col = RED if high_c else AMBER if med_c else GREEN
 
     kpis5 = [
@@ -1262,8 +1277,8 @@ def _fpdf2_pdf(
         kpi_card(10 + i * (cw + 1), 40, cw, 22, lbl, val, sub, col)
 
     kpis3 = [
-        ("Insolation",        f"{irradiance['insolation_kwh_m2']:.2f}",  "kWh/m\u00b2", NAVY),
-        ("Peak GHI",          f"{irradiance['peak_ghi']:.0f}",           "W/m\u00b2",   NAVY),
+        ("Insolation",        f"{irradiance['insolation_kwh_m2']:.2f}",  "kWh/m2", NAVY),
+        ("Peak GHI",          f"{irradiance['peak_ghi']:.0f}",           "W/m2",   NAVY),
         ("Energy vs Expected",
          f"{'+' if site_totals['energy_delta_kwh']>=0 else ''}{site_totals['energy_delta_kwh']:,.0f}",
          "kWh vs target PR",
@@ -1370,7 +1385,7 @@ def _fpdf2_pdf(
     pdf.set_text_color(*DTXT)
     pdf.multi_cell(183, 4.5,
         f"Availability is the fraction of 10-min intervals during daylight hours "
-        f"(GHI > {irr_thr:.0f} W/m\u00b2) where AC power exceeded {pwr_thr:.0f} kW. "
+        f"(GHI > {irr_thr:.0f} W/m2) where AC power exceeded {pwr_thr:.0f} kW. "
         f"Inverters with zero availability were offline all day.")
 
     cba = chart_bytes(chart_avail)
@@ -1421,11 +1436,11 @@ def _fpdf2_pdf(
             pdf.set_xy(15, alerts_y + 2)
             pdf.set_font("Helvetica", "B", 8)
             pdf.set_text_color(*DTXT)
-            pdf.cell(0, 4, f"{a['inverter']} \u2014 {a['description']}")
+            pdf.cell(0, 4, _latin1(f"{a['inverter']} - {a['description']}"))
             pdf.set_xy(15, alerts_y + 7)
             pdf.set_font("Helvetica", "", 7.5)
             pdf.set_text_color(*MGRAY)
-            pdf.multi_cell(183, 4, f"Cause: {a.get('likely_cause','')}. Action: {a.get('recommended_action','')}.")
+            pdf.multi_cell(183, 4, _latin1(f"Cause: {a.get('likely_cause','')}. Action: {a.get('recommended_action','')}."))
             alerts_y += 20
 
     draw_footer(5)
