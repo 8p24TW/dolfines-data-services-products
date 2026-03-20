@@ -354,22 +354,26 @@ def _period_overview(inv: pd.DataFrame, irr: pd.DataFrame,
         return pd.DataFrame()
     overview = pd.DataFrame(rows)
 
-    irr_min = 50  # W/m² — only compute PR where irradiance is reliable
+    irr_min  = 50   # W/m² — minimum irradiance for reliable PR
+    pr_max   = 105  # % — anything above is a sensor artefact (e.g. irradiance floor)
 
     if "energy_kwh" in overview:
         if "irradiation_kwh_m2" in overview:
             denom = overview["irradiation_kwh_m2"] * cap_dc
             overview["pr_pct"] = overview["energy_kwh"] / denom.replace(0, np.nan) * 100
-            # Mask days with negligible irradiation (< 50 W/m² mean over a 4h reference window)
-            min_irr_kwh = irr_min / 1000 * 4
+            min_irr_kwh = irr_min / 1000 * 4  # ~0.2 kWh/m² minimum
             overview.loc[overview["irradiation_kwh_m2"] < min_irr_kwh, "pr_pct"] = np.nan
         elif "ghi_w_m2" in overview:
-            # PR = actual_kW / reference_kW  (reference = GHI/1000 * cap_dc)
+            # PR = actual_kW / (GHI_kW/m² × cap_dc_kWp)
             actual_kw = overview["energy_kwh"] / interval_h
             ref_kw    = overview["ghi_w_m2"] / 1000 * cap_dc
             overview["pr_pct"] = actual_kw / ref_kw.replace(0, np.nan) * 100
-            # Mask slots below irradiance threshold — unreliable PR
             overview.loc[overview["ghi_w_m2"] < irr_min, "pr_pct"] = np.nan
+
+        # Mask slots where PR > pr_max: indicates irradiance sensor under-reporting
+        # (e.g. sensor floor during morning ramp-up — not a real PR value)
+        if "pr_pct" in overview.columns:
+            overview.loc[overview["pr_pct"] > pr_max, "pr_pct"] = np.nan
 
     return overview.dropna(how="all")
 
