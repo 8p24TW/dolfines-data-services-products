@@ -1151,33 +1151,41 @@ def _view_daily_config():
         else:
             with st.spinner("Analysing data and generating report…"):
                 try:
-                    from report.build_daily_report_data import build_daily_report
+                    from report.build_scada_analysis_html import build_scada_analysis_html
 
-                    pdf_path, html_path = build_daily_report(
-                        site_cfg    = site,
-                        report_date = report_date,
-                        data_dir    = tmp_data_dir,
+                    site_safe = "".join(
+                        c if c.isalnum() else "_"
+                        for c in site.get("display_name", "site")
+                    )
+                    date_str  = report_date.strftime("%Y%m%d")
+                    out_html  = (
+                        _Path(tempfile.mkdtemp(prefix="pvpat_daily_"))
+                        / f"PVPAT_Daily_{site_safe}_{date_str}.html"
+                    )
+
+                    pdf_path, html_path = build_scada_analysis_html(
+                        site_cfg = site,
+                        data_dir = tmp_data_dir,
+                        out_path = out_html,
                     )
 
                     if pdf_path and pdf_path.exists():
-                        pdf_bytes = pdf_path.read_bytes()
                         st.success(f"✅ Daily report generated: **{pdf_path.name}**")
                         st.download_button(
                             label    = "⬇️  Download PDF Report",
-                            data     = pdf_bytes,
+                            data     = pdf_path.read_bytes(),
                             file_name= pdf_path.name,
                             mime     = "application/pdf",
                         )
                     elif html_path and html_path.exists():
-                        html_bytes = html_path.read_bytes()
                         st.warning(
-                            "PDF generation requires a local installation. "
-                            "Downloading the report as HTML instead — open in any browser "
-                            "and use **File → Print → Save as PDF**."
+                            "PDF generation requires WeasyPrint or Playwright. "
+                            "Downloading as HTML instead — open in any browser and use "
+                            "**File → Print → Save as PDF**."
                         )
                         st.download_button(
                             label    = "⬇️  Download Report (HTML)",
-                            data     = html_bytes,
+                            data     = html_path.read_bytes(),
                             file_name= html_path.name,
                             mime     = "text/html",
                         )
