@@ -1009,7 +1009,6 @@ async def main():
             path=r"{pdf_path}",
             format="A4",
             print_background=True,
-            margin={{"top":"12mm","bottom":"14mm","left":"14mm","right":"14mm"}},
         )
         await browser.close()
 
