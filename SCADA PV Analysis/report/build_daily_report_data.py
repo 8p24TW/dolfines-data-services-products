@@ -492,10 +492,13 @@ def _render_html(*, site_cfg, report_date, logo_b64, cover_img_b64="", irradianc
   --c-warn: #C98A00;
   --c-err:  #C62828;
 }
+:root { color-scheme: light; }
 * { box-sizing: border-box; margin: 0; padding: 0;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important; }
-body { font-family: Helvetica, Arial, sans-serif; font-size: 9pt; color: #1F2933; background: #fff; }
+body { font-family: Helvetica, Arial, sans-serif; font-size: 9pt;
+       color: #1F2933 !important; -webkit-text-fill-color: #1F2933 !important;
+       background: #fff; }
 @page { size: A4; margin: 0; }
 .page { min-height: 297mm; background: #fff; page-break-after: always;
         overflow: hidden; }

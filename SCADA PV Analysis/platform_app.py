@@ -538,8 +538,11 @@ def _normalise_files(mapped_result, site_type="solar") -> list:
 
         # ── Irradiance file ──────────────────────────────────────────────────
         if time_series is not None and irr_col and irr_col in df.columns:
+            # Parse timestamps to ISO format so _load_irradiance_csv can always
+            # unambiguously parse them regardless of the original locale format
+            time_iso = pd.to_datetime(time_series, dayfirst=True, errors="coerce")
             irr_df = pd.DataFrame({
-                "Time_UDT": time_series.values,
+                "Time_UDT": time_iso.dt.strftime("%Y-%m-%d %H:%M:%S"),
                 "GHI":      pd.to_numeric(df[irr_col], errors="coerce").fillna(0.0).values,
             })
             out.append(("irradiance_" + base + ".csv", irr_df))
