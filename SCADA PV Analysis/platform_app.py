@@ -1669,7 +1669,7 @@ def _view_site_detail():
         import matplotlib.patches as _mpatches
 
         design_pr = site.get("design_pr") or 0.80
-        target_pr = max(design_pr - 0.02, 0.55)
+        target_pr = site.get("operating_pr_target") or max(design_pr - 0.02, 0.55)
 
         _months = ["Jan","Feb","Mar","Apr","May","Jun",
                    "Jul","Aug","Sep","Oct","Nov","Dec"]
