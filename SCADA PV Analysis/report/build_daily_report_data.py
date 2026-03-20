@@ -177,12 +177,8 @@ def build_daily_report(
     if skip_pdf:
         return None, html_path
 
-    try:
-        _playwright_pdf(html_path, pdf_path)
-        return pdf_path, html_path
-    except Exception:
-        # Playwright unavailable — caller receives html_path only
-        return None, html_path
+    _playwright_pdf(html_path, pdf_path)
+    return pdf_path, html_path
 
 
 # ─────────────────────────────────────────────────────────────────────────────

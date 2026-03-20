@@ -80,16 +80,23 @@ def _load_inverter_csv(data_dir: Path) -> pd.DataFrame:
 
 
 def _load_irradiance_csv(data_dir: Path) -> pd.DataFrame:
-    """Load irradiance CSV(s), return tidy DataFrame with Time_UDT + GHI."""
+    """Load irradiance CSV(s), return tidy DataFrame with Time_UDT + GHI.
+
+    Scans ALL csv files and keeps only those that contain a GHI/irr-like
+    column — this avoids missing data when the filename doesn't have an
+    obvious irradiance keyword.
+    """
     frames = []
     for p in sorted(data_dir.glob("*.csv")):
-        name_lower = p.stem.lower()
-        if not any(k in name_lower for k in ("irr", "ghi", "irradiance", "meteo", "weather")):
-            continue
         try:
             df = pd.read_csv(p, sep=";", decimal=",", encoding="utf-8-sig",
                              low_memory=False)
             df.columns = [c.strip() for c in df.columns]
+            # Only keep files that actually have an irradiance-like column
+            ghi_col = next((c for c in df.columns if "ghi" in c.lower() or
+                            "irr" in c.lower() or "global" in c.lower()), None)
+            if ghi_col is None:
+                continue
             if "Time_UDT" not in df.columns:
                 t = _find_time_col(df)
                 if t:
@@ -104,7 +111,7 @@ def _load_irradiance_csv(data_dir: Path) -> pd.DataFrame:
     out = pd.concat(frames, ignore_index=True)
     out["Time_UDT"] = pd.to_datetime(out["Time_UDT"], dayfirst=True, errors="coerce")
     out = out.dropna(subset=["Time_UDT"])
-    # Find GHI column
+    # Normalise the GHI column name
     ghi_col = next((c for c in out.columns if "ghi" in c.lower() or
                     "irr" in c.lower() or "global" in c.lower()), None)
     if ghi_col and ghi_col != "GHI":
