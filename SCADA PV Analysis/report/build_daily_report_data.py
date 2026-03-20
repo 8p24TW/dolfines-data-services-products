@@ -994,39 +994,11 @@ figcaption { font-size: 7.5pt; color: #6B7785; margin-top: 4px; }
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _playwright_pdf(html_path: Path, pdf_path: Path) -> None:
-    """Generate PDF using Playwright — mirrors render_report.py exactly."""
+    """Generate PDF — delegates to the same function used by the comprehensive report."""
     # Ensure Chromium binary is present for the current user
     subprocess.run(
         [sys.executable, "-m", "playwright", "install", "chromium"],
         capture_output=True, text=True, timeout=180,
     )
-
-    # Use as_uri() + page.goto() exactly like render_report.py — page.set_content()
-    # bypasses Chromium's font resolver, causing invisible text in the PDF.
-    file_uri = html_path.resolve().as_uri()
-    script = f"""
-import sys
-from playwright.sync_api import sync_playwright
-
-with sync_playwright() as p:
-    browser = p.chromium.launch()
-    page = browser.new_page()
-    page.goto({file_uri!r}, wait_until="networkidle")
-    page.emulate_media(media="print")
-    page.wait_for_function(
-        "Array.from(document.images).every((img) => img.complete)"
-    )
-    page.pdf(
-        path=r"{pdf_path}",
-        format="A4",
-        print_background=True,
-        prefer_css_page_size=True,
-    )
-    browser.close()
-"""
-    result = subprocess.run(
-        [sys.executable, "-c", script],
-        capture_output=True, text=True, timeout=180,
-    )
-    if result.returncode != 0:
-        raise RuntimeError(f"Playwright PDF failed:\n{result.stderr}")
+    from report.render_report import render_pdf_with_playwright
+    render_pdf_with_playwright(html_path=html_path, pdf_path=pdf_path)
