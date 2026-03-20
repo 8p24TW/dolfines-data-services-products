@@ -53,12 +53,13 @@ _T = {
     "white":   "#FFFFFF",
 }
 
-# ── CSS (verbatim from PVPAT_SCADA_Analysis_Report style) ────────────────────
-_CSS = """
+# ── CSS: load verbatim from the same static files the comprehensive report uses ──
+_ROOT_VARS = """
 :root {
   --color-primary:   #0B2A3D;
   --color-accent:    #F39200;
   --color-secondary: #3E516C;
+  --color-indigo:    #27275A;
   --color-text:      #1F2933;
   --color-muted:     #6B7785;
   --color-bg:        #F4F6F8;
@@ -67,179 +68,18 @@ _CSS = """
   --color-warning:   #C98A00;
   --color-danger:    #C62828;
   --font-sans: Aptos, Calibri, Arial, Helvetica, sans-serif;
+  --page-margin-top: 12mm;
+  --page-margin-right: 12mm;
+  --page-margin-bottom: 14mm;
+  --page-margin-left: 12mm;
 }
-html, body {
-  margin: 0; padding: 0; background: #fff;
-  color: var(--color-text);
-  font-family: var(--font-sans);
-  font-size: 10pt; line-height: 1.38;
-}
-* { box-sizing: border-box; }
-img { max-width: 100%; }
-
-.page {
-  position: relative;
-  min-height: 297mm;
-  background: #fff;
-  break-after: page;
-  padding-bottom: 10mm;
-}
-
-/* ── Header ── */
-.header-shell { margin-bottom: 6mm; }
-.header-band, .cover-band {
-  display: flex; align-items: center; gap: 18px;
-  background: var(--color-primary); color: #fff;
-  padding: 7mm 12mm 5.5mm; overflow: hidden;
-}
-.header-band img, .cover-logo {
-  width: auto; max-width: 185px; max-height: 24mm;
-  height: auto; object-fit: contain; display: block; flex: 0 0 auto;
-}
-.header-copy { min-width: 0; padding-top: 1mm; margin-left: auto; text-align: right; }
-.header-site  { font-size: 12.4pt; font-weight: 700; letter-spacing: .08em;
-                text-transform: uppercase; color: rgba(255,255,255,.92); margin: 0; }
-.header-company { font-size: 10pt; color: rgba(255,255,255,.70); margin: 2px 0 0; }
-.header-accent, .cover-accent {
-  position: relative; height: 4px; background: var(--color-accent);
-}
-.header-accent::after, .cover-accent::after {
-  content: ""; position: absolute; right: 0; top: 0;
-  border-left: 16px solid transparent;
-  border-top: 4px solid var(--color-accent);
-}
-
-/* ── Cover ── */
-.cover-body   { padding: 10mm 10.5mm 8mm; }
-.cover-hero   {
-  width: 100%; height: 118mm; border-radius: 10px;
-  overflow: hidden; border: 1px solid var(--color-border);
-  background: linear-gradient(135deg,rgba(11,42,61,.14),rgba(62,81,108,.08));
-  margin-bottom: 10mm;
-}
-.cover-hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.cover-panel  {
-  border: 2.4px solid var(--color-accent); border-radius: 10px;
-  background: #fff; padding: 8mm 9mm;
-}
-.cover-panel h1 {
-  margin: 0 0 5px; color: var(--color-primary);
-  font-size: 21pt; line-height: 1.12; max-width: 165mm;
-}
-.cover-subtitle { font-size: 10pt; color: var(--color-muted); margin-bottom: 7mm; }
-.cover-metadata { display: grid; gap: 8px; }
-.cover-metadata div { display: grid; grid-template-columns: minmax(120px,150px) 1fr; gap: 8px; }
-.cover-metadata dt { color: var(--color-muted); font-weight: 600; }
-.cover-metadata dd { margin: 0; color: var(--color-text); }
-
-/* ── Page content ── */
-.page-content { padding: 0 10.5mm 8mm; }
-.section-heading { margin-bottom: 3.5mm; }
-.section-heading h2 { margin: 0 0 5px; color: var(--color-primary); font-size: 15pt; line-height: 1.12; }
-.section-summary { font-size: 9pt; color: var(--color-muted); max-width: 170mm; }
-.eyebrow {
-  text-transform: uppercase; letter-spacing: .12em;
-  font-size: 7.6pt; color: var(--color-secondary); margin-bottom: 4px;
-}
-
-/* ── Commentary card ── */
-.commentary-card {
-  background: linear-gradient(180deg,#fbfcfd 0%,#f6f8fa 100%);
-  border: 1px solid var(--color-border); border-left: 3px solid var(--color-accent);
-  border-radius: 8px; padding: 3.4mm 3.6mm 3mm; margin-bottom: 3.2mm;
-  break-inside: avoid;
-}
-.commentary-card h3 { margin: 0 0 4px; color: var(--color-primary); font-size: 10pt; }
-.commentary-card p  { margin: 0 0 5px; }
-.commentary-card p:last-child { margin-bottom: 0; }
-
-/* ── KPI cards ── */
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0,1fr));
-  gap: 3mm; margin-bottom: 3mm;
-}
-.kpi-card {
-  background: var(--color-bg); border: 1px solid var(--color-border);
-  border-radius: 8px; padding: 2.8mm; break-inside: avoid;
-}
-.kpi-label  { font-size: 7pt; text-transform: uppercase; letter-spacing: .04em;
-              color: var(--color-muted); font-weight: 600; margin: 0 0 2px; }
-.kpi-value  { margin: 4px 0 2px; font-size: 15.5pt; color: var(--color-primary); font-weight: 700; }
-.kpi-subtext{ font-size: 7pt; color: var(--color-muted); margin: 0; }
-.status-success .kpi-value { color: var(--color-success); }
-.status-warning .kpi-value { color: var(--color-warning); }
-.status-danger  .kpi-value { color: var(--color-danger);  }
-
-/* ── Figure card ── */
-.figure-grid {
-  display: grid; grid-template-columns: 1fr;
-  gap: 3mm; margin-bottom: 3mm;
-}
-.figure-card {
-  border: 1px solid var(--color-border); border-radius: 8px;
-  background: #fff; padding: 2.8mm; break-inside: avoid;
-}
-.figure-card img {
-  width: 100%; height: auto; display: block;
-  object-fit: contain; max-height: 180mm;
-}
-.figure-card figcaption {
-  margin-top: 6px; font-size: 8.4pt; color: var(--color-muted);
-}
-
-/* ── Table ── */
-.table-card {
-  border: 1px solid var(--color-border); border-radius: 8px;
-  background: #fff; padding: 2.8mm; break-inside: avoid; margin-bottom: 3mm;
-}
-.table-card-header h3 { margin: 0 0 4px; color: var(--color-primary); font-size: 10pt; }
-.report-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-.report-table th, .report-table td {
-  border-top: 1px solid var(--color-border);
-  padding: 5px 6px; vertical-align: top;
-  text-align: left; word-break: break-word; font-size: 7.8pt;
-}
-.report-table thead th {
-  background: var(--color-bg); color: var(--color-primary); font-weight: 700;
-}
-.report-table tr.row-danger  td { background: #fdecea; }
-.report-table tr.row-warning td { background: #fff5e6; }
-.report-table tr.row-success td { background: #edf7e9; }
-.report-table tr.row-info    td { background: #edf4fb; }
-
-/* ── Findings ── */
-.findings-card {
-  border: 1px solid var(--color-border); border-radius: 8px;
-  background: #fff; padding: 2.8mm; break-inside: avoid; margin-top: 3mm;
-}
-.findings-card h3 { margin: 0 0 4px; color: var(--color-primary); font-size: 10pt; }
-.findings-list { display: grid; gap: 3mm; }
-.finding { border-left: 3px solid var(--color-border); padding-left: 3mm; }
-.finding h4 { margin: 0 0 3px; font-size: 8.6pt; color: var(--color-primary); }
-.finding p  { margin: 0; font-size: 8.2pt; }
-.finding-danger  { border-left-color: var(--color-danger);  }
-.finding-warning { border-left-color: var(--color-warning); }
-.finding-success { border-left-color: var(--color-success); }
-.finding-info    { border-left-color: var(--color-secondary); }
-
-/* ── Print ── */
-@page {
-  size: A4; margin: 0;
-  @bottom-right {
-    content: counter(page);
-    color: var(--color-accent); font-size: 9pt; font-weight: 700;
-  }
-}
-@page cover { @bottom-right { content: ""; } }
-.cover-page { page: cover; }
-h2, h3, h4 { break-after: avoid; }
-.header-shell, .section-heading, .commentary-card,
-.figure-card, .table-card, .findings-card, .kpi-card {
-  break-inside: avoid;
-}
-.report-table tr { break-inside: avoid; }
 """
+
+def _load_static_css() -> tuple[str, str]:
+    """Read report.css and print.css from report/static/."""
+    report_css = (_HERE / "static" / "report.css").read_text(encoding="utf-8")
+    print_css  = (_HERE / "static" / "print.css").read_text(encoding="utf-8")
+    return report_css, print_css
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -729,6 +569,8 @@ def _assemble_html(*, site_cfg: dict, report_date_str: str, period_str: str,
                    monthly: pd.DataFrame, wf: dict,
                    issues: list[dict], pr_target: float) -> str:
 
+    report_css, print_css = _load_static_css()
+
     site_name    = site_cfg["display_name"]
     cap_dc       = site_cfg["cap_dc_kwp"]
     cap_ac       = site_cfg.get("cap_ac_kw", 0)
@@ -762,9 +604,9 @@ def _assemble_html(*, site_cfg: dict, report_date_str: str, period_str: str,
         _kpi_card("Specific Yield",        f"{spec_yield:.2f}",             "kWh/kWp"),
         _kpi_card("Mean PR",               f"{mean_pr:.1f}%",
                   f"Target {pr_target*100:.0f}%", pr_status(mean_pr)),
-        _kpi_card("Total Irradiation",     f"{total_irr:.1f}",              "kWh/m²"),
+        _kpi_card("Total Irradiation",     f"{total_irr:.1f}",              "kWh/m\u00b2"),
         _kpi_card("Actual Energy",         f"{wf.get('actual',0)/1000:,.1f} MWh",
-                  f"vs {wf.get('reference',0)/1000:,.1f} MWh reference"),
+                  f"vs {wf.get('reference',0)/1000:,.1f} MWh ref."),
         _kpi_card("Issues Detected",       f"{n_high}H / {n_med}M",
                   "HIGH / MEDIUM",
                   "status-danger" if n_high else "status-warning" if n_med else "status-success"),
@@ -790,19 +632,20 @@ def _assemble_html(*, site_cfg: dict, report_date_str: str, period_str: str,
     if not punchlist_rows:
         punchlist_rows = """<tr class="row-success">
   <td colspan="9" style="text-align:center;font-style:italic;color:#6B7785;">
-    No significant issues detected — all inverters within normal operating parameters.
+    No significant issues detected &#8212; all inverters within normal operating parameters.
   </td></tr>"""
 
     # ── Waterfall summary rows ──────────────────────────────────────────────
     ref    = wf.get("reference", 0)
-    target = wf.get("target",    0)
     actual = wf.get("actual",    0)
     wf_rows = f"""
 <tr><td>Reference Energy</td><td>{ref/1000:,.1f} MWh</td>
     <td>Theoretical maximum at full irradiance conversion</td></tr>
-<tr><td>Efficiency / Temp Losses</td><td class="row-warning">-{wf.get('pr_loss',0)/1000:,.1f} MWh</td>
-    <td>PR-driven losses: temperature, optical, cable, etc.</td></tr>
-<tr><td>Operational Losses</td><td class="row-danger">-{wf.get('opex_loss',0)/1000:,.1f} MWh</td>
+<tr class="row-warning"><td>Efficiency &amp; Temp Losses</td>
+    <td>&#8722;{wf.get('pr_loss',0)/1000:,.1f} MWh</td>
+    <td>PR-driven losses: temperature, optical, cable, clipping</td></tr>
+<tr class="row-danger"><td>Operational Losses</td>
+    <td>&#8722;{wf.get('opex_loss',0)/1000:,.1f} MWh</td>
     <td>Downtime, curtailment, communications faults</td></tr>
 <tr class="row-success"><td><strong>Actual Energy</strong></td>
     <td><strong>{actual/1000:,.1f} MWh</strong></td>
@@ -813,8 +656,20 @@ def _assemble_html(*, site_cfg: dict, report_date_str: str, period_str: str,
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{site_name} — {report_title}</title>
-  <style>{_CSS}</style>
+  <title>{site_name} &#8212; {report_title}</title>
+  <style>{_ROOT_VARS}</style>
+  <style>{report_css}</style>
+  <style>{print_css}</style>
+  <style>
+/* ── Per-section overrides for this report ── */
+.page-performance-overview .kpi-grid {{
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}}
+.page-data-quality .figure-card img      {{ max-height: 200mm; }}
+.page-specific-yield .figure-card img    {{ max-height: 220mm; }}
+.page-performance-overview .figure-card.width-full img {{ max-height: 112mm; }}
+.page-losses .figure-card img            {{ max-height: 90mm; }}
+  </style>
 </head>
 <body>
 
@@ -828,18 +683,18 @@ def _assemble_html(*, site_cfg: dict, report_date_str: str, period_str: str,
     </div>
   </div>
   <div class="cover-accent"></div>
-  <div class="cover-body">
+  <div class="cover-body layout-block">
     {hero_html}
     <div class="cover-panel">
       <p class="eyebrow">Renewable Energy SCADA Assessment</p>
-      <h1>{site_name} — {report_title}</h1>
+      <h1>{site_name} &#8212; {report_title}</h1>
       <p class="cover-subtitle">SCADA Performance Analysis Report</p>
       <dl class="cover-metadata">
         <div><dt>Project</dt><dd>{site_name}</dd></div>
         <div><dt>Asset</dt><dd>{cap_dc:,.0f} kWp DC / {cap_ac:,.0f} kW AC</dd></div>
         <div><dt>Analysis period</dt><dd>{period_str}</dd></div>
         <div><dt>Technology</dt><dd>{technology}</dd></div>
-        <div><dt>Inverters</dt><dd>{n_inv} × {inv_model}</dd></div>
+        <div><dt>Inverters</dt><dd>{n_inv} &#215; {inv_model}</dd></div>
         <div><dt>Issued</dt><dd>{generated}</dd></div>
       </dl>
     </div>
@@ -849,18 +704,18 @@ def _assemble_html(*, site_cfg: dict, report_date_str: str, period_str: str,
 <!-- ═══════════════ PAGE 2: DATA QUALITY ═══════════════ -->
 <section class="page standard-page page-data-quality">
   {hdr}
-  <div class="page-content">
+  <div class="page-content layout-block">
     {_section_heading("Data Quality", "Data Completeness Heatmap",
         "Fraction of expected records received per inverter per day. "
-        "Red = missing data, green = full coverage.")}
+        "Red&#160;=&#160;missing data, green&#160;=&#160;full coverage.")}
     <div class="figure-grid">
-      {_figure(img_completeness, "Data completeness — % of expected intervals with valid readings.") if img_completeness else
-       '<div class="figure-card"><p style="color:#6B7785;font-style:italic;padding:8mm;">No inverter data available.</p></div>'}
+      {_figure(img_completeness, "Data completeness &#8212; % of expected intervals with valid readings.") if img_completeness else
+       '<div class="figure-card width-full"><p style="color:#6B7785;font-style:italic;padding:8mm 4mm;">No inverter data available.</p></div>'}
     </div>
     <div class="commentary-card">
       <h3>Interpretation</h3>
       <p>Cells at 100% (green) indicate all expected data records were received. Amber/red cells
-         highlight days with gaps — check SCADA data-logger connectivity and export schedule for
+         highlight days with gaps &#8212; check SCADA data-logger connectivity and export schedule for
          the flagged inverters and dates.</p>
     </div>
   </div>
@@ -869,15 +724,15 @@ def _assemble_html(*, site_cfg: dict, report_date_str: str, period_str: str,
 <!-- ═══════════════ PAGE 3: PERFORMANCE OVERVIEW ═══════════════ -->
 <section class="page standard-page page-performance-overview">
   {hdr}
-  <div class="page-content">
+  <div class="page-content layout-block">
     {_section_heading("Performance Overview",
         "Monthly Energy, Irradiation &amp; Performance Ratio",
         "Site-level monthly aggregation of energy output, solar resource and PR.")}
-    <div class="kpi-grid" style="grid-template-columns:repeat(6,minmax(0,1fr))">
+    <div class="kpi-grid">
       {kpi_html}
     </div>
     <div class="figure-grid">
-      {_figure(img_monthly, "Orange bars = energy (MWh), grey bars = irradiation (kWh/m²), green line = PR (%).") if img_monthly else ""}
+      {_figure(img_monthly, "Orange bars&#160;=&#160;energy (MWh), grey bars&#160;=&#160;irradiation (kWh/m&#178;), green line&#160;=&#160;PR (%).") if img_monthly else ""}
     </div>
   </div>
 </section>
@@ -885,18 +740,17 @@ def _assemble_html(*, site_cfg: dict, report_date_str: str, period_str: str,
 <!-- ═══════════════ PAGE 4: SPECIFIC YIELD HEATMAP ═══════════════ -->
 <section class="page standard-page page-specific-yield">
   {hdr}
-  <div class="page-content">
+  <div class="page-content layout-block">
     {_section_heading("Per-Inverter Analysis", "Specific Yield Heatmap",
-        "Daily specific yield (kWh/kWp) per inverter. Darker green = stronger output.")}
-    <div class="figure-grid">
-      {_figure(img_sy, "Specific yield (kWh/kWp) — per inverter per day.") if img_sy else
-       '<div class="figure-card"><p style="color:#6B7785;font-style:italic;padding:8mm;">Insufficient data to generate heatmap.</p></div>'}
-    </div>
+        "Daily specific yield (kWh/kWp) per inverter. Darker green&#160;=&#160;stronger output.")}
     <div class="commentary-card">
-      <h3>Interpretation</h3>
-      <p>Compare rows horizontally — an inverter consistently below its peers indicates a
+      <p>Compare rows horizontally &#8212; an inverter consistently below its peers indicates a
          systematic underperformance issue (soiling, shading, MPPT fault, string disconnection).
-         Compare columns vertically to identify site-wide low-irradiance days vs. isolated faults.</p>
+         Compare columns vertically to identify site-wide low-irradiance days vs.&#160;isolated faults.</p>
+    </div>
+    <div class="figure-grid">
+      {_figure(img_sy, "Specific yield (kWh/kWp) &#8212; per inverter per day.") if img_sy else
+       '<div class="figure-card width-full"><p style="color:#6B7785;font-style:italic;padding:8mm 4mm;">Insufficient data to generate heatmap.</p></div>'}
     </div>
   </div>
 </section>
@@ -904,16 +758,16 @@ def _assemble_html(*, site_cfg: dict, report_date_str: str, period_str: str,
 <!-- ═══════════════ PAGE 5: ENERGY LOSS WATERFALL ═══════════════ -->
 <section class="page standard-page page-losses">
   {hdr}
-  <div class="page-content">
+  <div class="page-content layout-block">
     {_section_heading("Energy Losses", "Energy Loss Waterfall",
         "Decomposition of reference energy into successive loss categories through to actual measured output.")}
     <div class="figure-grid">
-      {_figure(img_waterfall, "Waterfall from reference (GHI × capacity) → actual measured output.") if img_waterfall else ""}
+      {_figure(img_waterfall, "Waterfall: reference (GHI &#215; capacity) &#8594; efficiency losses &#8594; operational losses &#8594; actual.") if img_waterfall else ""}
     </div>
     <div class="table-card">
       <div class="table-card-header"><h3>Waterfall Summary</h3></div>
-      <table class="report-table">
-        <thead><tr><th>Category</th><th>Energy</th><th>Description</th></tr></thead>
+      <table class="report-table" style="table-layout:auto;">
+        <thead><tr><th>Category</th><th style="width:14%">Energy (MWh)</th><th>Description</th></tr></thead>
         <tbody>{wf_rows}</tbody>
       </table>
     </div>
@@ -923,9 +777,9 @@ def _assemble_html(*, site_cfg: dict, report_date_str: str, period_str: str,
 <!-- ═══════════════ PAGE 6: PUNCHLIST ═══════════════ -->
 <section class="page standard-page page-action-punchlist">
   {hdr}
-  <div class="page-content">
+  <div class="page-content layout-block">
     {_section_heading("Action Punchlist", "Prioritised Issue Register",
-        "Issues ranked by estimated energy loss impact. HIGH = immediate action required.")}
+        "Issues ranked by estimated energy loss impact. HIGH&#160;=&#160;immediate action required.")}
     <div class="commentary-card">
       <h3>Methodology</h3>
       <p>Inverters are flagged if availability &lt;85%, PR is &gt;5pp below target, or data
@@ -936,11 +790,11 @@ def _assemble_html(*, site_cfg: dict, report_date_str: str, period_str: str,
       <div class="table-card-header"><h3>Issue Register</h3></div>
       <table class="report-table" style="table-layout:auto;">
         <thead><tr>
-          <th>Inverter</th><th>Sev.</th><th>Issue</th>
-          <th>SY<br>(kWh/kWp)</th><th>Avail.</th><th>PR</th>
-          <th>Est. Loss<br>(kWh)</th>
-          <th style="width:28%">Description</th>
-          <th style="width:28%">Recommended Action</th>
+          <th>Inverter</th><th>Sev.</th><th>Issue type</th>
+          <th>Sp.&#160;Yield<br>(kWh/kWp)</th><th>Avail.</th><th>PR</th>
+          <th>Est.&#160;Loss<br>(kWh)</th>
+          <th>Description</th>
+          <th>Recommended Action</th>
         </tr></thead>
         <tbody>{punchlist_rows}</tbody>
       </table>
