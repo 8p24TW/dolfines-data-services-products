@@ -612,26 +612,24 @@ def _assemble_html(*, site_cfg: dict, report_date_str: str, period_str: str,
                   "status-danger" if n_high else "status-warning" if n_med else "status-success"),
     ])
 
-    # ── Punchlist rows ──────────────────────────────────────────────────────
+    # ── Punchlist rows (6 columns) ─────────────────────────────────────────
     sev_class = {"HIGH": "row-danger", "MEDIUM": "row-warning", "LOW": "row-success"}
     punchlist_rows = ""
     for iss in issues:
         rc  = sev_class.get(iss["severity"], "")
+        metrics = f"SY&#160;{iss['sy']}&#160;kWh/kWp | Avail.&#160;{iss['avail']} | PR&#160;{iss['pr']}"
         punchlist_rows += f"""
 <tr class="{rc}">
   <td>{iss['equip']}</td>
   <td>{iss['severity']}</td>
   <td>{iss['type']}</td>
-  <td>{iss['sy']}</td>
-  <td>{iss['avail']}</td>
-  <td>{iss['pr']}</td>
-  <td>{iss['energy_loss']:,.0f}</td>
-  <td>{iss['description']}</td>
+  <td style="white-space:nowrap">{iss['energy_loss']:,.0f}</td>
+  <td>{iss['description']}<br><span style="color:#6B7785;font-size:6.4pt">{metrics}</span></td>
   <td>{iss['action']}</td>
 </tr>"""
     if not punchlist_rows:
         punchlist_rows = """<tr class="row-success">
-  <td colspan="9" style="text-align:center;font-style:italic;color:#6B7785;">
+  <td colspan="6" style="text-align:center;font-style:italic;color:#6B7785;">
     No significant issues detected &#8212; all inverters within normal operating parameters.
   </td></tr>"""
 
@@ -669,6 +667,23 @@ def _assemble_html(*, site_cfg: dict, report_date_str: str, period_str: str,
 .page-specific-yield .figure-card img    {{ max-height: 220mm; }}
 .page-performance-overview .figure-card.width-full img {{ max-height: 112mm; }}
 .page-losses .figure-card img            {{ max-height: 90mm; }}
+/* ── Punchlist column widths (6-col layout) ── */
+.page-action-punchlist .report-table {{
+  table-layout: fixed;
+  width: 100%;
+}}
+.page-action-punchlist .report-table th:nth-child(1),
+.page-action-punchlist .report-table td:nth-child(1) {{ width: 9%; white-space: nowrap; }}
+.page-action-punchlist .report-table th:nth-child(2),
+.page-action-punchlist .report-table td:nth-child(2) {{ width: 7%; }}
+.page-action-punchlist .report-table th:nth-child(3),
+.page-action-punchlist .report-table td:nth-child(3) {{ width: 12%; }}
+.page-action-punchlist .report-table th:nth-child(4),
+.page-action-punchlist .report-table td:nth-child(4) {{ width: 9%; }}
+.page-action-punchlist .report-table th:nth-child(5),
+.page-action-punchlist .report-table td:nth-child(5) {{ width: 32%; }}
+.page-action-punchlist .report-table th:nth-child(6),
+.page-action-punchlist .report-table td:nth-child(6) {{ width: 31%; }}
   </style>
 </head>
 <body>
@@ -790,10 +805,9 @@ def _assemble_html(*, site_cfg: dict, report_date_str: str, period_str: str,
       <div class="table-card-header"><h3>Issue Register</h3></div>
       <table class="report-table" style="table-layout:auto;">
         <thead><tr>
-          <th>Inverter</th><th>Sev.</th><th>Issue type</th>
-          <th>Sp.&#160;Yield<br>(kWh/kWp)</th><th>Avail.</th><th>PR</th>
+          <th>Inverter</th><th>Sev.</th><th>Issue Type</th>
           <th>Est.&#160;Loss<br>(kWh)</th>
-          <th>Description</th>
+          <th>Description &amp; Key Metrics</th>
           <th>Recommended Action</th>
         </tr></thead>
         <tbody>{punchlist_rows}</tbody>
