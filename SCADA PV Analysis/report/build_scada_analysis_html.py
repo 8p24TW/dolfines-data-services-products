@@ -354,15 +354,22 @@ def _period_overview(inv: pd.DataFrame, irr: pd.DataFrame,
         return pd.DataFrame()
     overview = pd.DataFrame(rows)
 
+    irr_min = 50  # W/m² — only compute PR where irradiance is reliable
+
     if "energy_kwh" in overview:
         if "irradiation_kwh_m2" in overview:
             denom = overview["irradiation_kwh_m2"] * cap_dc
             overview["pr_pct"] = overview["energy_kwh"] / denom.replace(0, np.nan) * 100
+            # Mask days with negligible irradiation (< 50 W/m² mean over a 4h reference window)
+            min_irr_kwh = irr_min / 1000 * 4
+            overview.loc[overview["irradiation_kwh_m2"] < min_irr_kwh, "pr_pct"] = np.nan
         elif "ghi_w_m2" in overview:
             # PR = actual_kW / reference_kW  (reference = GHI/1000 * cap_dc)
             actual_kw = overview["energy_kwh"] / interval_h
             ref_kw    = overview["ghi_w_m2"] / 1000 * cap_dc
             overview["pr_pct"] = actual_kw / ref_kw.replace(0, np.nan) * 100
+            # Mask slots below irradiance threshold — unreliable PR
+            overview.loc[overview["ghi_w_m2"] < irr_min, "pr_pct"] = np.nan
 
     return overview.dropna(how="all")
 
@@ -460,9 +467,16 @@ def _b64_png(fig) -> str:
     return "data:image/png;base64," + base64.b64encode(buf.read()).decode()
 
 
-def _cmap_rg():
+def _cmap_completeness():
+    """Red (missing) → orange → light grey → slate blue (complete) — matches reference report."""
     return mcolors.LinearSegmentedColormap.from_list(
-        "rg", [(0, _T["red"]), (0.5, _T["amber"]), (1, _T["green"])])
+        "dq_heatmap",
+        [_T["red"], _T["amber"], "#F4F6F8", _T["slate"]])
+
+
+def _cmap_yield():
+    """RdYlBu: red = low yield (bad), blue = high yield (good) — matches reference report."""
+    return plt.get_cmap("RdYlBu")
 
 
 def _apply_spine(ax):
@@ -492,7 +506,7 @@ def chart_completeness(pivot: pd.DataFrame, freq: str = "D") -> str:
 
     n_inv = len(pivot)
     fig, ax = plt.subplots(figsize=(11, max(3.5, n_inv * 0.35 + 1.5)))
-    im = ax.imshow(pivot.values, aspect="auto", cmap=_cmap_rg(), vmin=0, vmax=1,
+    im = ax.imshow(pivot.values, aspect="auto", cmap=_cmap_completeness(), vmin=0, vmax=1,
                    interpolation="nearest")
     ax.set_yticks(range(n_inv))
     ax.set_yticklabels(list(pivot.index), fontsize=8)
@@ -639,7 +653,7 @@ def chart_specific_yield(pivot: pd.DataFrame, freq: str = "D") -> str:
     n_inv = len(pivot)
     fig, ax = plt.subplots(figsize=(11, max(3.5, n_inv * 0.35 + 1.5)))
     vmax = np.nanpercentile(pivot.values[pivot.values > 0], 98) if (pivot.values > 0).any() else 1
-    im = ax.imshow(pivot.values, aspect="auto", cmap=_cmap_rg(),
+    im = ax.imshow(pivot.values, aspect="auto", cmap=_cmap_yield(),
                    vmin=0, vmax=vmax, interpolation="nearest")
     ax.set_yticks(range(n_inv))
     ax.set_yticklabels(list(pivot.index), fontsize=8)
