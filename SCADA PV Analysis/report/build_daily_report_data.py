@@ -991,65 +991,40 @@ figcaption { font-size: 7.5pt; color: #6B7785; margin-top: 4px; }
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _playwright_pdf(html_path: Path, pdf_path: Path) -> None:
-    """
-    Generate PDF via Playwright screenshots assembled with Pillow.
-
-    Chromium's PDF renderer on Linux has a known bug that makes HTML text
-    invisible. Screenshots render text correctly, so we screenshot each page
-    and assemble into a PDF using Pillow (no native system libs required).
-    """
+    """Generate PDF using Playwright — mirrors render_report.py exactly."""
     # Ensure Chromium binary is present for the current user
     subprocess.run(
         [sys.executable, "-m", "playwright", "install", "chromium"],
         capture_output=True, text=True, timeout=180,
     )
 
-    # A4 at 96 dpi: 794 × 1123 px
-    A4_W, A4_H = 794, 1123
-
     script = f"""
-import asyncio, base64
-from playwright.async_api import async_playwright
+import sys
+from playwright.sync_api import sync_playwright
 
-async def main():
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(
-            args=["--no-sandbox", "--disable-dev-shm-usage",
-                  "--disable-setuid-sandbox", "--disable-gpu"]
-        )
-        page = await browser.new_page(viewport={{"width": {A4_W}, "height": {A4_H}}})
-        html = open(r"{html_path}", encoding="utf-8").read()
-        await page.set_content(html, wait_until="networkidle")
-        png = await page.screenshot(full_page=True)
-        await browser.close()
-        print(base64.b64encode(png).decode())
-
-asyncio.run(main())
+with sync_playwright() as p:
+    browser = p.chromium.launch(
+        args=["--no-sandbox", "--disable-dev-shm-usage",
+              "--disable-setuid-sandbox", "--disable-gpu"]
+    )
+    page = browser.new_page()
+    html = open(r"{html_path}", encoding="utf-8").read()
+    page.set_content(html, wait_until="networkidle")
+    page.emulate_media(media="print")
+    page.wait_for_function(
+        "Array.from(document.images).every((img) => img.complete)"
+    )
+    page.pdf(
+        path=r"{pdf_path}",
+        format="A4",
+        print_background=True,
+        prefer_css_page_size=True,
+    )
+    browser.close()
 """
     result = subprocess.run(
         [sys.executable, "-c", script],
         capture_output=True, text=True, timeout=180,
     )
     if result.returncode != 0:
-        raise RuntimeError(f"Playwright screenshot failed:\n{result.stderr}")
-
-    import base64 as _b64
-    from io import BytesIO
-    from PIL import Image
-
-    full_img = Image.open(BytesIO(_b64.b64decode(result.stdout.strip()))).convert("RGB")
-    total_h  = full_img.height
-
-    imgs = []
-    for y in range(0, total_h, A4_H):
-        chunk = full_img.crop((0, y, A4_W, min(y + A4_H, total_h)))
-        if chunk.height < A4_H:
-            padded = Image.new("RGB", (A4_W, A4_H), "white")
-            padded.paste(chunk, (0, 0))
-            chunk = padded
-        imgs.append(chunk)
-
-    imgs[0].save(
-        str(pdf_path), "PDF", resolution=96.0,
-        save_all=True, append_images=imgs[1:],
-    )
+        raise RuntimeError(f"Playwright PDF failed:\n{result.stderr}")
