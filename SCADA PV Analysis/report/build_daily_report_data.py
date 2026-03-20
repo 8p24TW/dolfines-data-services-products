@@ -502,12 +502,12 @@ def _render_html(*, site_cfg, report_date, logo_b64, cover_img_b64="", irradianc
     print-color-adjust: exact !important; }
 body { font-family: var(--font, Arial, sans-serif); font-size: 9pt; color: var(--c-txt, #1F2933); background: #fff; }
 @page { size: A4; margin: 0; }
-.page { position: relative; min-height: 297mm; background: #fff;
-        page-break-after: always; display: flex; flex-direction: column; }
+.page { min-height: 297mm; background: #fff; page-break-after: always;
+        overflow: hidden; }
 .page:last-child { page-break-after: auto; }
 
 /* ── Header ── */
-.header-shell { flex-shrink: 0; }
+.header-shell { }
 .header-band {
   background: var(--c-pri); display: flex; align-items: center;
   justify-content: space-between; padding: 4mm 10mm;
@@ -527,7 +527,7 @@ body { font-family: var(--font, Arial, sans-serif); font-size: 9pt; color: var(-
 
 /* ── Cover ── */
 .cover-page { min-height: 297mm; background: #fff;
-              page-break-after: always; display: flex; flex-direction: column; }
+              page-break-after: always; overflow: hidden; }
 .cover-band {
   background: var(--c-pri); display: flex; align-items: center;
   justify-content: space-between; padding: 4mm 10mm;
@@ -541,8 +541,7 @@ body { font-family: var(--font, Arial, sans-serif); font-size: 9pt; color: var(-
   content: ''; position: absolute; right: 0; top: 0;
   border-top: 4px solid var(--c-pri); border-left: 18px solid transparent;
 }
-.cover-body { padding: 8mm 10mm 10mm; flex: 1; display: flex; flex-direction: column;
-              justify-content: flex-start; }
+.cover-body { padding: 8mm 10mm 10mm; }
 .cover-hero { width: 100%; height: 90mm; border-radius: 10px; overflow: hidden;
               border: 1px solid var(--c-bdr); margin-bottom: 8mm;
               background: linear-gradient(135deg, rgba(0,61,107,0.14), rgba(62,81,108,0.08)); }
@@ -560,7 +559,7 @@ body { font-family: var(--font, Arial, sans-serif); font-size: 9pt; color: var(-
 .cover-metadata dd { color: var(--c-txt); font-weight: 600; margin-top: 1px; }
 
 /* ── Page content ── */
-.page-content { padding: 0 10mm 8mm; flex: 1; display: flex; flex-direction: column; }
+.page-content { padding: 0 10mm 8mm; }
 
 /* ── Section heading ── */
 .section-heading { margin-bottom: 3mm; }
@@ -645,7 +644,7 @@ figcaption { font-size: 7.5pt; color: var(--c-mut); margin-top: 4px; }
 .page-footer {
   border-top: 1px solid var(--c-bdr); padding: 3mm 0 0;
   display: flex; justify-content: space-between;
-  font-size: 7pt; color: var(--c-mut); margin-top: auto;
+  font-size: 7pt; color: var(--c-mut); margin-top: 4mm;
 }
 """
 
