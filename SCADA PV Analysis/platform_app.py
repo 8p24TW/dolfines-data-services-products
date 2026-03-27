@@ -776,75 +776,107 @@ def _view_portfolio():
     if "pending_delete" not in st.session_state:
         st.session_state["pending_delete"] = None
 
+    # Demo KPI values per site (will be replaced with live data)
+    _DEMO_KPIS = {
+        "pr":    {"label": "PR",        "value": "82.4%",      "bg": "rgba(240,120,32,0.15)",  "border": "rgba(240,120,32,0.40)",  "color": "#F07820"},
+        "yield": {"label": "Yield",     "value": "4.2 kWh/kWp","bg": "rgba(34,197,94,0.10)",   "border": "rgba(34,197,94,0.35)",   "color": "#22c55e"},
+        "avail": {"label": "Avail.",    "value": "98.1%",      "bg": "rgba(96,165,250,0.10)",  "border": "rgba(96,165,250,0.35)",  "color": "#60a5fa"},
+        "alarm": {"label": "Alarms",    "value": "0 active",   "bg": "rgba(255,255,255,0.07)", "border": "rgba(255,255,255,0.22)", "color": "rgba(255,255,255,0.75)"},
+    }
+
+    def _kpi_chip(kpi: dict) -> str:
+        return (
+            f"<span style='background:{kpi['bg']};border:1px solid {kpi['border']};"
+            f"color:{kpi['color']};font-size:0.76rem;font-weight:600;"
+            f"padding:3px 11px;border-radius:20px;white-space:nowrap;'>"
+            f"{kpi['label']} {kpi['value']}</span>"
+        )
+
     if not all_items:
         st.info("No sites in your portfolio. Add one below.")
     else:
+        # Pending-delete confirmation rows — always full-width
         for site_id, site, is_custom in all_items:
-            cap_mwp    = site.get("cap_dc_kwp", 0) / 1000
-            status     = site.get("status", "operational")
-            status_lbl = {"operational": "OPERATIONAL", "maintenance": "MAINTENANCE",
-                          "offline": "OFFLINE"}.get(status, status.upper())
-            status_col = {"operational": "#2E8B57", "maintenance": "#E67E22",
-                          "offline": "#C0392B"}.get(status, "#888")
+            if st.session_state["pending_delete"] != site_id:
+                continue
+            col_msg, col_yes, col_no = st.columns([4, 1.5, 1.2], vertical_alignment="center")
+            with col_msg:
+                st.markdown(
+                    f"<div class='pvpat-confirm-banner' style='background:rgba(229,57,53,0.15);"
+                    f"border:1px solid #e53935;border-radius:8px;padding:0.75rem 1.1rem;"
+                    f"color:white;font-size:0.92rem;'>"
+                    f"⚠️ Permanently delete <strong>{site['display_name']}</strong>? "
+                    f"This cannot be undone.</div>",
+                    unsafe_allow_html=True)
+            with col_yes:
+                if st.button("Confirm Delete", key=f"yes_del_{site_id}"):
+                    st.session_state["pending_delete"] = None
+                    if is_custom:
+                        st.session_state["custom_sites"].pop(site_id, None)
+                    else:
+                        st.session_state["deleted_sites"].add(site_id)
+                    st.rerun()
+            with col_no:
+                if st.button("Cancel", key=f"cancel_del_{site_id}"):
+                    st.session_state["pending_delete"] = None
+                    st.rerun()
 
-            site_icon = "🌬️" if site.get("site_type") == "wind" else "☀️"
-            cap_label = "MW" if site.get("site_type") == "wind" else "MWp"
+        # Normal sites — 2-column card grid
+        normal_items = [(sid, s, c) for sid, s, c in all_items
+                        if st.session_state["pending_delete"] != sid]
+        for row_start in range(0, len(normal_items), 2):
+            pair = normal_items[row_start:row_start + 2]
+            grid_cols = st.columns(2, gap="medium")
+            for col_idx, (site_id, site, is_custom) in enumerate(pair):
+                cap_mwp    = site.get("cap_dc_kwp", 0) / 1000
+                status     = site.get("status", "operational")
+                status_lbl = {"operational": "OPERATIONAL", "maintenance": "MAINTENANCE",
+                              "offline": "OFFLINE"}.get(status, status.upper())
+                status_col = {"operational": "#2E8B57", "maintenance": "#E67E22",
+                              "offline": "#C0392B"}.get(status, "#888")
+                site_icon  = "🌬️" if site.get("site_type") == "wind" else "☀️"
+                cap_label  = "MW" if site.get("site_type") == "wind" else "MWp"
 
-            pending = st.session_state["pending_delete"] == site_id
+                kpi_html = " ".join(_kpi_chip(v) for v in _DEMO_KPIS.values())
 
-            if pending:
-                # ── Confirmation row ─────────────────────────────────────────
-                col_msg, col_yes, col_no = st.columns([4, 1.5, 1.2], vertical_alignment="center")
-                with col_msg:
-                    st.markdown(
-                        f"<div class='pvpat-confirm-banner' style='background:rgba(229,57,53,0.15);"
-                        f"border:1px solid #e53935;border-radius:8px;padding:0.75rem 1.1rem;"
-                        f"color:white;font-size:0.92rem;'>"
-                        f"⚠️ Permanently delete <strong>{site['display_name']}</strong>? "
-                        f"This cannot be undone.</div>",
-                        unsafe_allow_html=True)
-                with col_yes:
-                    if st.button("Confirm Delete", key=f"yes_del_{site_id}"):
-                        st.session_state["pending_delete"] = None
-                        if is_custom:
-                            st.session_state["custom_sites"].pop(site_id, None)
-                        else:
-                            st.session_state["deleted_sites"].add(site_id)
-                        st.rerun()
-                with col_no:
-                    if st.button("Cancel", key=f"cancel_del_{site_id}"):
-                        st.session_state["pending_delete"] = None
-                        st.rerun()
-            else:
-                # ── Normal site row ──────────────────────────────────────────
-                col_info, col_view, col_rep, col_del = st.columns(
-                    [3.5, 1.2, 1.8, 1.2], vertical_alignment="center")
-                with col_info:
+                with grid_cols[col_idx]:
                     st.markdown(f"""
-                    <div class="site-card">
-                      <div class="site-card-name">
-                        {site_icon} {site['display_name']}
-                        <span style="background:{status_col};color:white;font-size:0.62rem;
-                          padding:2px 8px;border-radius:10px;margin-left:8px;vertical-align:middle;
-                          font-weight:700;">{status_lbl}</span>
+                    <div class="site-card" style="border:1.5px solid rgba(255,255,255,0.15);
+                      border-radius:12px;padding:1.15rem 1.3rem;margin-bottom:0.3rem;
+                      background:rgba(255,255,255,0.05);">
+                      <div style="display:flex;align-items:flex-start;
+                        justify-content:space-between;margin-bottom:0.35rem;">
+                        <div class="site-card-name" style="font-size:1.0rem;">
+                          {site_icon} {site['display_name']}
+                        </div>
+                        <span style="background:{status_col};color:white;font-size:0.60rem;
+                          padding:2px 9px;border-radius:10px;font-weight:700;
+                          white-space:nowrap;margin-left:8px;margin-top:3px;">{status_lbl}</span>
                       </div>
-                      <div class="site-card-sub">{cap_mwp:.2f} {cap_label}</div>
+                      <div class="site-card-sub" style="margin-bottom:0.75rem;">
+                        {cap_mwp:.2f} {cap_label}
+                      </div>
+                      <div style="display:flex;flex-wrap:wrap;gap:0.4rem;">
+                        {kpi_html}
+                      </div>
                     </div>
                     """, unsafe_allow_html=True)
-                with col_view:
-                    if st.button("View Site →", key=f"sc_{site_id}"):
-                        st.session_state["selected_site"] = site_id
-                        st.session_state["view"] = "site_detail"
-                        st.rerun()
-                with col_rep:
-                    if st.button("Generate Report →", key=f"go_{site_id}"):
-                        st.session_state["selected_site"] = site_id
-                        st.session_state["view"] = "report_select"
-                        st.rerun()
-                with col_del:
-                    if st.button("🗑 Delete", key=f"del_{site_id}"):
-                        st.session_state["pending_delete"] = site_id
-                        st.rerun()
+
+                    btn_a, btn_b, btn_c = st.columns([1.1, 1.4, 0.55])
+                    with btn_a:
+                        if st.button("View Site →", key=f"sc_{site_id}"):
+                            st.session_state["selected_site"] = site_id
+                            st.session_state["view"] = "site_detail"
+                            st.rerun()
+                    with btn_b:
+                        if st.button("Generate Report →", key=f"go_{site_id}"):
+                            st.session_state["selected_site"] = site_id
+                            st.session_state["view"] = "report_select"
+                            st.rerun()
+                    with btn_c:
+                        if st.button("🗑", key=f"del_{site_id}"):
+                            st.session_state["pending_delete"] = site_id
+                            st.rerun()
 
     # ── Add new site ───────────────────────────────────────────────────────────
     st.divider()
@@ -928,12 +960,17 @@ def _view_report_select():
     choice = st.session_state["report_choice"]
 
     # ── Card styles ────────────────────────────────────────────────────────────
-    daily_sel = choice == "daily"
-    comp_sel  = choice == "comprehensive"
+    daily_sel   = choice == "daily"
+    monthly_sel = choice == "monthly"
+    comp_sel    = choice == "comprehensive"
 
     daily_border = "2px solid #F07820" if daily_sel else "1.5px solid rgba(255,255,255,0.18)"
     daily_bg     = "rgba(240,120,32,0.18)" if daily_sel else "rgba(255,255,255,0.06)"
     daily_check  = "<span style='float:right;font-size:1.1rem;color:#22c55e;'>✔</span>" if daily_sel else ""
+
+    monthly_border = "2px solid #F07820" if monthly_sel else "1.5px solid rgba(255,255,255,0.18)"
+    monthly_bg     = "rgba(240,120,32,0.18)" if monthly_sel else "rgba(255,255,255,0.06)"
+    monthly_check  = "<span style='float:right;font-size:1.1rem;color:#22c55e;'>✔</span>" if monthly_sel else ""
 
     comp_border  = "2px solid #F07820" if comp_sel  else "1.5px solid rgba(255,255,255,0.18)"
     comp_bg      = "rgba(240,120,32,0.18)" if comp_sel  else "rgba(255,255,255,0.06)"
@@ -968,7 +1005,7 @@ def _view_report_select():
     except Exception:
         pass
 
-    col_a, col_b = st.columns(2)
+    col_a, col_b, col_c = st.columns(3)
 
     daily_icon  = "🌬️" if is_wind else "☀️"
     daily_title = "Simple Daily Wind Report" if is_wind else "Simple Daily Report"
@@ -1005,7 +1042,42 @@ def _view_report_select():
             st.session_state["report_choice"] = "daily"
             st.rerun()
 
+    monthly_icon   = "🌬️" if is_wind else "☀️"
+    monthly_title  = "Monthly Wind Report" if is_wind else "Monthly Report"
+    monthly_bullets = (
+        ["8–12 pages, automated monthly rollup",
+         "Monthly energy &amp; availability summary",
+         "Turbine performance ranking",
+         "Wind resource &amp; power curve analysis",
+         "Month-on-month trend comparison",
+         "Alerts &amp; maintenance log review"]
+        if is_wind else
+        ["8–12 pages, automated monthly rollup",
+         "Monthly energy, PR &amp; irradiance summary",
+         "Inverter performance ranking &amp; heatmap",
+         "Month-on-month trend comparison",
+         "Data quality review",
+         "Alerts &amp; maintenance log review"]
+    )
+
     with col_b:
+        st.markdown(f"""
+        <div class="pvpat-report-card" style="background:{monthly_bg};border:{monthly_border};
+          border-radius:10px;padding:1.4rem 1.6rem;min-height:220px;
+          cursor:pointer;transition:border 0.15s,background 0.15s;">
+          <div style="font-size:1.05rem;font-weight:700;color:#60a5fa;margin-bottom:8px;">
+            📅 {monthly_title} {monthly_check}
+          </div>
+          <ul style="color:rgba(255,255,255,0.82);font-size:0.87rem;
+            line-height:1.75;padding-left:1.2rem;margin:0;">
+            {"".join(f"<li>{b}</li>" for b in monthly_bullets)}
+          </ul>
+        </div>""", unsafe_allow_html=True)
+        if st.button("Select Monthly Report", key="btn_monthly", use_container_width=True):
+            st.session_state["report_choice"] = "monthly"
+            st.rerun()
+
+    with col_c:
         st.markdown(f"""
         <div class="pvpat-report-card" style="background:{comp_bg};border:{comp_border};
           border-radius:10px;padding:1.4rem 1.6rem;min-height:220px;
@@ -1048,6 +1120,7 @@ def _view_report_select():
         else:
             btn_label = (
                 f"{'🌬️' if is_wind else '⚡'} Generate Daily Report →" if choice == "daily"
+                else "📅 Generate Monthly Report →" if choice == "monthly"
                 else "📊 Generate Comprehensive Report →"
             )
             if st.button(btn_label, key="btn_generate", use_container_width=True):
@@ -1055,7 +1128,9 @@ def _view_report_select():
                 st.session_state.pop("report_choice", None)
                 st.session_state["view"] = (
                     ("wind_daily_config" if is_wind else "daily_config")
-                    if choice == "daily" else "comp_info"
+                    if choice == "daily"
+                    else "monthly_config" if choice == "monthly"
+                    else "comp_info"
                 )
                 st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
@@ -1693,6 +1768,42 @@ def _view_solar_explorer():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# VIEW: MONTHLY REPORT CONFIGURATION  (stub — coming soon)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _view_monthly_config():
+    _sync_custom_sites()
+    _render_header()
+
+    site_id = st.session_state.get("selected_site", "")
+    site    = SITES.get(site_id, {})
+
+    col_back, col_port, _ = st.columns([1, 2, 3])
+    with col_back:
+        if st.button("← Back"):
+            st.session_state["view"] = "report_select"
+            st.rerun()
+    with col_port:
+        if st.button("← Back to Portfolio"):
+            st.session_state["view"] = "portfolio"
+            st.rerun()
+
+    st.markdown(
+        f"<div class='step-hdr'>Monthly Report — {site.get('display_name','')}</div>",
+        unsafe_allow_html=True)
+
+    st.markdown("""
+    <div style="background:rgba(96,165,250,0.10);border:1.5px solid rgba(96,165,250,0.35);
+      border-radius:10px;padding:1.2rem 1.6rem;color:rgba(255,255,255,0.85);font-size:0.92rem;
+      margin-top:1rem;">
+      📅 &nbsp;<strong>Monthly Report</strong> — configuration coming soon.<br>
+      <span style="color:rgba(255,255,255,0.55);font-size:0.85rem;">
+        This module is under development. Check back in the next release.
+      </span>
+    </div>""", unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # ROUTER
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -1713,6 +1824,8 @@ else:
         _view_wind_daily_config()
     elif view == "comp_info":
         _view_comp_info()
+    elif view == "monthly_config":
+        _view_monthly_config()
     elif view == "solar_explorer":
         _view_solar_explorer()
     else:
