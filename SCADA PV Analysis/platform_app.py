@@ -774,7 +774,7 @@ def _view_portfolio():
         color: #ff4444 !important;
       }
       /* Icon buttons — scoped via .pvpat-icons marker in the icon column */
-      [data-testid="stVerticalBlock"]:has(.pvpat-icons) button {
+      [data-testid="column"]:has(.pvpat-icons) button {
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
@@ -784,15 +784,15 @@ def _view_portfolio():
         font-size: 1.05rem !important;
         line-height: 1.3 !important;
       }
-      [data-testid="stVerticalBlock"]:has(.pvpat-icons) button:hover {
+      [data-testid="column"]:has(.pvpat-icons) button:hover {
         background: rgba(255,255,255,0.10) !important;
         color: white !important;
       }
       /* Delete icon — last column in the nested 4-column group */
-      [data-testid="stVerticalBlock"]:has(.pvpat-icons) [data-testid="column"]:last-child button {
+      [data-testid="column"]:has(.pvpat-icons) [data-testid="column"]:last-child button {
         color: rgba(229,57,53,0.85) !important;
       }
-      [data-testid="stVerticalBlock"]:has(.pvpat-icons) [data-testid="column"]:last-child button:hover {
+      [data-testid="column"]:has(.pvpat-icons) [data-testid="column"]:last-child button:hover {
         background: rgba(229,57,53,0.15) !important;
         color: #ff4444 !important;
       }
