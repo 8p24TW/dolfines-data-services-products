@@ -736,32 +736,45 @@ def _view_portfolio():
     # ── Portfolio-specific CSS ─────────────────────────────────────────────────
     st.markdown("""
     <style>
+      /* Icon column — vertically center its content within the row */
+      [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) > [data-testid="stColumn"]:last-child {
+        display: flex !important;
+        align-items: center !important;
+      }
+      [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) > [data-testid="stColumn"]:last-child
+        > [data-testid="stVerticalBlock"] {
+        width: 100%;
+      }
       /* Center each icon button within its sub-column */
       [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) [data-testid="stColumn"]:last-child .stButton {
         display: flex !important;
         justify-content: center !important;
       }
-      /* Icon buttons (all 3) — compact, neutral */
+      /* Icon buttons — transparent, white outlined, no box */
       [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) [data-testid="stColumn"]:last-child .stButton > button {
-        padding: 0.22rem 0.35rem !important;
-        font-size: 1.05rem !important;
+        padding: 0.2rem 0.4rem !important;
+        font-size: 0.95rem !important;
         min-height: unset !important;
         line-height: 1.2 !important;
-        background: rgba(255,255,255,0.07) !important;
-        border: 1px solid rgba(255,255,255,0.18) !important;
+        background: transparent !important;
+        border: 1.5px solid rgba(255,255,255,0.40) !important;
+        border-radius: 6px !important;
+        color: white !important;
       }
       [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) [data-testid="stColumn"]:last-child .stButton > button:hover {
-        background: rgba(255,255,255,0.15) !important;
+        background: rgba(255,255,255,0.10) !important;
+        border-color: rgba(255,255,255,0.70) !important;
       }
-      /* Delete icon only — last of the 3 nested icon columns */
+      /* Delete icon — red outline */
       [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) [data-testid="stColumn"]:last-child
         [data-testid="stHorizontalBlock"] [data-testid="stColumn"]:last-child .stButton > button {
-        background: rgba(229,57,53,0.75) !important;
-        border-color: rgba(229,57,53,0.5) !important;
+        border-color: rgba(229,57,53,0.65) !important;
+        color: #ff6b6b !important;
       }
       [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) [data-testid="stColumn"]:last-child
         [data-testid="stHorizontalBlock"] [data-testid="stColumn"]:last-child .stButton > button:hover {
-        background: #b71c1c !important;
+        background: rgba(229,57,53,0.18) !important;
+        border-color: #e53935 !important;
       }
       /* Red confirm button — 2nd column in a confirmation row */
       [data-testid="stHorizontalBlock"]:has(.pvpat-confirm-banner) [data-testid="stColumn"]:nth-child(2) .stButton > button {
@@ -799,7 +812,8 @@ def _view_portfolio():
     all_items = (
         [(sid, SITES[sid], False) for sid in builtin_ids if sid in SITES]
         + [(sid, cfg, True)
-           for sid, cfg in st.session_state["custom_sites"].items()]
+           for sid, cfg in st.session_state["custom_sites"].items()
+           if sid not in builtin_ids]   # skip overrides of built-in sites (already listed above)
     )
 
     if "pending_delete" not in st.session_state:
@@ -953,22 +967,22 @@ def _view_portfolio():
             with icon_col:
                 ic1, ic2, ic3, ic4 = st.columns(4)
                 with ic1:
-                    if st.button("ℹ️", key=f"sc_{site_id}", help="View site"):
+                    if st.button("ⓘ", key=f"sc_{site_id}", help="View site"):
                         st.session_state["selected_site"] = site_id
                         st.session_state["view"] = "site_detail"
                         st.rerun()
                 with ic2:
-                    if st.button("✏️", key=f"ed_{site_id}", help="Edit site"):
+                    if st.button("✎", key=f"ed_{site_id}", help="Edit site"):
                         st.session_state["selected_site"] = site_id
                         st.session_state["view"] = "site_edit"
                         st.rerun()
                 with ic3:
-                    if st.button("📋", key=f"go_{site_id}", help="Generate report"):
+                    if st.button("≡", key=f"go_{site_id}", help="Generate report"):
                         st.session_state["selected_site"] = site_id
                         st.session_state["view"] = "report_select"
                         st.rerun()
                 with ic4:
-                    if st.button("🗑", key=f"del_{site_id}", help="Delete site"):
+                    if st.button("✕", key=f"del_{site_id}", help="Delete site"):
                         st.session_state["pending_delete"] = site_id
                         st.rerun()
 
