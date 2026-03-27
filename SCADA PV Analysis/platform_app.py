@@ -714,6 +714,24 @@ def _view_portfolio():
     # ── Portfolio-specific CSS ─────────────────────────────────────────────────
     st.markdown("""
     <style>
+      /* Icon column — same box style as site info row, flex-centered */
+      [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) [data-testid="stColumn"]:last-child
+        > [data-testid="stVerticalBlock"] {
+        border: 1px solid rgba(255,255,255,0.11);
+        border-radius: 8px;
+        background: rgba(255,255,255,0.04);
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0.3rem 0.2rem;
+        height: 100%;
+      }
+      /* Nested icon sub-columns — stretch to fill */
+      [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) [data-testid="stColumn"]:last-child
+        [data-testid="stHorizontalBlock"] {
+        width: 100%;
+        justify-content: center;
+      }
       /* Icon buttons (all 3) — compact, neutral */
       [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) [data-testid="stColumn"]:last-child .stButton > button {
         padding: 0.22rem 0.35rem !important;
@@ -838,7 +856,7 @@ def _view_portfolio():
 
             kpi_html = " ".join(_kpi_chip(v) for v in _DEMO_KPIS.values())
 
-            info_col, icon_col = st.columns([6, 1], vertical_alignment="center")
+            info_col, icon_col = st.columns([5, 1], vertical_alignment="center")
             with info_col:
                 st.markdown(f"""
                 <div class="pvpat-site-row" style="display:flex;align-items:center;
@@ -860,16 +878,16 @@ def _view_portfolio():
             with icon_col:
                 ic1, ic2, ic3 = st.columns(3)
                 with ic1:
-                    if st.button("📋", key=f"go_{site_id}", use_container_width=True,
-                                 help="Generate report"):
-                        st.session_state["selected_site"] = site_id
-                        st.session_state["view"] = "report_select"
-                        st.rerun()
-                with ic2:
                     if st.button("ℹ️", key=f"sc_{site_id}", use_container_width=True,
                                  help="View site"):
                         st.session_state["selected_site"] = site_id
                         st.session_state["view"] = "site_detail"
+                        st.rerun()
+                with ic2:
+                    if st.button("📋", key=f"go_{site_id}", use_container_width=True,
+                                 help="Generate report"):
+                        st.session_state["selected_site"] = site_id
+                        st.session_state["view"] = "report_select"
                         st.rerun()
                 with ic3:
                     if st.button("🗑", key=f"del_{site_id}", use_container_width=True,
