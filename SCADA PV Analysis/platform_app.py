@@ -24,8 +24,9 @@ import streamlit as st
 SCRIPT_DIR   = Path(__file__).parent
 LOGO_PATH    = SCRIPT_DIR / "dolfines_logo_white.png"
 FAVICON_PATH = SCRIPT_DIR / "dolfines_favicon.png"
-BG_PATH      = SCRIPT_DIR / "bg_solar.jpg"
-BG_WIND_PATH = SCRIPT_DIR / "bg_wind.jpg"
+BG_PATH       = SCRIPT_DIR / "bg_solar.jpg"
+BG_SOLAR2_PATH = SCRIPT_DIR / "bg_solar2.jpg"
+BG_WIND_PATH  = SCRIPT_DIR / "bg_wind.jpg"
 
 sys.path.insert(0, str(SCRIPT_DIR))
 from platform_users import USERS, SITES, PRICING
@@ -69,8 +70,9 @@ st.set_page_config(
 def _b64(path: Path) -> str:
     return base64.b64encode(path.read_bytes()).decode()
 
-bg_b64      = _b64(BG_PATH)      if BG_PATH.exists()      else ""
-bg_wind_b64 = _b64(BG_WIND_PATH) if BG_WIND_PATH.exists() else ""
+bg_b64       = _b64(BG_PATH)        if BG_PATH.exists()        else ""
+bg_solar2_b64 = _b64(BG_SOLAR2_PATH) if BG_SOLAR2_PATH.exists() else ""
+bg_wind_b64  = _b64(BG_WIND_PATH)  if BG_WIND_PATH.exists()  else ""
 logo_b64    = _b64(LOGO_PATH)    if LOGO_PATH.exists()    else ""
 
 bg_css = (f"url('data:image/jpeg;base64,{bg_b64}')"
@@ -276,6 +278,24 @@ def _apply_wind_bg():
       background-image:
         linear-gradient(rgba(0,10,35,0.72),rgba(0,10,35,0.72)),
         url('data:image/jpeg;base64,{bg_wind_b64}') !important;
+      background-size: cover !important;
+      background-position: center !important;
+      background-attachment: fixed !important;
+    }}
+    </style>
+    """, unsafe_allow_html=True)
+
+
+def _apply_solar2_bg():
+    """Override background with alternate solar farm image for report pages."""
+    if not bg_solar2_b64:
+        return
+    st.markdown(f"""
+    <style>
+    .stApp {{
+      background-image:
+        linear-gradient(rgba(0,10,35,0.72),rgba(0,10,35,0.72)),
+        url('data:image/jpeg;base64,{bg_solar2_b64}') !important;
       background-size: cover !important;
       background-position: center !important;
       background-attachment: fixed !important;
@@ -1022,6 +1042,8 @@ def _view_report_select():
 
     if is_wind:
         _apply_wind_bg()
+    else:
+        _apply_solar2_bg()
 
     # Initialise selection state (persists across reruns on this page)
     if "report_choice" not in st.session_state:
