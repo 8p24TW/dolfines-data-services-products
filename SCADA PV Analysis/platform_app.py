@@ -79,7 +79,7 @@ bg_css = (f"url('data:image/jpeg;base64,{bg_b64}')"
           if bg_b64 else
           "linear-gradient(135deg,#001a3a 0%,#003366 60%,#0a4d8c 100%)")
 
-logo_img = (f'<img src="data:image/png;base64,{logo_b64}" '
+logo_img = (f'<img src="data:image/png;base64,{logo_b64}" class="pvpat-header-logo" '
             f'style="height:62px;width:auto;flex-shrink:0;" />'
             if logo_b64 else "")
 
@@ -178,6 +178,16 @@ st.markdown(f"""
     white-space:nowrap !important;
   }}
   .stButton > button:hover {{ background:#cc6415 !important; }}
+
+  /* Logout button — right-aligned, auto width, flush with content edge */
+  [data-testid="stHorizontalBlock"]:has(.pvpat-header-logo) > div:last-child .stButton {{
+    display: flex !important;
+    justify-content: flex-end !important;
+  }}
+  [data-testid="stHorizontalBlock"]:has(.pvpat-header-logo) > div:last-child .stButton > button {{
+    width: auto !important;
+    padding: 0.45rem 1.4rem !important;
+  }}
 
   /* Site cards */
   .site-card {{
@@ -658,10 +668,8 @@ def _render_header(show_logout=True):
             </div>
             """, unsafe_allow_html=True)
         with col_btn:
-            st.markdown("<div style='margin-top:1.1rem;'>", unsafe_allow_html=True)
             if st.button("Log out"):
                 _logout()
-            st.markdown("</div>", unsafe_allow_html=True)
     else:
         st.markdown(f"""
         <div style="display:flex;flex-direction:column;align-items:center;gap:10mm;margin-bottom:0.6rem;">
