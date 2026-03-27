@@ -714,18 +714,6 @@ def _view_portfolio():
     # ── Portfolio-specific CSS ─────────────────────────────────────────────────
     st.markdown("""
     <style>
-      /* Stretch both columns to same height */
-      [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) {
-        align-items: stretch !important;
-      }
-      /* Icon column inner block fills full height, centers icons vertically */
-      [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) [data-testid="stColumn"]:last-child
-        > [data-testid="stVerticalBlock"] {
-        height: 100% !important;
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: center !important;
-      }
       /* Center each icon button within its sub-column */
       [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) [data-testid="stColumn"]:last-child .stButton {
         display: flex !important;
@@ -956,6 +944,42 @@ def _view_portfolio():
                     if st.button("🗑", key=f"del_{site_id}", help="Delete site"):
                         st.session_state["pending_delete"] = site_id
                         st.rerun()
+
+    # ── Equalise icon column height to match site info row via JS ─────────────
+    try:
+        import streamlit.components.v1 as _cv1
+        _cv1.html("""<script>
+        (function() {
+          function eq() {
+            try {
+              var doc = window.parent.document;
+              doc.querySelectorAll('[data-testid="stHorizontalBlock"]').forEach(function(row) {
+                if (!row.querySelector('.pvpat-site-row')) return;
+                var cols = row.querySelectorAll(':scope > [data-testid="stColumn"]');
+                if (cols.length < 2) return;
+                var infoVB = cols[0].querySelector('[data-testid="stVerticalBlock"]');
+                var iconVB = cols[cols.length-1].querySelector('[data-testid="stVerticalBlock"]');
+                if (!infoVB || !iconVB) return;
+                var h = infoVB.getBoundingClientRect().height;
+                if (h > 0) {
+                  iconVB.style.height = h + 'px';
+                  iconVB.style.display = 'flex';
+                  iconVB.style.flexDirection = 'column';
+                  iconVB.style.justifyContent = 'center';
+                }
+              });
+            } catch(e) {}
+          }
+          eq();
+          setTimeout(eq, 120);
+          setTimeout(eq, 400);
+          new MutationObserver(eq).observe(
+            window.parent.document.body, {childList:true, subtree:true}
+          );
+        })();
+        </script>""", height=1)
+    except Exception:
+        pass
 
     # ── Add new site ───────────────────────────────────────────────────────────
     st.divider()
