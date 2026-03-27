@@ -751,19 +751,6 @@ def _view_portfolio():
         "<div class='step-hdr'>Your Site Portfolio</div>",
         unsafe_allow_html=True)
 
-    col_intro, col_action = st.columns([3.4, 1.2], vertical_alignment="center")
-    with col_intro:
-        st.markdown(
-            "<p style='color:rgba(255,255,255,0.72);margin:0 0 1rem 0;'>"
-            "Explore a new interactive solar PV + BESS anatomy page to walk clients through the full power chain."
-            "</p>",
-            unsafe_allow_html=True,
-        )
-    with col_action:
-        if st.button("Open Solar Explorer", key="open_solar_explorer"):
-            st.session_state["view"] = "solar_explorer"
-            st.rerun()
-
     # Build the full list: built-in sites (minus deleted) + user-added sites
     builtin_ids = [s for s in user.get("sites", [])
                    if s not in st.session_state["deleted_sites"]]
