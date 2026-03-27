@@ -902,7 +902,7 @@ def _view_portfolio():
             kpi_html  = _site_kpi_chips(site_id, site)
             alert_dot = _low_pr_dot(site_id, site)
 
-            info_col, icon_col = st.columns([1, 1], vertical_alignment="center")
+            info_col, icon_col = st.columns([6, 1], vertical_alignment="center")
             with info_col:
                 st.markdown(f"""
                 <div class="pvpat-site-row" style="display:flex;align-items:center;
@@ -924,20 +924,17 @@ def _view_portfolio():
             with icon_col:
                 ic1, ic2, ic3 = st.columns(3)
                 with ic1:
-                    if st.button("ℹ️", key=f"sc_{site_id}", use_container_width=True,
-                                 help="View site"):
+                    if st.button("ℹ️", key=f"sc_{site_id}", help="View site"):
                         st.session_state["selected_site"] = site_id
                         st.session_state["view"] = "site_detail"
                         st.rerun()
                 with ic2:
-                    if st.button("📋", key=f"go_{site_id}", use_container_width=True,
-                                 help="Generate report"):
+                    if st.button("📋", key=f"go_{site_id}", help="Generate report"):
                         st.session_state["selected_site"] = site_id
                         st.session_state["view"] = "report_select"
                         st.rerun()
                 with ic3:
-                    if st.button("🗑", key=f"del_{site_id}", use_container_width=True,
-                                 help="Delete site"):
+                    if st.button("🗑", key=f"del_{site_id}", help="Delete site"):
                         st.session_state["pending_delete"] = site_id
                         st.rerun()
 
