@@ -733,28 +733,6 @@ def _view_portfolio():
     if "custom_sites"   not in st.session_state:
         st.session_state["custom_sites"] = _load_custom_sites_from_disk()
 
-    # ── Handle icon clicks via query params ────────────────────────────────────
-    icon_action = st.query_params.get("pvpat_icon", None)
-    if icon_action:
-        del st.query_params["pvpat_icon"]
-        _parts = icon_action.split("_", 1)
-        _act, _sid = (_parts[0], _parts[1]) if len(_parts) == 2 else ("", "")
-        if _act == "sc" and _sid:
-            st.session_state["selected_site"] = _sid
-            st.session_state["view"] = "site_detail"
-            st.rerun()
-        elif _act == "ed" and _sid:
-            st.session_state["selected_site"] = _sid
-            st.session_state["view"] = "site_edit"
-            st.rerun()
-        elif _act == "go" and _sid:
-            st.session_state["selected_site"] = _sid
-            st.session_state["view"] = "report_select"
-            st.rerun()
-        elif _act == "del" and _sid:
-            st.session_state["pending_delete"] = _sid
-            st.rerun()
-
     # ── Portfolio-specific CSS ─────────────────────────────────────────────────
     st.markdown("""
     <style>
@@ -774,6 +752,14 @@ def _view_portfolio():
       .pvpat-icon-del:hover {
         background: rgba(229,57,53,0.18) !important;
         color: #ff4444 !important;
+      }
+      /* Hide proxy Streamlit buttons — triggered via JS only */
+      [data-testid="stMarkdownContainer"]:has(.pvpat-site-row) + [data-testid="stHorizontalBlock"] {
+        height: 0 !important;
+        overflow: hidden !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        min-height: 0 !important;
       }
       /* Red confirm button — 2nd column in a confirmation row */
       [data-testid="stHorizontalBlock"]:has(.pvpat-confirm-banner) [data-testid="stColumn"]:nth-child(2) .stButton > button {
@@ -831,55 +817,27 @@ def _view_portfolio():
         demo = _SITE_DEMO.get(site_id, {"type": site.get("site_type","solar"),
                                          "pr": 80.0, "yield_kwh": 4.0,
                                          "avail": 96.0, "alarms": 0})
+        _ok  = ("rgba(96,165,250,0.12)", "rgba(96,165,250,0.35)", "#60a5fa")   # blue
+        _bad = ("rgba(229,57,53,0.18)",  "rgba(229,57,53,0.55)",  "#ff6b6b")   # red
         chips = []
         if demo["type"] == "wind":
             wa = demo.get("wind_avail", 90)
-            wa_ok = wa >= 85
-            chips.append(_kpi_chip(
-                "Avail.", f"{wa:.1f}%",
-                "rgba(96,165,250,0.10)" if wa_ok else "rgba(229,57,53,0.18)",
-                "rgba(96,165,250,0.35)" if wa_ok else "rgba(229,57,53,0.55)",
-                "#60a5fa" if wa_ok else "#ff6b6b",
-            ))
+            chips.append(_kpi_chip("Avail.", f"{wa:.1f}%", *(_ok if wa >= 85 else _bad)))
             dev = demo.get("p50_dev", 0)
-            dev_ok = dev >= -5
+            chips.append(_kpi_chip("P50 dev.", f"{dev:+.1f}%", *(_ok if dev >= -5 else _bad)))
             chips.append(_kpi_chip(
-                "P50 dev.", f"{dev:+.1f}%",
-                "rgba(34,197,94,0.10)" if dev_ok else "rgba(229,57,53,0.18)",
-                "rgba(34,197,94,0.35)" if dev_ok else "rgba(229,57,53,0.55)",
-                "#22c55e" if dev_ok else "#ff6b6b",
-            ))
-            chips.append(_kpi_chip(
-                "Energy", f"{demo.get('energy_mwh_mw', 0):.1f} MWh/MW",
-                "rgba(255,255,255,0.07)", "rgba(255,255,255,0.22)", "rgba(255,255,255,0.80)",
-            ))
+                "Energy", f"{demo.get('energy_mwh_mw', 0):.1f} MWh/MW", *_ok))
         else:
             pr = demo.get("pr", 80)
-            pr_ok = pr >= _PR_WARN
+            chips.append(_kpi_chip("PR", f"{pr:.1f}%", *(_ok if pr >= _PR_WARN else _bad)))
             chips.append(_kpi_chip(
-                "PR", f"{pr:.1f}%",
-                "rgba(240,120,32,0.15)" if pr_ok else "rgba(229,57,53,0.18)",
-                "rgba(240,120,32,0.40)" if pr_ok else "rgba(229,57,53,0.55)",
-                "#F07820" if pr_ok else "#ff6b6b",
-            ))
-            chips.append(_kpi_chip(
-                "Yield", f"{demo.get('yield_kwh', 4):.1f} kWh/kWp",
-                "rgba(34,197,94,0.10)", "rgba(34,197,94,0.35)", "#22c55e",
-            ))
+                "Yield", f"{demo.get('yield_kwh', 4):.1f} kWh/kWp", *_ok))
             av = demo.get("avail", 96)
-            av_ok = av >= 93
-            chips.append(_kpi_chip(
-                "Avail.", f"{av:.1f}%",
-                "rgba(96,165,250,0.10)" if av_ok else "rgba(229,57,53,0.18)",
-                "rgba(96,165,250,0.35)" if av_ok else "rgba(229,57,53,0.55)",
-                "#60a5fa" if av_ok else "#ff6b6b",
-            ))
+            chips.append(_kpi_chip("Avail.", f"{av:.1f}%", *(_ok if av >= 93 else _bad)))
         alarms = demo.get("alarms", 0)
         chips.append(_kpi_chip(
             "Alarms", str(alarms),
-            "rgba(229,57,53,0.18)" if alarms > 0 else "rgba(255,255,255,0.07)",
-            "rgba(229,57,53,0.50)" if alarms > 0 else "rgba(255,255,255,0.22)",
-            "#ff6b6b" if alarms > 0 else "rgba(255,255,255,0.65)",
+            *(_bad if alarms > 0 else ("rgba(255,255,255,0.07)", "rgba(255,255,255,0.22)", "rgba(255,255,255,0.60)")),
         ))
         return " ".join(chips)
 
@@ -944,9 +902,22 @@ def _view_portfolio():
             kpi_html  = _site_kpi_chips(site_id, site)
             alert_dot = _low_pr_dot(site_id, site)
 
-            _ic_base = ("cursor:pointer;font-size:1.05rem;padding:5px 8px;"
-                        "border-radius:5px;user-select:none;transition:background 0.15s;")
-            _ic_url  = "window.location.search='?pvpat_icon="
+            # JS: walk siblings from the stMarkdownContainer to find the
+            # immediately-following stHorizontalBlock (hidden proxy buttons),
+            # then click button at index i.  No page reload — session preserved.
+            _js_find = (
+                "var m=this.closest('[data-testid=stMarkdownContainer]'),"
+                "p=m&&m.parentElement;"
+                "if(p){var cs=p.children,f=0;"
+                "for(var j=0;j<cs.length;j++){"
+                "if(f&&cs[j].dataset&&cs[j].dataset.testid=='stHorizontalBlock'){"
+                "var b=cs[j].querySelectorAll('button');"
+                "if(b[{i}])b[{i}].click();break;}"
+                "if(cs[j]===m)f=1;}}"
+            )
+            _oc = [_js_find.replace("{i}", str(i)) for i in range(4)]
+            _ic = ("cursor:pointer;font-size:1.05rem;padding:5px 8px;"
+                   "border-radius:5px;user-select:none;transition:background 0.15s;")
             st.markdown(f"""
             <div class="pvpat-site-row" style="display:flex;align-items:center;
               gap:0.65rem;flex-wrap:nowrap;padding:0.55rem 0.85rem;
@@ -966,20 +937,41 @@ def _view_portfolio():
               </div>
               <div style="display:flex;align-items:center;gap:0.05rem;flex-shrink:0;">
                 <span class="pvpat-icon" title="View site"
-                  onclick="{_ic_url}sc_{site_id}'"
-                  style="{_ic_base}color:rgba(255,255,255,0.72);">ⓘ</span>
+                  onclick="{_oc[0]}"
+                  style="{_ic}color:rgba(255,255,255,0.72);">ⓘ</span>
                 <span class="pvpat-icon" title="Edit site"
-                  onclick="{_ic_url}ed_{site_id}'"
-                  style="{_ic_base}color:rgba(255,255,255,0.72);">✎</span>
+                  onclick="{_oc[1]}"
+                  style="{_ic}color:rgba(255,255,255,0.72);">✎</span>
                 <span class="pvpat-icon" title="Generate report"
-                  onclick="{_ic_url}go_{site_id}'"
-                  style="{_ic_base}color:rgba(255,255,255,0.72);">≡</span>
+                  onclick="{_oc[2]}"
+                  style="{_ic}color:rgba(255,255,255,0.72);">≡</span>
                 <span class="pvpat-icon pvpat-icon-del" title="Delete site"
-                  onclick="{_ic_url}del_{site_id}'"
-                  style="{_ic_base}color:rgba(229,57,53,0.85);">✕</span>
+                  onclick="{_oc[3]}"
+                  style="{_ic}color:rgba(229,57,53,0.85);">✕</span>
               </div>
             </div>
             """, unsafe_allow_html=True)
+            # Hidden proxy buttons — visually collapsed, clicked by JS above
+            ph1, ph2, ph3, ph4 = st.columns(4)
+            with ph1:
+                if st.button("view", key=f"h_sc_{site_id}"):
+                    st.session_state["selected_site"] = site_id
+                    st.session_state["view"] = "site_detail"
+                    st.rerun()
+            with ph2:
+                if st.button("edit", key=f"h_ed_{site_id}"):
+                    st.session_state["selected_site"] = site_id
+                    st.session_state["view"] = "site_edit"
+                    st.rerun()
+            with ph3:
+                if st.button("report", key=f"h_go_{site_id}"):
+                    st.session_state["selected_site"] = site_id
+                    st.session_state["view"] = "report_select"
+                    st.rerun()
+            with ph4:
+                if st.button("delete", key=f"h_del_{site_id}"):
+                    st.session_state["pending_delete"] = site_id
+                    st.rerun()
 
     # ── Add new site ───────────────────────────────────────────────────────────
     st.divider()
