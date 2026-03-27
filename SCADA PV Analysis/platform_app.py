@@ -736,45 +736,41 @@ def _view_portfolio():
     # ── Portfolio-specific CSS ─────────────────────────────────────────────────
     st.markdown("""
     <style>
-      /* Icon column — vertically center its content within the row */
-      [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) > [data-testid="stColumn"]:last-child {
-        display: flex !important;
-        align-items: center !important;
-      }
+      /* Push the icon group down to sit at the vertical centre of the site row.
+         Site row height ≈ 2.55rem (0.55rem*2 padding + ~1.45rem content).
+         Icon button height ≈ 1.8rem. Half-diff ≈ 0.38rem. */
       [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) > [data-testid="stColumn"]:last-child
-        > [data-testid="stVerticalBlock"] {
-        width: 100%;
+        > [data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"] {
+        margin-top: 0.38rem !important;
       }
       /* Center each icon button within its sub-column */
       [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) [data-testid="stColumn"]:last-child .stButton {
         display: flex !important;
         justify-content: center !important;
       }
-      /* Icon buttons — transparent, white outlined, no box */
+      /* Icon buttons — transparent, no border, white text */
       [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) [data-testid="stColumn"]:last-child .stButton > button {
         padding: 0.2rem 0.4rem !important;
-        font-size: 0.95rem !important;
+        font-size: 1.0rem !important;
         min-height: unset !important;
         line-height: 1.2 !important;
         background: transparent !important;
-        border: 1.5px solid rgba(255,255,255,0.40) !important;
-        border-radius: 6px !important;
-        color: white !important;
+        border: none !important;
+        color: rgba(255,255,255,0.75) !important;
       }
       [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) [data-testid="stColumn"]:last-child .stButton > button:hover {
-        background: rgba(255,255,255,0.10) !important;
-        border-color: rgba(255,255,255,0.70) !important;
+        background: rgba(255,255,255,0.08) !important;
+        color: white !important;
       }
-      /* Delete icon — red outline */
+      /* Delete icon — red tint */
       [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) [data-testid="stColumn"]:last-child
         [data-testid="stHorizontalBlock"] [data-testid="stColumn"]:last-child .stButton > button {
-        border-color: rgba(229,57,53,0.65) !important;
-        color: #ff6b6b !important;
+        color: rgba(229,57,53,0.85) !important;
       }
       [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) [data-testid="stColumn"]:last-child
         [data-testid="stHorizontalBlock"] [data-testid="stColumn"]:last-child .stButton > button:hover {
-        background: rgba(229,57,53,0.18) !important;
-        border-color: #e53935 !important;
+        background: rgba(229,57,53,0.15) !important;
+        color: #ff4444 !important;
       }
       /* Red confirm button — 2nd column in a confirmation row */
       [data-testid="stHorizontalBlock"]:has(.pvpat-confirm-banner) [data-testid="stColumn"]:nth-child(2) .stButton > button {
