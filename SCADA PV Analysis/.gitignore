@@ -17,3 +17,6 @@ __pycache__/
 # Local secrets
 .env
 secrets.toml
+
+# User-added sites (runtime data, not source)
+custom_sites.json

@@ -9,6 +9,7 @@ Demo: demo@dolfines.com / pvpat2024
 
 import base64
 import io
+import json
 import subprocess
 import sys
 from datetime import date, timedelta
@@ -28,6 +29,26 @@ BG_WIND_PATH = SCRIPT_DIR / "bg_wind.jpg"
 
 sys.path.insert(0, str(SCRIPT_DIR))
 from platform_users import USERS, SITES, PRICING
+
+# ── Persistent custom-site storage (survives session reloads; lost on redeploy)
+_CUSTOM_SITES_FILE = SCRIPT_DIR / "custom_sites.json"
+
+def _load_custom_sites_from_disk() -> dict:
+    try:
+        if _CUSTOM_SITES_FILE.exists():
+            return json.loads(_CUSTOM_SITES_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        pass
+    return {}
+
+def _save_custom_sites_to_disk() -> None:
+    try:
+        _CUSTOM_SITES_FILE.write_text(
+            json.dumps(st.session_state.get("custom_sites", {}), ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+    except Exception:
+        pass
 from solar_farm_explorer import render_solar_farm_explorer
 
 
@@ -709,7 +730,8 @@ def _view_portfolio():
 
     # Session-state stores for user-managed sites
     if "deleted_sites"  not in st.session_state: st.session_state["deleted_sites"]  = set()
-    if "custom_sites"   not in st.session_state: st.session_state["custom_sites"]   = {}
+    if "custom_sites"   not in st.session_state:
+        st.session_state["custom_sites"] = _load_custom_sites_from_disk()
 
     # ── Portfolio-specific CSS ─────────────────────────────────────────────────
     st.markdown("""
@@ -909,7 +931,7 @@ def _view_portfolio():
             kpi_html  = _site_kpi_chips(site_id, site)
             alert_dot = _low_pr_dot(site_id, site)
 
-            info_col, icon_col = st.columns([6, 1], vertical_alignment="top")
+            info_col, icon_col = st.columns([6, 1], vertical_alignment="center")
             with info_col:
                 st.markdown(f"""
                 <div class="pvpat-site-row" style="display:flex;align-items:center;
@@ -929,57 +951,26 @@ def _view_portfolio():
                 </div>
                 """, unsafe_allow_html=True)
             with icon_col:
-                ic1, ic2, ic3 = st.columns(3)
+                ic1, ic2, ic3, ic4 = st.columns(4)
                 with ic1:
                     if st.button("ℹ️", key=f"sc_{site_id}", help="View site"):
                         st.session_state["selected_site"] = site_id
                         st.session_state["view"] = "site_detail"
                         st.rerun()
                 with ic2:
+                    if st.button("✏️", key=f"ed_{site_id}", help="Edit site"):
+                        st.session_state["selected_site"] = site_id
+                        st.session_state["view"] = "site_edit"
+                        st.rerun()
+                with ic3:
                     if st.button("📋", key=f"go_{site_id}", help="Generate report"):
                         st.session_state["selected_site"] = site_id
                         st.session_state["view"] = "report_select"
                         st.rerun()
-                with ic3:
+                with ic4:
                     if st.button("🗑", key=f"del_{site_id}", help="Delete site"):
                         st.session_state["pending_delete"] = site_id
                         st.rerun()
-
-    # ── Equalise icon column height to match site info row via JS ─────────────
-    try:
-        import streamlit.components.v1 as _cv1
-        _cv1.html("""<script>
-        (function() {
-          function eq() {
-            try {
-              var doc = window.parent.document;
-              doc.querySelectorAll('[data-testid="stHorizontalBlock"]').forEach(function(row) {
-                if (!row.querySelector('.pvpat-site-row')) return;
-                var cols = row.querySelectorAll(':scope > [data-testid="stColumn"]');
-                if (cols.length < 2) return;
-                var infoVB = cols[0].querySelector('[data-testid="stVerticalBlock"]');
-                var iconVB = cols[cols.length-1].querySelector('[data-testid="stVerticalBlock"]');
-                if (!infoVB || !iconVB) return;
-                var h = infoVB.getBoundingClientRect().height;
-                if (h > 0) {
-                  iconVB.style.height = h + 'px';
-                  iconVB.style.display = 'flex';
-                  iconVB.style.flexDirection = 'column';
-                  iconVB.style.justifyContent = 'center';
-                }
-              });
-            } catch(e) {}
-          }
-          eq();
-          setTimeout(eq, 120);
-          setTimeout(eq, 400);
-          new MutationObserver(eq).observe(
-            window.parent.document.body, {childList:true, subtree:true}
-          );
-        })();
-        </script>""", height=1)
-    except Exception:
-        pass
 
     # ── Add new site ───────────────────────────────────────────────────────────
     st.divider()
@@ -1022,6 +1013,7 @@ def _view_portfolio():
                     }
                     st.session_state.pop("ns_name", None)
                     st.session_state.pop("ns_cap",  None)
+                    _save_custom_sites_to_disk()
                     st.rerun()
 
 
@@ -1871,6 +1863,98 @@ def _view_solar_explorer():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# VIEW: SITE EDIT
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _view_site_edit():
+    _sync_custom_sites()
+    _render_header()
+
+    site_id  = st.session_state.get("selected_site", "")
+    site     = dict(SITES.get(site_id, {}))
+    is_custom = site_id in st.session_state.get("custom_sites", {})
+
+    col_back, _ = st.columns([2, 4])
+    with col_back:
+        if st.button("← Back to Portfolio", key="edit_back"):
+            st.session_state["view"] = "portfolio"
+            st.rerun()
+
+    st.markdown(
+        f"<div class='step-hdr'>Edit Site — {site.get('display_name', site_id)}</div>",
+        unsafe_allow_html=True)
+
+    if not site:
+        st.error("Site not found.")
+        return
+
+    is_wind = site.get("site_type") == "wind"
+
+    with st.form("site_edit_form"):
+        c1, c2 = st.columns(2)
+        with c1:
+            new_name = st.text_input("Site name", value=site.get("display_name", ""))
+            new_cap  = st.text_input(
+                "Capacity (MWp DC)" if not is_wind else "Capacity (MW)",
+                value=str(round(site.get("cap_dc_kwp", 0) / 1000, 3)),
+            )
+            new_status = st.selectbox(
+                "Status",
+                ["operational", "maintenance", "offline"],
+                index=["operational", "maintenance", "offline"].index(
+                    site.get("status", "operational")),
+            )
+        with c2:
+            new_country  = st.text_input("Country",  value=site.get("country",  ""))
+            new_region   = st.text_input("Region",   value=site.get("region",   ""))
+            new_cod      = st.text_input("COD date", value=site.get("cod",      ""))
+
+        new_tech  = st.text_input("Technology / turbine model",
+                                  value=site.get("technology", ""))
+        new_inv   = st.text_input("Inverter model",
+                                  value=site.get("inverter_model", ""))
+
+        saved = st.form_submit_button("💾 Save changes", use_container_width=False)
+
+    if saved:
+        try:
+            cap_kwp = float(new_cap.replace(",", ".")) * 1000
+        except ValueError:
+            st.error("Capacity must be a number.")
+            return
+
+        updates = {
+            "display_name":   new_name.strip() or site.get("display_name", ""),
+            "cap_dc_kwp":     cap_kwp,
+            "cap_ac_kw":      cap_kwp * (1 / site.get("dc_ac_ratio", 1.0)) if not is_wind else cap_kwp,
+            "status":         new_status,
+            "country":        new_country.strip(),
+            "region":         new_region.strip(),
+            "cod":            new_cod.strip(),
+            "technology":     new_tech.strip(),
+            "inverter_model": new_inv.strip(),
+        }
+
+        if is_custom:
+            st.session_state["custom_sites"][site_id].update(updates)
+        else:
+            # Update in-memory SITES (persists for this session)
+            SITES[site_id].update(updates)
+            # Also store as a custom override so it survives via disk
+            overrides = st.session_state.setdefault("custom_sites", {})
+            if site_id not in overrides:
+                overrides[site_id] = dict(SITES[site_id])
+            else:
+                overrides[site_id].update(updates)
+
+        _sync_custom_sites()
+        _save_custom_sites_to_disk()
+        st.success("Changes saved.")
+        st.session_state["view"] = "portfolio"
+        st.rerun()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # VIEW: MONTHLY REPORT CONFIGURATION  (stub — coming soon)
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -1929,6 +2013,8 @@ else:
         _view_comp_info()
     elif view == "monthly_config":
         _view_monthly_config()
+    elif view == "site_edit":
+        _view_site_edit()
     elif view == "solar_explorer":
         _view_solar_explorer()
     else:
