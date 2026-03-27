@@ -827,41 +827,38 @@ def _view_portfolio():
                 kpi_html = " ".join(_kpi_chip(v) for v in _DEMO_KPIS.values())
 
                 with grid_cols[col_idx]:
-                    st.markdown(f"""
-                    <div class="site-card" style="border:1.5px solid rgba(255,255,255,0.15);
-                      border-radius:12px;padding:1.15rem 1.3rem;margin-bottom:0.3rem;
-                      background:rgba(255,255,255,0.05);">
-                      <div style="display:flex;align-items:flex-start;
-                        justify-content:space-between;margin-bottom:0.35rem;">
-                        <div class="site-card-name" style="font-size:1.0rem;">
-                          {site_icon} {site['display_name']}
+                    info_col, action_col = st.columns([3.2, 1.1], vertical_alignment="center")
+                    with info_col:
+                        st.markdown(f"""
+                        <div class="site-card" style="border:1.5px solid rgba(255,255,255,0.15);
+                          border-radius:10px;padding:0.75rem 1.0rem;
+                          background:rgba(255,255,255,0.05);">
+                          <div style="display:flex;align-items:center;gap:0.5rem;
+                            flex-wrap:wrap;margin-bottom:0.45rem;">
+                            <span class="site-card-name" style="font-size:0.95rem;">
+                              {site_icon} {site['display_name']}
+                            </span>
+                            <span style="color:rgba(255,255,255,0.42);font-size:0.80rem;
+                              font-weight:500;">{cap_mwp:.2f} {cap_label}</span>
+                            <span style="margin-left:auto;background:{status_col};color:white;
+                              font-size:0.58rem;padding:2px 8px;border-radius:8px;
+                              font-weight:700;white-space:nowrap;">{status_lbl}</span>
+                          </div>
+                          <div style="display:flex;flex-wrap:wrap;gap:0.35rem;">
+                            {kpi_html}
+                          </div>
                         </div>
-                        <span style="background:{status_col};color:white;font-size:0.60rem;
-                          padding:2px 9px;border-radius:10px;font-weight:700;
-                          white-space:nowrap;margin-left:8px;margin-top:3px;">{status_lbl}</span>
-                      </div>
-                      <div class="site-card-sub" style="margin-bottom:0.75rem;">
-                        {cap_mwp:.2f} {cap_label}
-                      </div>
-                      <div style="display:flex;flex-wrap:wrap;gap:0.4rem;">
-                        {kpi_html}
-                      </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                    btn_a, btn_b, btn_c = st.columns([1.1, 1.4, 0.55])
-                    with btn_a:
-                        if st.button("View Site →", key=f"sc_{site_id}"):
+                        """, unsafe_allow_html=True)
+                    with action_col:
+                        if st.button("View Site →", key=f"sc_{site_id}", use_container_width=True):
                             st.session_state["selected_site"] = site_id
                             st.session_state["view"] = "site_detail"
                             st.rerun()
-                    with btn_b:
-                        if st.button("Generate Report →", key=f"go_{site_id}"):
+                        if st.button("Generate Report", key=f"go_{site_id}", use_container_width=True):
                             st.session_state["selected_site"] = site_id
                             st.session_state["view"] = "report_select"
                             st.rerun()
-                    with btn_c:
-                        if st.button("🗑", key=f"del_{site_id}"):
+                        if st.button("🗑 Delete", key=f"del_{site_id}", use_container_width=True):
                             st.session_state["pending_delete"] = site_id
                             st.rerun()
 
@@ -1015,7 +1012,7 @@ def _view_report_select():
     with col_a:
         st.markdown(f"""
         <div class="pvpat-report-card" style="background:{daily_bg};border:{daily_border};
-          border-radius:10px;padding:1.4rem 1.6rem;min-height:220px;
+          border-radius:10px;padding:1.4rem 1.6rem;height:250px;overflow:auto;
           cursor:pointer;transition:border 0.15s,background 0.15s;">
           <div style="font-size:1.05rem;font-weight:700;color:#F07820;margin-bottom:8px;">
             {daily_icon} {daily_title} {daily_check}
@@ -1050,7 +1047,7 @@ def _view_report_select():
     with col_b:
         st.markdown(f"""
         <div class="pvpat-report-card" style="background:{monthly_bg};border:{monthly_border};
-          border-radius:10px;padding:1.4rem 1.6rem;min-height:220px;
+          border-radius:10px;padding:1.4rem 1.6rem;height:250px;overflow:auto;
           cursor:pointer;transition:border 0.15s,background 0.15s;">
           <div style="font-size:1.05rem;font-weight:700;color:#60a5fa;margin-bottom:8px;">
             📅 {monthly_title} {monthly_check}
@@ -1067,7 +1064,7 @@ def _view_report_select():
     with col_c:
         st.markdown(f"""
         <div class="pvpat-report-card" style="background:{comp_bg};border:{comp_border};
-          border-radius:10px;padding:1.4rem 1.6rem;min-height:220px;
+          border-radius:10px;padding:1.4rem 1.6rem;height:250px;overflow:auto;
           cursor:pointer;transition:border 0.15s,background 0.15s;">
           <div style="font-size:1.05rem;font-weight:700;color:white;margin-bottom:8px;">
             📊 Comprehensive Analysis Report {comp_check}
@@ -1767,11 +1764,11 @@ def _view_monthly_config():
 
     col_back, col_port, _ = st.columns([1, 2, 3])
     with col_back:
-        if st.button("← Back"):
+        if st.button("← Back", key="monthly_cfg_back"):
             st.session_state["view"] = "report_select"
             st.rerun()
     with col_port:
-        if st.button("← Back to Portfolio"):
+        if st.button("← Back to Portfolio", key="monthly_cfg_back_port"):
             st.session_state["view"] = "portfolio"
             st.rerun()
 
