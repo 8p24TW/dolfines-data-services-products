@@ -773,28 +773,29 @@ def _view_portfolio():
         background: rgba(229,57,53,0.18) !important;
         color: #ff4444 !important;
       }
-      /* Icon buttons — scoped to the icon column's stVerticalBlock by requiring
-         .pvpat-icons to be in a DIRECT-child stMarkdownContainer (not any ancestor) */
-      [data-testid="stVerticalBlock"]:has(> [data-testid="stMarkdownContainer"] .pvpat-icons) button {
+      /* Icon buttons — target last div child of any row that has a pvpat-site-row.
+         Avoids testid guessing; doesn't match logout (its block has no pvpat-site-row). */
+      [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) > div:last-child button {
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
+        outline: none !important;
         color: rgba(255,255,255,0.72) !important;
         padding: 5px 8px !important;
         min-height: 0 !important;
         font-size: 1.05rem !important;
         line-height: 1.3 !important;
       }
-      [data-testid="stVerticalBlock"]:has(> [data-testid="stMarkdownContainer"] .pvpat-icons) button:hover {
+      [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) > div:last-child button:hover {
         background: rgba(255,255,255,0.10) !important;
         color: white !important;
       }
-      /* Delete icon — last button group in the nested 4-col row */
-      [data-testid="stVerticalBlock"]:has(> [data-testid="stMarkdownContainer"] .pvpat-icons)
+      /* Delete icon — last div in the nested 4-button row */
+      [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) > div:last-child
         [data-testid="stHorizontalBlock"] > div:last-child button {
         color: rgba(229,57,53,0.85) !important;
       }
-      [data-testid="stVerticalBlock"]:has(> [data-testid="stMarkdownContainer"] .pvpat-icons)
+      [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) > div:last-child
         [data-testid="stHorizontalBlock"] > div:last-child button:hover {
         background: rgba(229,57,53,0.15) !important;
         color: #ff4444 !important;
