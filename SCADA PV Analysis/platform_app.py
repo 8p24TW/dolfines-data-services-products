@@ -714,6 +714,18 @@ def _view_portfolio():
     # ── Portfolio-specific CSS ─────────────────────────────────────────────────
     st.markdown("""
     <style>
+      /* Stretch both columns to same height */
+      [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) {
+        align-items: stretch !important;
+      }
+      /* Icon column inner block fills full height, centers icons vertically */
+      [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) [data-testid="stColumn"]:last-child
+        > [data-testid="stVerticalBlock"] {
+        height: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+      }
       /* Center each icon button within its sub-column */
       [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) [data-testid="stColumn"]:last-child .stButton {
         display: flex !important;
