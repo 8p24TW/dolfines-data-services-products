@@ -25,93 +25,92 @@ SOLAR_COMPONENTS = {
 }
 
 
-def render_solar_farm_explorer(site_name: str | None = None, height: int = 1700) -> None:
-    title = site_name or 'Utility-Scale Solar PV + BESS Explorer'
+def render_solar_farm_explorer(site_name: str | None = None, height: int = 1750) -> None:
+    title = site_name or "Utility-Scale Solar PV + BESS Explorer"
     data = json.dumps(SOLAR_COMPONENTS)
     html = f"""
     <div id='sf-root'>
       <style>
-        :root{{--bg:#FAFAF7;--ink:#2D2D2D;--navy:#1B2A4A;--copper:#D4864A;--green:#2E7D5B;--gold:#E8B84B;--muted:#8A9AAF;--line:#D7D9DE;--panel:#FFFDF9;--shadow:0 20px 40px rgba(27,42,74,.12);--radius:24px;--mono:'JetBrains Mono','IBM Plex Mono',Consolas,monospace;--serif:'DM Serif Display','Libre Baskerville',Georgia,serif;--sans:'Source Sans 3','DM Sans','Segoe UI',sans-serif;}}
+        :root{{--bg:#FAFAF7;--panel:#FFFDF9;--ink:#2D2D2D;--navy:#1B2A4A;--copper:#D4864A;--forest:#2E7D5B;--gold:#E8B84B;--muted:#8A9AAF;--sky:#EAF1F4;--land:#D4E6A8;--road:#7E8594;--cream:#F3EEE3;--line:#4D5E74;--shadow:0 22px 44px rgba(27,42,74,.12);--radius:28px;--mono:'JetBrains Mono','IBM Plex Mono',Consolas,monospace;--serif:'DM Serif Display','Libre Baskerville',Georgia,serif;--sans:'Source Sans 3','DM Sans','Segoe UI',sans-serif;}}
         *{{box-sizing:border-box}} body{{margin:0;background:var(--bg);font-family:var(--sans);color:var(--ink)}}
         .shell{{display:flex;gap:24px;align-items:flex-start;padding:24px;background:var(--bg)}}
-        .stage{{flex:1 1 60%;background:var(--panel);border:1px solid rgba(27,42,74,.08);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;min-width:0}}
-        .panel{{flex:1 1 40%;position:sticky;top:16px;background:var(--panel);border:1px solid rgba(27,42,74,.08);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;min-height:720px}}
+        .stage{{flex:1 1 62%;background:var(--panel);border:1px solid rgba(27,42,74,.08);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;min-width:0}}
+        .panel{{flex:1 1 38%;position:sticky;top:16px;background:var(--panel);border:1px solid rgba(27,42,74,.08);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;min-height:760px}}
         .eyebrow{{letter-spacing:.18em;text-transform:uppercase;font-size:11px;color:var(--copper);font-weight:700;margin-bottom:8px}}
-        h1,h2,h3{{font-family:var(--serif);margin:0}} h1{{font-size:32px;line-height:1.1;color:var(--navy)}} h2{{font-size:25px;color:var(--navy)}} h3{{font-size:17px;color:var(--navy)}}
-        .lede{{color:#526070;max-width:68ch;font-size:16px;line-height:1.55;margin:14px 0 18px}}
-        .controls{{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:16px;padding:14px 16px;border-radius:18px;background:#F4F1EA;border:1px solid rgba(27,42,74,.08)}}
+        h1,h2,h3{{font-family:var(--serif);margin:0}} h1{{font-size:32px;line-height:1.05;color:var(--navy)}} h2{{font-size:25px;color:var(--navy)}} h3{{font-size:17px;color:var(--navy)}}
+        .lede{{color:#526070;max-width:72ch;font-size:16px;line-height:1.58;margin:14px 0 18px}}
+        .controls{{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:16px;padding:14px 16px;border-radius:18px;background:linear-gradient(180deg,#F7F3EC 0%,#F1ECE2 100%);border:1px solid rgba(27,42,74,.08)}}
         .chip,.tab{{border:1px solid rgba(27,42,74,.12);background:#fff;border-radius:999px;padding:8px 12px;font:600 13px var(--sans);color:var(--navy)}}
         .tab.active{{background:var(--navy);color:#fff;border-color:var(--navy)}}
         .toggle{{border:none;background:var(--navy);color:#fff;border-radius:999px;padding:10px 14px;font:700 13px var(--sans);cursor:pointer;transition:background .24s ease,transform .24s ease}}
         .toggle.off{{background:#8A9AAF}} .toggle:hover{{transform:translateY(-1px)}}
         .metric{{margin-left:auto;display:flex;gap:10px;align-items:center;color:#5D687A;font-size:13px}} input[type=range]{{accent-color:var(--copper)}}
         .legend{{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0}} .legend span{{font-size:12px;color:#5F6C7C;padding:6px 10px;border-radius:999px;background:#F6F4EE;border:1px solid rgba(27,42,74,.08)}}
-        svg{{width:100%;height:auto;border-radius:20px;background:#FFFDF8;border:1px solid rgba(27,42,74,.08)}}
-        .node rect,.node path,.node circle,.node polygon,.node line,.node ellipse{{transition:fill .22s ease,stroke .22s ease,transform .22s ease,opacity .22s ease}}
-        .node .body{{fill:#F6F1E9;stroke:#42526B;stroke-width:2.2}} .node .accent{{fill:#EBD8C5;stroke:#42526B;stroke-width:1.8}} .node text{{fill:#1B2A4A;font:600 20px var(--sans);pointer-events:none}}
-        .node:hover .body,.node:hover .accent{{fill:#F1D9BF;cursor:pointer}} .node.selected .body,.node.selected .accent{{fill:#E8B84B;stroke:#D4864A}}
-        .wire{{fill:none;stroke:#51627A;stroke-width:8;stroke-linecap:round;stroke-linejoin:round}} .dc{{stroke:#D4864A}} .ac{{stroke:#2E7D5B}} .aux{{stroke:#8A9AAF;stroke-dasharray:12 10;stroke-width:4}}
-        .ground{{stroke:#6A4D39;stroke-width:5;fill:none}} .flow{{fill:none;stroke:#E8B84B;stroke-width:4;stroke-dasharray:2 16;stroke-linecap:round;opacity:.88;animation:dash var(--speed,6s) linear infinite}} .flow.reverse{{animation-direction:reverse}} .flow.off{{animation-play-state:paused;opacity:.18}}
-        @keyframes dash{{from{{stroke-dashoffset:0}}to{{stroke-dashoffset:-260}}}}
-        .panel.hidden .detail{{display:none}} .placeholder{{display:grid;place-items:center;height:100%;min-height:620px;color:#667588;text-align:left}}
+        svg{{width:100%;height:auto;border-radius:22px;background:linear-gradient(180deg,var(--sky) 0%,#F4F7EE 42%,#EEF4E3 100%);border:1px solid rgba(27,42,74,.08)}}
+        .label{{font:700 15px var(--sans);fill:var(--navy);letter-spacing:.02em}} .sub{{font:500 11px var(--sans);fill:#607089}}
+        .road{{fill:none;stroke:var(--road);stroke-width:52;stroke-linecap:round;stroke-linejoin:round}} .road-mid{{fill:none;stroke:#EAE6D9;stroke-width:3.4;stroke-dasharray:16 12;stroke-linecap:round}}
+        .cable{{fill:none;stroke-width:8;stroke-linecap:round;stroke-linejoin:round}} .dc{{stroke:#B56D41}} .ac{{stroke:#2E7D5B}} .aux{{stroke:#A7B3C0;stroke-width:4;stroke-dasharray:10 10}}
+        .energy{{fill:var(--gold);filter:drop-shadow(0 0 6px rgba(232,184,75,.45));opacity:.95}} .energy.off{{opacity:.16}}
+        .node > *{{transition:fill .22s ease,stroke .22s ease,transform .22s ease,opacity .22s ease}} .node .hit{{fill:transparent;stroke:transparent;stroke-width:18}}
+        .node .surface{{fill:#F7F3EC;stroke:var(--line);stroke-width:2}} .node .metal{{fill:#D8E0D2;stroke:var(--line);stroke-width:1.6}} .node .building{{fill:#E5D6C2;stroke:var(--line);stroke-width:1.6}}
+        .node .solar{{fill:url(#panelGrad);stroke:var(--line);stroke-width:1.5}} .node .outline{{fill:none;stroke:var(--line);stroke-width:1.6}}
+        .node:hover .surface,.node:hover .metal,.node:hover .building{{fill:#F0D9BF;cursor:pointer}} .node.selected .surface,.node.selected .metal,.node.selected .building{{fill:#E8B84B;stroke:#D4864A}} .node.selected .outline,.node.selected .solar{{stroke:#D4864A}}
+        .panel.hidden .detail-wrap{{display:none}} .placeholder{{display:grid;place-items:center;height:100%;min-height:620px;color:#667588;text-align:left}}
         .pill{{display:inline-flex;align-items:center;gap:8px;background:#F5EFE8;color:var(--copper);border:1px solid rgba(212,134,74,.22);padding:7px 10px;border-radius:999px;font:700 11px var(--sans);letter-spacing:.12em;text-transform:uppercase}}
         .spec{{margin:18px 0 0;padding:16px;border-radius:18px;background:#F7F4EE;border:1px solid rgba(27,42,74,.08)}} .spec div{{font:600 13px var(--mono);color:#4B5970}}
         .tabs{{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0}} .content p,.content li{{font-size:15px;line-height:1.6;color:#49596E}} .content ul{{padding-left:20px;margin:8px 0 0}}
         .kv{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px}} .card{{background:#F7F4EE;border:1px solid rgba(27,42,74,.08);border-radius:18px;padding:14px}} .card small{{display:block;color:#7A8798;text-transform:uppercase;letter-spacing:.08em;font-size:11px;margin-bottom:8px}} .card strong{{display:block;color:#1B2A4A;font:700 15px var(--mono);line-height:1.45}}
-        @media (max-width: 980px){{.shell{{flex-direction:column;padding:14px}} .panel{{position:relative;top:0;min-height:auto}} .metric{{margin-left:0;width:100%}} h1{{font-size:26px}} }}
+        @media (max-width:980px){{.shell{{flex-direction:column;padding:14px}} .panel{{position:relative;top:0;min-height:auto}} .metric{{margin-left:0;width:100%}} h1{{font-size:26px}}}}
       </style>
       <div class='shell'>
         <section class='stage'>
           <div class='eyebrow'>Interactive Asset Anatomy</div>
           <h1>{title}</h1>
-          <p class='lede'>Explore the electrical architecture of a utility-scale PV plant with co-located battery storage. Click any asset in the one-line schematic to understand its function, technical envelope, O&amp;M priorities, and the SCADA signals that make it visible in operations.</p>
+          <p class='lede'>A more visual utility-scale plant scene inspired by isometric site diagrams. Click the arrays, power conversion equipment, substation yard, or battery containers to inspect how the PV and BESS architecture works end to end.</p>
           <div class='controls'>
-            <button id='flowToggle' class='toggle'>Animated Power Flow: On</button>
-            <label class='chip'>Time-of-day loading <input id='flowRange' type='range' min='0' max='100' value='68'></label>
-            <div class='metric'><span id='flowReadout'>Simulated export: 68%</span></div>
+            <button id='flowToggle' class='toggle'>Energy Motion: On</button>
+            <label class='chip'>Plant loading <input id='flowRange' type='range' min='0' max='100' value='72'></label>
+            <div class='metric'><span id='flowReadout'>Simulated export: 72%</span></div>
           </div>
-          <svg viewBox='0 0 1480 840' role='img' aria-label='Solar farm one-line diagram'>
-            <path class='wire dc' d='M220 208 C310 208 310 248 400 248'/> <path class='flow' data-flow='pv' d='M220 208 C310 208 310 248 400 248'/>
-            <path class='wire dc' d='M520 248 C590 248 615 248 690 248'/> <path class='flow' data-flow='pv' d='M520 248 C590 248 615 248 690 248'/>
-            <path class='wire ac' d='M808 248 C900 248 930 248 1005 248'/> <path class='flow' data-flow='pv' d='M808 248 C900 248 930 248 1005 248'/>
-            <path class='wire ac' d='M1115 248 C1180 248 1195 248 1250 248'/> <path class='flow' data-flow='pv' d='M1115 248 C1180 248 1195 248 1250 248'/>
-            <path class='wire ac' d='M1250 248 C1320 248 1320 248 1372 248'/> <path class='flow' data-flow='pv' d='M1250 248 C1320 248 1320 248 1372 248'/>
-            <path class='wire ac' d='M1112 248 L1112 548 L1005 548'/> <path class='flow reverse' data-flow='bess' d='M1112 248 L1112 548 L1005 548'/>
-            <path class='wire ac' d='M808 548 C890 548 918 548 1005 548'/> <path class='flow reverse' data-flow='bess' d='M808 548 C890 548 918 548 1005 548'/>
-            <path class='wire dc' d='M520 548 C590 548 620 548 690 548'/> <path class='flow reverse' data-flow='bess' d='M520 548 C590 548 620 548 690 548'/>
-            <path class='aux' d='M745 132 L745 72 L1280 72 L1280 164'/>
-            <path class='aux' d='M248 160 L248 90 L745 90'/>
-            <path class='aux' d='M250 618 L250 690 L745 690 L745 120'/>
-            <path class='ground' d='M120 748 L1358 748'/>
-            <path class='ground' d='M248 682 L248 748 M745 632 L745 748 M1112 598 L1112 748'/>
-            <g id='component-pv-modules' class='node' data-component-type='generation' transform='translate(72 118)'><rect class='body' x='0' y='0' rx='24' ry='24' width='176' height='180'/><rect class='accent' x='22' y='28' rx='10' width='130' height='86'/><line class='accent' x1='55' y1='28' x2='55' y2='114'/><line class='accent' x1='88' y1='28' x2='88' y2='114'/><line class='accent' x1='121' y1='28' x2='121' y2='114'/><line class='accent' x1='22' y1='56' x2='152' y2='56'/><line class='accent' x1='22' y1='84' x2='152' y2='84'/><text x='22' y='146'>PV Modules</text><text x='22' y='168' style='font-size:14px;font-weight:500'>Bifacial strings at 1.5 kVDC</text></g>
-            <g id='component-dc-cables' class='node' data-component-type='transmission' transform='translate(252 170)'><rect class='body' x='0' y='0' rx='22' width='148' height='78'/><path class='accent' d='M26 47 C48 27 58 57 78 37 C94 21 114 49 124 29'/><text x='20' y='34'>DC Cables</text><text x='20' y='56' style='font-size:13px;font-weight:500'>String &amp; homerun</text></g>
-            <g id='component-string-combiner' class='node' data-component-type='protection' transform='translate(400 162)'><rect class='body' x='0' y='0' rx='22' width='120' height='108'/><rect class='accent' x='24' y='22' rx='8' width='72' height='36'/><line class='accent' x1='60' y1='58' x2='60' y2='86'/><line class='accent' x1='38' y1='84' x2='82' y2='84'/><text x='17' y='100' style='font-size:15px'>String Combiner</text></g>
-            <g id='component-inverter' class='node' data-component-type='conversion' transform='translate(690 146)'><rect class='body' x='0' y='0' rx='24' width='118' height='146'/><rect class='accent' x='28' y='26' rx='8' width='62' height='44'/><path class='accent' d='M28 95 L45 79 L58 95 L72 79 L90 95'/><text x='19' y='120'>Inverter</text><text x='17' y='140' style='font-size:13px;font-weight:500'>DC to AC + MPPT</text></g>
-            <g id='component-ac-cables-lv' class='node' data-component-type='transmission' transform='translate(842 190)'><rect class='body' x='0' y='0' rx='22' width='164' height='76'/><path class='accent' d='M24 38 L58 22 L92 38 L126 22'/><text x='19' y='34'>LV / MV AC Cables</text><text x='19' y='56' style='font-size:13px;font-weight:500'>Inverter feeders</text></g>
-            <g id='component-mv-transformer' class='node' data-component-type='conversion' transform='translate(1006 156)'><rect class='body' x='0' y='0' rx='22' width='108' height='120'/><circle class='accent' cx='44' cy='54' r='16'/><circle class='accent' cx='68' cy='54' r='16'/><text x='18' y='96'>MV Step-Up</text><text x='18' y='115' style='font-size:13px;font-weight:500'>0.69 / 33 kV</text></g>
-            <g id='component-mv-switchgear' class='node' data-component-type='protection' transform='translate(1160 182)'><rect class='body' x='0' y='0' rx='22' width='90' height='130'/><rect class='accent' x='26' y='24' rx='6' width='38' height='72'/><line class='accent' x1='45' y1='96' x2='45' y2='112'/><text x='14' y='126' style='font-size:13px'>MV Switchgear</text></g>
-            <g id='component-mv-cables' class='node' data-component-type='transmission' transform='translate(1248 156)'><rect class='body' x='0' y='0' rx='22' width='124' height='76'/><path class='accent' d='M22 38 C40 18 52 56 72 34 C86 19 102 44 106 28'/><text x='19' y='34'>MV Cables</text><text x='19' y='56' style='font-size:13px;font-weight:500'>Collection network</text></g>
-            <g id='component-hv-transformer' class='node' data-component-type='conversion' transform='translate(1148 330)'><rect class='body' x='0' y='0' rx='24' width='156' height='124'/><circle class='accent' cx='58' cy='56' r='22'/><circle class='accent' cx='92' cy='56' r='22'/><text x='24' y='100'>HV Transformer</text></g>
-            <g id='component-substation' class='node' data-component-type='transmission' transform='translate(1298 332)'><rect class='body' x='0' y='0' rx='24' width='144' height='120'/><rect class='accent' x='22' y='28' rx='6' width='18' height='58'/><rect class='accent' x='62' y='18' rx='6' width='18' height='70'/><rect class='accent' x='102' y='34' rx='6' width='18' height='52'/><text x='23' y='104'>HV Substation</text></g>
-            <g id='component-grid-connection' class='node' data-component-type='transmission' transform='translate(1324 170)'><rect class='body' x='0' y='0' rx='24' width='136' height='96'/><polygon class='accent' points='28,48 58,26 58,42 102,42 102,54 58,54 58,70'/><text x='18' y='84'>Grid Connection</text></g>
-            <g id='component-bess-batteries' class='node' data-component-type='storage' transform='translate(210 470)'><rect class='body' x='0' y='0' rx='24' width='170' height='136'/><rect class='accent' x='24' y='28' rx='8' width='34' height='60'/><rect class='accent' x='68' y='28' rx='8' width='34' height='60'/><rect class='accent' x='112' y='28' rx='8' width='34' height='60'/><text x='23' y='112'>BESS Batteries</text></g>
-            <g id='component-bess-pcs' class='node' data-component-type='conversion' transform='translate(690 468)'><rect class='body' x='0' y='0' rx='24' width='118' height='142'/><rect class='accent' x='26' y='22' rx='8' width='66' height='38'/><path class='accent' d='M30 92 L50 78 L64 92 L76 78 L90 92'/><text x='28' y='118'>BESS PCS</text><text x='17' y='138' style='font-size:13px;font-weight:500'>Bi-directional</text></g>
-            <g id='component-bess-transformer' class='node' data-component-type='conversion' transform='translate(1004 470)'><rect class='body' x='0' y='0' rx='22' width='108' height='116'/><circle class='accent' cx='44' cy='52' r='15'/><circle class='accent' cx='68' cy='52' r='15'/><text x='18' y='94'>BESS XFMR</text></g>
-            <g id='component-monitoring-scada' class='node' data-component-type='monitoring' transform='translate(640 20)'><rect class='body' x='0' y='0' rx='24' width='210' height='104'/><rect class='accent' x='24' y='22' rx='10' width='82' height='46'/><rect class='accent' x='118' y='22' rx='10' width='68' height='46'/><text x='22' y='84'>SCADA / Monitoring</text></g>
-            <g id='component-weather-station' class='node' data-component-type='monitoring' transform='translate(118 24)'><rect class='body' x='0' y='0' rx='24' width='138' height='116'/><circle class='accent' cx='48' cy='42' r='14'/><line class='accent' x1='48' y1='56' x2='48' y2='88'/><line class='accent' x1='48' y1='88' x2='34' y2='102'/><line class='accent' x1='48' y1='88' x2='62' y2='102'/><text x='18' y='108' style='font-size:14px'>Weather Station</text></g>
-            <g id='component-tracker-system' class='node' data-component-type='generation' transform='translate(60 596)'><rect class='body' x='0' y='0' rx='24' width='190' height='114'/><polygon class='accent' points='30,70 76,42 126,58 82,84'/><line class='accent' x1='94' y1='36' x2='116' y2='18'/><text x='22' y='102'>Tracker System</text></g>
-            <g id='component-grounding-system' class='node' data-component-type='protection' transform='translate(658 706)'><rect class='body' x='0' y='0' rx='24' width='184' height='96'/><line class='accent' x1='92' y1='24' x2='92' y2='52'/><line class='accent' x1='60' y1='52' x2='124' y2='52'/><line class='accent' x1='68' y1='64' x2='116' y2='64'/><line class='accent' x1='76' y1='76' x2='108' y2='76'/><text x='24' y='36'>Grounding / Earthing</text><text x='24' y='60' style='font-size:13px;font-weight:500'>Safety + lightning path</text></g>
+          <svg viewBox='0 0 1480 980' role='img' aria-label='Illustrated solar farm and battery storage layout'>
+            <defs>
+              <linearGradient id='panelGrad' x1='0' y1='0' x2='1' y2='1'><stop offset='0%' stop-color='#5F82A8'/><stop offset='100%' stop-color='#243B55'/></linearGradient>
+              <linearGradient id='fieldGrad' x1='0' y1='0' x2='0' y2='1'><stop offset='0%' stop-color='#DDEEAF'/><stop offset='100%' stop-color='#CBE197'/></linearGradient>
+            </defs>
+            <circle cx='180' cy='92' r='52' fill='#F1C95B' opacity='.92'/>
+            <g opacity='.6'><ellipse cx='1194' cy='84' rx='74' ry='22' fill='#FFFFFF'/><ellipse cx='1250' cy='82' rx='52' ry='18' fill='#FFFFFF'/></g>
+            <path d='M0 342 C248 284 420 368 678 344 C924 322 1120 246 1480 304 L1480 980 L0 980 Z' fill='url(#fieldGrad)'/>
+            <path class='road' d='M0 214 C182 214 402 182 642 152 C906 118 1186 112 1480 134'/><path class='road-mid' d='M0 214 C182 214 402 182 642 152 C906 118 1186 112 1480 134'/>
+            <path class='road' d='M0 864 C230 758 462 714 728 744 C980 772 1244 640 1480 480'/><path class='road-mid' d='M0 864 C230 758 462 714 728 744 C980 772 1244 640 1480 480'/>
+            <path class='cable dc' d='M336 468 C422 494 510 522 594 564'/><path class='cable dc' d='M676 598 C754 604 820 604 888 600'/><path class='cable ac' d='M982 590 C1090 588 1176 574 1260 536'/><path class='cable ac' d='M1260 536 C1320 506 1380 438 1418 370'/><path class='cable ac' d='M1046 760 C1120 706 1182 640 1238 558'/><path class='cable dc' d='M800 828 C850 774 894 704 936 638'/><path class='cable aux' d='M178 226 C420 198 760 190 1092 222 C1222 234 1310 250 1382 288'/><path class='cable aux' d='M212 658 C400 702 598 766 800 830'/>
+            <circle id='orb-pv-1' class='energy' r='8' cx='336' cy='468'/><circle id='orb-pv-2' class='energy' r='8' cx='676' cy='598'/><circle id='orb-pv-3' class='energy' r='8' cx='982' cy='590'/><circle id='orb-pv-4' class='energy' r='8' cx='1260' cy='536'/><circle id='orb-bess-1' class='energy' r='8' cx='800' cy='828'/><circle id='orb-bess-2' class='energy' r='8' cx='936' cy='638'/><circle id='orb-bess-3' class='energy' r='8' cx='1046' cy='760'/>
+            <text x='82' y='56' class='label'>Visual Plant Scene</text><text x='82' y='76' class='sub'>PV field, storage branch, substation yard, and grid export shown as one connected site</text>
+            <g id='component-weather-station' class='node' data-component-type='monitoring' transform='translate(130 118)'><circle class='hit' cx='42' cy='52' r='58'/><line class='outline' x1='40' y1='12' x2='40' y2='88'/><circle class='surface' cx='40' cy='14' r='15'/><path class='building' d='M42 34 L70 48 L70 58 L42 50 Z'/><line class='outline' x1='40' y1='60' x2='76' y2='82'/><text x='-6' y='118' class='label'>Weather Station</text></g>
+            <g id='component-monitoring-scada' class='node' data-component-type='monitoring' transform='translate(1180 184)'><rect class='hit' x='-12' y='-10' width='210' height='120' rx='26'/><rect class='building' x='0' y='0' width='188' height='92' rx='18'/><rect class='surface' x='16' y='18' width='84' height='34' rx='8'/><rect class='surface' x='112' y='18' width='50' height='34' rx='8'/><line class='outline' x1='18' y1='64' x2='164' y2='64'/><text x='0' y='118' class='label'>SCADA &amp; Monitoring</text></g>
+            <g id='component-pv-modules' class='node' data-component-type='generation' transform='translate(154 360)'><rect class='hit' x='-24' y='-18' width='456' height='286' rx='28'/><g transform='translate(0 0)'><polygon class='solar' points='0,44 48,20 98,48 50,72'/><polygon class='solar' points='56,44 104,20 154,48 106,72'/><polygon class='solar' points='112,44 160,20 210,48 162,72'/></g><g transform='translate(34 74)'><polygon class='solar' points='0,44 48,20 98,48 50,72'/><polygon class='solar' points='56,44 104,20 154,48 106,72'/><polygon class='solar' points='112,44 160,20 210,48 162,72'/></g><g transform='translate(68 148)'><polygon class='solar' points='0,44 48,20 98,48 50,72'/><polygon class='solar' points='56,44 104,20 154,48 106,72'/><polygon class='solar' points='112,44 160,20 210,48 162,72'/></g><text x='0' y='252' class='label'>PV Modules</text><text x='0' y='270' class='sub'>Rows of bifacial panels on tracker tables</text></g>
+            <g id='component-tracker-system' class='node' data-component-type='generation' transform='translate(164 652)'><rect class='hit' x='-20' y='-10' width='330' height='112' rx='22'/><line class='outline' x1='20' y1='46' x2='20' y2='12'/><line class='outline' x1='94' y1='46' x2='94' y2='12'/><line class='outline' x1='168' y1='46' x2='168' y2='12'/><line class='outline' x1='242' y1='46' x2='242' y2='12'/><polygon class='solar' points='0,24 38,10 82,26 44,40'/><polygon class='solar' points='74,24 112,10 156,26 118,40'/><polygon class='solar' points='148,24 186,10 230,26 192,40'/><polygon class='solar' points='222,24 260,10 304,26 266,40'/><text x='0' y='96' class='label'>Tracker System</text></g>
+            <g id='component-dc-cables' class='node' data-component-type='transmission' transform='translate(382 482)'><rect class='hit' x='-18' y='-22' width='154' height='82' rx='22'/><path class='outline' d='M0 10 C36 -10 54 24 88 4 C108 -8 126 12 136 -6'/><path class='building' d='M0 28 C36 8 54 42 88 22 C108 10 126 30 136 12'/><text x='0' y='76' class='label'>DC Cabling</text></g>
+            <g id='component-string-combiner' class='node' data-component-type='protection' transform='translate(576 536)'><rect class='hit' x='-10' y='-10' width='128' height='118' rx='22'/><rect class='surface' x='0' y='0' width='106' height='88' rx='16'/><rect class='building' x='18' y='16' width='70' height='26' rx='6'/><line class='outline' x1='53' y1='42' x2='53' y2='68'/><line class='outline' x1='34' y1='68' x2='72' y2='68'/><text x='-6' y='112' class='label'>String Combiner</text></g>
+            <g id='component-inverter' class='node' data-component-type='conversion' transform='translate(888 520)'><rect class='hit' x='-10' y='-10' width='118' height='132' rx='22'/><rect class='surface' x='0' y='0' width='100' height='106' rx='18'/><rect class='building' x='18' y='18' width='64' height='28' rx='7'/><path class='outline' d='M18 74 L34 60 L46 74 L60 58 L74 74'/><text x='0' y='128' class='label'>Inverter</text></g>
+            <g id='component-ac-cables-lv' class='node' data-component-type='transmission' transform='translate(1006 554)'><rect class='hit' x='-10' y='-10' width='170' height='76' rx='22'/><path class='outline' d='M0 22 L32 8 L66 24 L98 10 L132 26'/><path class='building' d='M0 38 L32 24 L66 40 L98 26 L132 42'/><text x='0' y='80' class='label'>LV AC Feeders</text></g>
+            <g id='component-mv-transformer' class='node' data-component-type='conversion' transform='translate(1200 500)'><rect class='hit' x='-14' y='-10' width='132' height='126' rx='24'/><rect class='surface' x='0' y='0' width='104' height='98' rx='18'/><circle class='building' cx='40' cy='46' r='16'/><circle class='building' cx='68' cy='46' r='16'/><text x='-2' y='122' class='label'>MV Transformer</text></g>
+            <g id='component-mv-switchgear' class='node' data-component-type='protection' transform='translate(1236 658)'><rect class='hit' x='-10' y='-10' width='108' height='134' rx='22'/><rect class='surface' x='0' y='0' width='84' height='106' rx='14'/><rect class='building' x='24' y='18' width='34' height='56' rx='6'/><line class='outline' x1='42' y1='76' x2='42' y2='94'/><text x='-2' y='128' class='label'>MV Switchgear</text></g>
+            <g id='component-mv-cables' class='node' data-component-type='transmission' transform='translate(1318 520)'><rect class='hit' x='-10' y='-10' width='146' height='86' rx='24'/><path class='outline' d='M0 22 C30 2 42 42 74 18 C98 0 122 30 136 10'/><path class='building' d='M0 40 C30 20 42 60 74 36 C98 18 122 48 136 28'/><text x='0' y='88' class='label'>MV Collection</text></g>
+            <g id='component-bess-batteries' class='node' data-component-type='storage' transform='translate(620 764)'><rect class='hit' x='-14' y='-10' width='198' height='98' rx='24'/><rect class='building' x='0' y='0' width='180' height='72' rx='14'/><rect class='surface' x='16' y='18' width='38' height='34' rx='5'/><rect class='surface' x='68' y='18' width='38' height='34' rx='5'/><rect class='surface' x='120' y='18' width='38' height='34' rx='5'/><text x='0' y='96' class='label'>BESS Batteries</text></g>
+            <g id='component-bess-pcs' class='node' data-component-type='conversion' transform='translate(830 760)'><rect class='hit' x='-10' y='-10' width='124' height='122' rx='22'/><rect class='surface' x='0' y='0' width='102' height='92' rx='18'/><rect class='building' x='18' y='18' width='66' height='24' rx='6'/><path class='outline' d='M18 62 L34 48 L48 62 L60 48 L74 62'/><text x='0' y='116' class='label'>BESS PCS</text></g>
+            <g id='component-bess-transformer' class='node' data-component-type='conversion' transform='translate(968 748)'><rect class='hit' x='-10' y='-10' width='122' height='118' rx='22'/><rect class='surface' x='0' y='0' width='98' height='88' rx='16'/><circle class='building' cx='36' cy='42' r='14'/><circle class='building' cx='62' cy='42' r='14'/><text x='0' y='112' class='label'>BESS Transformer</text></g>
+            <g id='component-hv-transformer' class='node' data-component-type='conversion' transform='translate(1288 324)'><rect class='hit' x='-12' y='-10' width='164' height='122' rx='24'/><rect class='surface' x='0' y='0' width='138' height='94' rx='18'/><circle class='building' cx='52' cy='44' r='20'/><circle class='building' cx='84' cy='44' r='20'/><text x='0' y='118' class='label'>HV Transformer</text></g>
+            <g id='component-substation' class='node' data-component-type='transmission' transform='translate(1340 198)'><rect class='hit' x='-16' y='-12' width='136' height='138' rx='24'/><rect class='surface' x='0' y='0' width='108' height='102' rx='16'/><rect class='building' x='18' y='22' width='14' height='42' rx='4'/><rect class='building' x='48' y='16' width='14' height='50' rx='4'/><rect class='building' x='78' y='28' width='14' height='36' rx='4'/><line class='outline' x1='18' y1='76' x2='92' y2='76'/><text x='0' y='122' class='label'>Substation Yard</text></g>
+            <g id='component-grid-connection' class='node' data-component-type='transmission' transform='translate(1290 96)'><rect class='hit' x='-10' y='-10' width='178' height='86' rx='24'/><polygon class='surface' points='0,34 30,12 30,26 110,26 110,42 30,42 30,56'/><line class='outline' x1='110' y1='34' x2='152' y2='34'/><text x='0' y='88' class='label'>Grid Connection</text></g>
+            <g id='component-grounding-system' class='node' data-component-type='protection' transform='translate(1108 860)'><rect class='hit' x='-10' y='-10' width='242' height='90' rx='24'/><line class='outline' x1='86' y1='6' x2='86' y2='34'/><line class='outline' x1='54' y1='34' x2='118' y2='34'/><line class='outline' x1='62' y1='48' x2='110' y2='48'/><line class='outline' x1='70' y1='62' x2='102' y2='62'/><text x='0' y='16' class='label'>Grounding / Earthing</text><text x='0' y='38' class='sub'>Common fault path, touch-voltage control, lightning protection</text></g>
+            <g id='service-truck-top' transform='translate(1040 126)'><rect x='0' y='0' width='52' height='22' rx='6' fill='#F1EFE4' stroke='#4D5E74' stroke-width='1.5'/><rect x='38' y='4' width='24' height='18' rx='4' fill='#BFCFE1' stroke='#4D5E74' stroke-width='1.5'/><circle cx='14' cy='24' r='5' fill='#354152'/><circle cx='46' cy='24' r='5' fill='#354152'/></g>
+            <g id='service-van-bottom' transform='translate(120 808)'><rect x='0' y='0' width='58' height='24' rx='7' fill='#80B84E' stroke='#4D5E74' stroke-width='1.5'/><path d='M44 0 L60 0 L68 12 L68 24 L44 24 Z' fill='#A9D170' stroke='#4D5E74' stroke-width='1.5'/><circle cx='16' cy='26' r='5' fill='#354152'/><circle cx='50' cy='26' r='5' fill='#354152'/></g>
           </svg>
-          <div class='legend'>
-            <span>Generation</span><span>Conversion</span><span>Transmission</span><span>Storage</span><span>Monitoring</span><span>Protection</span>
-          </div>
+          <div class='legend'><span>Generation</span><span>Conversion</span><span>Transmission</span><span>Storage</span><span>Monitoring</span><span>Protection</span></div>
         </section>
         <aside id='panel' class='panel hidden'>
-          <div class='placeholder' id='placeholder'>
-            <div><div class='eyebrow'>Selection</div><h2>Choose a plant component</h2><p class='lede' style='margin-top:12px'>Click any highlighted asset on the schematic to inspect its purpose, operating envelope, failure signatures, and the SCADA context engineers rely on during performance reviews.</p></div>
-          </div>
-          <div class='detail' id='detail'></div>
+          <div class='placeholder' id='placeholder'><div><div class='eyebrow'>Selection</div><h2>Choose a plant component</h2><p class='lede' style='margin-top:12px'>This version is more like a premium site map. Click the illustrated equipment to see what it does, what to monitor, and how it sits in the power chain.</p></div></div>
+          <div class='detail-wrap' id='detail'></div>
         </aside>
       </div>
       <script>
@@ -121,34 +120,90 @@ def render_solar_farm_explorer(site_name: str | None = None, height: int = 1700)
         const detail = root.querySelector('#detail');
         const placeholder = root.querySelector('#placeholder');
         const tabs = ['overview','technical','operations','scada'];
-        let currentId = null; let currentTab = 'overview'; let flowOn = true;
-        const iconMap = {{generation:'Sun capture',conversion:'Power conversion',transmission:'Grid transfer',storage:'Energy storage',monitoring:'Monitoring',protection:'Protection'}};
+        const pvTrack = [[336,468],[676,598],[982,590],[1260,536],[1418,370]];
+        const bessTrack = [[800,828],[936,638],[1046,760],[1238,558]];
+        const topRoad = [[1040,126],[1140,122],[1260,122],[1380,128]];
+        const bottomRoad = [[120,808],[320,724],[564,716],[840,754],[1140,690],[1360,552]];
+        const orbs = {{ pv:[document.getElementById('orb-pv-1'),document.getElementById('orb-pv-2'),document.getElementById('orb-pv-3'),document.getElementById('orb-pv-4')], bess:[document.getElementById('orb-bess-1'),document.getElementById('orb-bess-2'),document.getElementById('orb-bess-3')] }};
+        const truckTop = document.getElementById('service-truck-top');
+        const vanBottom = document.getElementById('service-van-bottom');
+        const iconMap = {{ generation:'Field capture', conversion:'Electrical conversion', transmission:'Network transfer', storage:'Energy shifting', monitoring:'Operations visibility', protection:'Protection and safety' }};
+        let currentId = null; let currentTab = 'overview'; let flowOn = true; let tick = 0; let speed = 0.72;
         function list(items){{ return `<ul>${{(items||[]).map(x => `<li>${{x}}</li>`).join('')}}</ul>`; }}
-        function sectionTab(c){{
-          if(currentTab==='overview') return `<p>${{c.overview.description}}</p><div class='spec'><div>${{c.overview.keyFunction}}</div><div>${{c.overview.typicalSpec}}</div></div><div class='kv'><div class='card'><small>Category</small><strong>${{c.category}}</strong></div><div class='card'><small>Illustration</small><strong>${{iconMap[c.category]}}</strong></div></div>`;
-          if(currentTab==='technical') return `<div class='kv'><div class='card'><small>Voltage</small><strong>${{c.technical.voltage}}</strong></div><div class='card'><small>Current / Rating</small><strong>${{c.technical.current}}</strong></div><div class='card'><small>Power Rating</small><strong>${{c.technical.powerRating}}</strong></div><div class='card'><small>Typical OEMs</small><strong>${{c.technical.typicalManufacturers.join(', ')}}</strong></div></div><p><strong>Upstream:</strong> ${{c.technical.connectionUpstream}}</p><p><strong>Downstream:</strong> ${{c.technical.connectionDownstream}}</p><h3>Failure Modes</h3>${{list(c.technical.failureModes)}}`;
-          if(currentTab==='operations') return `<div class='kv'><div class='card'><small>Inspection Frequency</small><strong>${{c.operations.inspectionFrequency}}</strong></div><div class='card'><small>Lifecycle</small><strong>${{c.operations.lifespanYears}}</strong></div><div class='card'><small>Replacement Cost</small><strong>${{c.operations.replacementCost}}</strong></div><div class='card'><small>Core Metrics</small><strong>${{c.operations.performanceMetrics.join(', ')}}</strong></div></div><h3>Common Issues</h3>${{list(c.operations.commonIssues)}}`;
+        function panelMarkup(c){{
+          if(currentTab==='overview') return `<p>${{c.overview.description}}</p><div class='spec'><div>${{c.overview.keyFunction}}</div><div>${{c.overview.typicalSpec}}</div></div><div class='kv'><div class='card'><small>Category</small><strong>${{c.category}}</strong></div><div class='card'><small>Role</small><strong>${{iconMap[c.category]}}</strong></div></div>`;
+          if(currentTab==='technical') return `<div class='kv'><div class='card'><small>Voltage</small><strong>${{c.technical.voltage}}</strong></div><div class='card'><small>Current</small><strong>${{c.technical.current}}</strong></div><div class='card'><small>Power Rating</small><strong>${{c.technical.powerRating}}</strong></div><div class='card'><small>Typical OEMs</small><strong>${{c.technical.typicalManufacturers.join(', ')}}</strong></div></div><p><strong>Upstream:</strong> ${{c.technical.connectionUpstream}}</p><p><strong>Downstream:</strong> ${{c.technical.connectionDownstream}}</p><h3>Failure Modes</h3>${{list(c.technical.failureModes)}}`;
+          if(currentTab==='operations') return `<div class='kv'><div class='card'><small>Inspection Frequency</small><strong>${{c.operations.inspectionFrequency}}</strong></div><div class='card'><small>Lifespan</small><strong>${{c.operations.lifespanYears}}</strong></div><div class='card'><small>Replacement Cost</small><strong>${{c.operations.replacementCost}}</strong></div><div class='card'><small>Performance Metrics</small><strong>${{c.operations.performanceMetrics.join(', ')}}</strong></div></div><h3>Common Issues</h3>${{list(c.operations.commonIssues)}}`;
           return `<div class='kv'><div class='card'><small>Typical Data</small><strong>${{c.scada.dataPoints.join(', ')}}</strong></div><div class='card'><small>KPIs</small><strong>${{c.scada.kpis.join(', ')}}</strong></div></div><h3>Key SCADA Tags</h3>${{list(c.scada.scadaTags)}}<h3>Anomaly Signals</h3>${{list(c.scada.anomalySignals)}}`;
         }}
-        function beep(freq){{ try{{ const ctx = new (window.AudioContext||window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.type='sine'; osc.frequency.value=freq; gain.gain.value=.015; osc.connect(gain); gain.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + .06); }}catch(e){{}} }}
+        function beep(freq){{ try{{ const ctx = new (window.AudioContext||window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.type='sine'; osc.frequency.value=freq; gain.gain.value=.012; osc.connect(gain); gain.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + .05); }}catch(e){{}} }}
         function renderPanel(){{
           if(!currentId){{ panel.classList.add('hidden'); placeholder.style.display='grid'; detail.innerHTML=''; return; }}
-          const c = data[currentId]; panel.classList.remove('hidden'); placeholder.style.display='none';
-          detail.innerHTML = `
-            <div class='pill'>${{c.category}}</div>
-            <h2 style='margin-top:14px'>${{c.name}}</h2>
-            <p class='lede' style='margin:10px 0 0'>${{c.overview.description}}</p>
-            <div class='tabs'>${{tabs.map(t => `<button class="tab ${{currentTab===t?'active':''}}" data-tab="${{t}}">${{t==='scada'?'Data & SCADA':t==='operations'?'O&M Considerations':t.charAt(0).toUpperCase()+t.slice(1)}}</button>`).join('')}}</div>
-            <div class='content'>${{sectionTab(c)}}</div>`;
+          const c = data[currentId];
+          panel.classList.remove('hidden');
+          placeholder.style.display='none';
+          detail.innerHTML = `<div class='pill'>${{c.category}}</div><h2 style='margin-top:14px'>${{c.name}}</h2><p class='lede' style='margin:10px 0 0'>${{c.overview.description}}</p><div class='tabs'>${{tabs.map(t => `<button class="tab ${{currentTab===t?'active':''}}" data-tab="${{t}}">${{t==='scada'?'Data & SCADA':t==='operations'?'O&M Considerations':t.charAt(0).toUpperCase()+t.slice(1)}}</button>`).join('')}}</div><div class='content'>${{panelMarkup(c)}}</div>`;
           detail.querySelectorAll('.tab').forEach(btn => btn.addEventListener('click', () => {{ currentTab = btn.dataset.tab; beep(620); renderPanel(); }}));
         }}
-        root.querySelectorAll('.node').forEach(node => node.addEventListener('click', ev => {{ ev.stopPropagation(); root.querySelectorAll('.node').forEach(n => n.classList.remove('selected')); node.classList.add('selected'); currentId = node.id; currentTab = 'overview'; beep(480); renderPanel(); }}));
+        function setSelected(id){{ currentId = id; currentTab = 'overview'; root.querySelectorAll('.node').forEach(n => n.classList.toggle('selected', n.id===id)); beep(460); renderPanel(); }}
+        root.querySelectorAll('.node').forEach(node => node.addEventListener('click', ev => {{ ev.stopPropagation(); setSelected(node.id); }}));
         root.addEventListener('click', ev => {{ if(!ev.target.closest('.node') && !ev.target.closest('.panel')){{ currentId = null; root.querySelectorAll('.node').forEach(n => n.classList.remove('selected')); renderPanel(); }} }});
-        const flowToggle = root.querySelector('#flowToggle'); const flowRange = root.querySelector('#flowRange'); const flowReadout = root.querySelector('#flowReadout');
-        function syncFlow(){{ const v = Number(flowRange.value); const dur = Math.max(2.4, 8.5 - v/18); root.querySelectorAll('.flow').forEach(p => {{ p.style.setProperty('--speed', `${{dur}}s`); p.classList.toggle('off', !flowOn); }}); flowReadout.textContent = `Simulated export: ${{v}}%`; }}
-        flowToggle.addEventListener('click', () => {{ flowOn = !flowOn; flowToggle.classList.toggle('off', !flowOn); flowToggle.textContent = `Animated Power Flow: ${{flowOn ? 'On' : 'Off'}}`; beep(720); syncFlow(); }});
+        function point(track, progress){{
+          const segs = track.length - 1;
+          const scaled = Math.max(0, Math.min(segs - 0.0001, progress * segs));
+          const idx = Math.floor(scaled);
+          const local = scaled - idx;
+          const a = track[idx];
+          const b = track[idx + 1];
+          return [a[0] + (b[0]-a[0]) * local, a[1] + (b[1]-a[1]) * local];
+        }}
+        function angle(track, progress){{
+          const segs = track.length - 1;
+          const scaled = Math.max(0, Math.min(segs - 0.0001, progress * segs));
+          const idx = Math.floor(scaled);
+          const a = track[idx];
+          const b = track[idx + 1];
+          return Math.atan2(b[1]-a[1], b[0]-a[0]) * 180 / Math.PI;
+        }}
+        function moveOrbs(track, elems, base, drift){{
+          elems.forEach((el, i) => {{
+            if(!el) return;
+            el.classList.toggle('off', !flowOn);
+            const p = (base + i * drift) % 1;
+            const xy = point(track, p);
+            el.setAttribute('cx', xy[0].toFixed(1));
+            el.setAttribute('cy', xy[1].toFixed(1));
+          }});
+        }}
+        function moveVehicle(el, track, progress){{
+          if(!el) return;
+          const xy = point(track, progress);
+          const ang = angle(track, progress);
+          el.setAttribute('transform', `translate(${{xy[0].toFixed(1)}} ${{xy[1].toFixed(1)}}) rotate(${{ang.toFixed(1)}})`);
+        }}
+        function syncFlow(){{
+          const v = Number(flowRange.value);
+          speed = Math.max(0.18, v / 100);
+          flowReadout.textContent = `Simulated export: ${{v}}%`;
+          flowToggle.textContent = `Energy Motion: ${{flowOn ? 'On' : 'Off'}}`;
+          flowToggle.classList.toggle('off', !flowOn);
+          [...orbs.pv, ...orbs.bess].forEach(el => el && el.classList.toggle('off', !flowOn));
+        }}
+        function animate(){{
+          tick += speed * 0.006;
+          moveOrbs(pvTrack, orbs.pv, tick % 1, 0.18);
+          moveOrbs(bessTrack, orbs.bess, (1 - tick * 0.8) % 1, 0.22);
+          moveVehicle(truckTop, topRoad, (tick * 0.18) % 1);
+          moveVehicle(vanBottom, bottomRoad, (tick * 0.24) % 1);
+          requestAnimationFrame(animate);
+        }}
+        const flowToggle = root.querySelector('#flowToggle');
+        const flowRange = root.querySelector('#flowRange');
+        const flowReadout = root.querySelector('#flowReadout');
+        flowToggle.addEventListener('click', () => {{ flowOn = !flowOn; beep(720); syncFlow(); }});
         flowRange.addEventListener('input', syncFlow);
         syncFlow();
+        animate();
       </script>
     </div>
     """
