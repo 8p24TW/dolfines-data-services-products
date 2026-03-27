@@ -714,24 +714,6 @@ def _view_portfolio():
     # ── Portfolio-specific CSS ─────────────────────────────────────────────────
     st.markdown("""
     <style>
-      /* Icon column — same box style as site info row, flex-centered */
-      [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) [data-testid="stColumn"]:last-child
-        > [data-testid="stVerticalBlock"] {
-        border: 1px solid rgba(255,255,255,0.11);
-        border-radius: 8px;
-        background: rgba(255,255,255,0.04);
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        padding: 0.3rem 0.2rem;
-        height: 100%;
-      }
-      /* Nested icon sub-columns — stretch to fill */
-      [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) [data-testid="stColumn"]:last-child
-        [data-testid="stHorizontalBlock"] {
-        width: 100%;
-        justify-content: center;
-      }
       /* Icon buttons (all 3) — compact, neutral */
       [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) [data-testid="stColumn"]:last-child .stButton > button {
         padding: 0.22rem 0.35rem !important;
@@ -796,21 +778,84 @@ def _view_portfolio():
     if "pending_delete" not in st.session_state:
         st.session_state["pending_delete"] = None
 
-    # Demo KPI values per site (will be replaced with live data)
-    _DEMO_KPIS = {
-        "pr":    {"label": "PR",        "value": "82.4%",      "bg": "rgba(240,120,32,0.15)",  "border": "rgba(240,120,32,0.40)",  "color": "#F07820"},
-        "yield": {"label": "Yield",     "value": "4.2 kWh/kWp","bg": "rgba(34,197,94,0.10)",   "border": "rgba(34,197,94,0.35)",   "color": "#22c55e"},
-        "avail": {"label": "Avail.",    "value": "98.1%",      "bg": "rgba(96,165,250,0.10)",  "border": "rgba(96,165,250,0.35)",  "color": "#60a5fa"},
-        "alarm": {"label": "Alarms",    "value": "0 active",   "bg": "rgba(255,255,255,0.07)", "border": "rgba(255,255,255,0.22)", "color": "rgba(255,255,255,0.75)"},
+    # Demo KPI values per site — realistic, will be replaced with live data
+    _PR_WARN = 78.0   # below this → red PR chip + alert dot
+    _SITE_DEMO = {
+        "SOHMEX":        {"type": "solar", "pr": 82.4, "yield_kwh": 4.2, "avail": 98.1, "alarms": 0},
+        "VENTOUX_PV":    {"type": "solar", "pr": 78.6, "yield_kwh": 3.9, "avail": 95.3, "alarms": 2},
+        "LIMOUSIN_WIND": {"type": "wind",  "wind_avail": 71.2, "energy_mwh_mw": 42.1, "p50_dev": -8.3, "alarms": 5},
+        "NORMANDIE_PV":  {"type": "solar", "pr": 74.8, "yield_kwh": 3.1, "avail": 89.6, "alarms": 7},
     }
 
-    def _kpi_chip(kpi: dict) -> str:
+    def _site_kpi_chips(site_id: str, site: dict) -> str:
+        demo = _SITE_DEMO.get(site_id, {"type": site.get("site_type","solar"),
+                                         "pr": 80.0, "yield_kwh": 4.0,
+                                         "avail": 96.0, "alarms": 0})
+        chips = []
+        if demo["type"] == "wind":
+            wa = demo.get("wind_avail", 90)
+            wa_ok = wa >= 85
+            chips.append(_kpi_chip(
+                "Avail.", f"{wa:.1f}%",
+                "rgba(96,165,250,0.10)" if wa_ok else "rgba(229,57,53,0.18)",
+                "rgba(96,165,250,0.35)" if wa_ok else "rgba(229,57,53,0.55)",
+                "#60a5fa" if wa_ok else "#ff6b6b",
+            ))
+            dev = demo.get("p50_dev", 0)
+            dev_ok = dev >= -5
+            chips.append(_kpi_chip(
+                "P50 dev.", f"{dev:+.1f}%",
+                "rgba(34,197,94,0.10)" if dev_ok else "rgba(229,57,53,0.18)",
+                "rgba(34,197,94,0.35)" if dev_ok else "rgba(229,57,53,0.55)",
+                "#22c55e" if dev_ok else "#ff6b6b",
+            ))
+            chips.append(_kpi_chip(
+                "Energy", f"{demo.get('energy_mwh_mw', 0):.1f} MWh/MW",
+                "rgba(255,255,255,0.07)", "rgba(255,255,255,0.22)", "rgba(255,255,255,0.80)",
+            ))
+        else:
+            pr = demo.get("pr", 80)
+            pr_ok = pr >= _PR_WARN
+            chips.append(_kpi_chip(
+                "PR", f"{pr:.1f}%",
+                "rgba(240,120,32,0.15)" if pr_ok else "rgba(229,57,53,0.18)",
+                "rgba(240,120,32,0.40)" if pr_ok else "rgba(229,57,53,0.55)",
+                "#F07820" if pr_ok else "#ff6b6b",
+            ))
+            chips.append(_kpi_chip(
+                "Yield", f"{demo.get('yield_kwh', 4):.1f} kWh/kWp",
+                "rgba(34,197,94,0.10)", "rgba(34,197,94,0.35)", "#22c55e",
+            ))
+            av = demo.get("avail", 96)
+            av_ok = av >= 93
+            chips.append(_kpi_chip(
+                "Avail.", f"{av:.1f}%",
+                "rgba(96,165,250,0.10)" if av_ok else "rgba(229,57,53,0.18)",
+                "rgba(96,165,250,0.35)" if av_ok else "rgba(229,57,53,0.55)",
+                "#60a5fa" if av_ok else "#ff6b6b",
+            ))
+        alarms = demo.get("alarms", 0)
+        chips.append(_kpi_chip(
+            "Alarms", str(alarms),
+            "rgba(229,57,53,0.18)" if alarms > 0 else "rgba(255,255,255,0.07)",
+            "rgba(229,57,53,0.50)" if alarms > 0 else "rgba(255,255,255,0.22)",
+            "#ff6b6b" if alarms > 0 else "rgba(255,255,255,0.65)",
+        ))
+        return " ".join(chips)
+
+    def _kpi_chip(label: str, value: str, bg: str, border: str, color: str) -> str:
         return (
-            f"<span style='background:{kpi['bg']};border:1px solid {kpi['border']};"
-            f"color:{kpi['color']};font-size:0.76rem;font-weight:600;"
-            f"padding:3px 11px;border-radius:20px;white-space:nowrap;'>"
-            f"{kpi['label']} {kpi['value']}</span>"
+            f"<span style='background:{bg};border:1px solid {border};"
+            f"color:{color};font-size:0.76rem;font-weight:600;"
+            f"padding:3px 10px;border-radius:20px;white-space:nowrap;'>"
+            f"{label} {value}</span>"
         )
+
+    def _low_pr_dot(site_id: str, site: dict) -> str:
+        demo = _SITE_DEMO.get(site_id, {})
+        if demo.get("type", "solar") == "solar" and demo.get("pr", 100) < _PR_WARN:
+            return "<span style='color:#ff6b6b;font-size:0.7rem;margin-left:4px;' title='Low PR'>●</span>"
+        return ""
 
     if not all_items:
         st.info("No sites in your portfolio. Add one below.")
@@ -854,9 +899,10 @@ def _view_portfolio():
             site_icon  = "🌬️" if site.get("site_type") == "wind" else "☀️"
             cap_label  = "MW" if site.get("site_type") == "wind" else "MWp"
 
-            kpi_html = " ".join(_kpi_chip(v) for v in _DEMO_KPIS.values())
+            kpi_html  = _site_kpi_chips(site_id, site)
+            alert_dot = _low_pr_dot(site_id, site)
 
-            info_col, icon_col = st.columns([5, 1], vertical_alignment="center")
+            info_col, icon_col = st.columns([1, 1], vertical_alignment="center")
             with info_col:
                 st.markdown(f"""
                 <div class="pvpat-site-row" style="display:flex;align-items:center;
@@ -864,13 +910,13 @@ def _view_portfolio():
                   background:rgba(255,255,255,0.04);
                   border:1px solid rgba(255,255,255,0.11);border-radius:8px;">
                   <span style="font-weight:700;color:white;font-size:0.92rem;
-                    white-space:nowrap;">{site_icon} {site['display_name']}</span>
+                    white-space:nowrap;">{site_icon} {site['display_name']}{alert_dot}</span>
                   <span style="color:rgba(255,255,255,0.40);font-size:0.78rem;
                     white-space:nowrap;">{cap_mwp:.2f} {cap_label}</span>
                   <span style="background:{status_col};color:white;font-size:0.58rem;
                     padding:2px 7px;border-radius:7px;font-weight:700;
                     white-space:nowrap;">{status_lbl}</span>
-                  <span style="display:flex;gap:0.3rem;flex-wrap:wrap;margin-left:auto;">
+                  <span style="display:flex;gap:0.3rem;flex-wrap:wrap;margin-left:0.2rem;">
                     {kpi_html}
                   </span>
                 </div>
