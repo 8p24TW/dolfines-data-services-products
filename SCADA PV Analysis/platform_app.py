@@ -714,6 +714,11 @@ def _view_portfolio():
     # ── Portfolio-specific CSS ─────────────────────────────────────────────────
     st.markdown("""
     <style>
+      /* Center each icon button within its sub-column */
+      [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) [data-testid="stColumn"]:last-child .stButton {
+        display: flex !important;
+        justify-content: center !important;
+      }
       /* Icon buttons (all 3) — compact, neutral */
       [data-testid="stHorizontalBlock"]:has(.pvpat-site-row) [data-testid="stColumn"]:last-child .stButton > button {
         padding: 0.22rem 0.35rem !important;
@@ -910,7 +915,7 @@ def _view_portfolio():
                   background:rgba(255,255,255,0.04);
                   border:1px solid rgba(255,255,255,0.11);border-radius:8px;">
                   <span style="font-weight:700;color:white;font-size:0.92rem;
-                    white-space:nowrap;">{site_icon} {site['display_name']}{alert_dot}</span>
+                    white-space:nowrap;">{site_icon} {site['display_name']}</span>{alert_dot}
                   <span style="color:rgba(255,255,255,0.40);font-size:0.78rem;
                     white-space:nowrap;">{cap_mwp:.2f} {cap_label}</span>
                   <span style="background:{status_col};color:white;font-size:0.58rem;
