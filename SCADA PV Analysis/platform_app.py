@@ -1033,10 +1033,10 @@ def _render_lang_toggle() -> None:
     st.markdown(
         f"""
         <div class="lang-toggle">
-          <a class="{'active-en' if active == 'en' else ''}" href="?lang=en" title="English" aria-label="English">
+          <a class="{'active-en' if active == 'en' else ''}" href="?lang=en" target="_self" title="English" aria-label="English">
             <img alt="English" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='20' viewBox='0 0 28 20'><clipPath id='a'><rect width='28' height='20' rx='2'/></clipPath><g clip-path='url(%23a)'><rect width='28' height='20' fill='%23012169'/><path d='M0 0l28 20M28 0L0 20' stroke='%23fff' stroke-width='4'/><path d='M0 0l28 20M28 0L0 20' stroke='%23C8102E' stroke-width='2.2'/><path d='M14 0v20M0 10h28' stroke='%23fff' stroke-width='6'/><path d='M14 0v20M0 10h28' stroke='%23C8102E' stroke-width='4'/></g></svg>" />
           </a>
-          <a class="{'active-fr' if active == 'fr' else ''}" href="?lang=fr" title="Français" aria-label="Français">
+          <a class="{'active-fr' if active == 'fr' else ''}" href="?lang=fr" target="_self" title="Français" aria-label="Français">
             <img alt="Français" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='20' viewBox='0 0 28 20'><rect width='28' height='20' rx='2' fill='%23fff'/><path d='M0 0h9.33v20H0z' fill='%230055A4'/><path d='M18.67 0H28v20h-9.33z' fill='%23EF4135'/></svg>" />
           </a>
         </div>
