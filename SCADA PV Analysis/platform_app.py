@@ -983,6 +983,35 @@ def _t(key: str, **kwargs) -> str:
     return text.format(**kwargs)
 
 
+def _render_lang_toggle() -> None:
+    active = _ui_lang()
+    st.markdown(
+        """
+        <style>
+          .lang-toggle-row div[data-testid="stButton"] > button {
+            min-width: 2.7rem !important;
+            padding: 0.2rem 0.45rem !important;
+            font-size: 1.15rem !important;
+            line-height: 1.1 !important;
+          }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown('<div class="lang-toggle-row"></div>', unsafe_allow_html=True)
+    col_en, col_fr = st.columns(2)
+    with col_en:
+        if st.button("🇬🇧", key="lang_en", type="primary" if active == "en" else "secondary"):
+            if active != "en":
+                st.session_state["ui_lang"] = "en"
+                st.rerun()
+    with col_fr:
+        if st.button("🇫🇷", key="lang_fr", type="primary" if active == "fr" else "secondary"):
+            if active != "fr":
+                st.session_state["ui_lang"] = "fr"
+                st.rerun()
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # HEADER  (shown on all authenticated pages)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1010,13 +1039,7 @@ def _render_header(show_logout=True):
             </div>
             """, unsafe_allow_html=True)
         with col_lang:
-            st.selectbox(
-                "Language",
-                ["en", "fr"],
-                key="ui_lang",
-                format_func=lambda value: "🇬🇧" if value == "en" else "🇫🇷",
-                label_visibility="collapsed",
-            )
+            _render_lang_toggle()
         with col_btn:
             if st.button(_t("header.logout")):
                 _logout()
@@ -1032,13 +1055,7 @@ def _render_header(show_logout=True):
             </div>
             """, unsafe_allow_html=True)
         with col_lang:
-            st.selectbox(
-                "Language",
-                ["en", "fr"],
-                key="ui_lang",
-                format_func=lambda value: "🇬🇧" if value == "en" else "🇫🇷",
-                label_visibility="collapsed",
-            )
+            _render_lang_toggle()
     st.divider()
 
 
