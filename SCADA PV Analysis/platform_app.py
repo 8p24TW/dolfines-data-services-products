@@ -222,7 +222,7 @@ bg_css = (f"url('data:image/jpeg;base64,{bg_b64}')"
           "linear-gradient(135deg,#001a3a 0%,#003366 60%,#0a4d8c 100%)")
 
 logo_img = (f'<img src="data:image/png;base64,{logo_b64}" class="pvpat-header-logo" '
-            f'style="height:42px;width:auto;flex-shrink:0;" />'
+            f'style="height:62px;width:auto;flex-shrink:0;" />'
             if logo_b64 else "")
 
 
@@ -319,7 +319,7 @@ st.markdown(f"""
   .stButton > button {{
     background:#F07820 !important; color:white !important; border:none !important;
     border-radius:6px !important; font-weight:700 !important; font-size:1rem !important;
-    padding:0.65rem 2rem !important; transition:background 0.2s;
+    padding:0.65rem 2rem !important; width:100%; transition:background 0.2s;
     white-space:nowrap !important;
   }}
   .stButton > button:hover {{ background:#cc6415 !important; }}
@@ -1012,114 +1012,96 @@ def _render_lang_toggle():
 def _render_header(show_logout=True):
     user = st.session_state.get("user", {})
     plan = user.get("plan", "")
+
     plan_html = (
-        f"<span class='plan-unlimited'>{_t('header.plan.unlimited')}</span>" if plan == "unlimited"
-        else f"<span class='plan-one_shot'>{_t('header.plan.one_shot')}</span>"
+        f"<span class='plan-unlimited'>{_t('header.plan.unlimited')}</span>"
+        if plan == "unlimited"
+        else f"<span class='plan-one-shot'>{_t('header.plan.one_shot')}</span>"
     ) if plan else ""
 
-    st.markdown("""
-    <style>
-      .header-wrap {
-        display: flex;
-        align-items: center;
-        gap: 0.9rem;
-        min-height: 42px;
-      }
+    st.markdown(
+        """
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&display=swap');
 
-      .header-title-block {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        min-width: 0;
-      }
+          .platform-title {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            white-space: nowrap;
+            font-size: clamp(0.98rem, 2vw, 1.45rem);
+            line-height: 1.1;
+          }
 
-      .platform-title {
-        font-family: 'Montserrat', sans-serif;
-        font-weight: 700;
-        letter-spacing: -0.02em;
-        white-space: nowrap;
-        font-size: clamp(0.95rem, 1.7vw, 1.35rem);
-        line-height: 1.1;
-        color: white;
-        margin: 0;
-      }
-
-      .platform-sub {
-        margin-top: 0.15rem;
-        font-size: 0.78rem;
-        color: rgba(255,255,255,0.55);
-        white-space: nowrap;
-      }
-
-      .login-header-center {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.4rem;
-        margin-bottom: 0.2rem;
-      }
-
-      .lang-select-wrap [data-testid="stSelectbox"] {
-        margin-bottom: 0 !important;
-      }
-
-      .lang-select-wrap label {
-        display: none !important;
-      }
-
-      /* compact logout button in header only */
-      .header-logout-wrap div[data-testid="stButton"] > button {
-        width: auto !important;
-        min-height: 34px !important;
-        padding: 0.35rem 1rem !important;
-        font-size: 0.9rem !important;
-      }
-    </style>
-    """, unsafe_allow_html=True)
+          .platform-title-login {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            white-space: nowrap;
+            font-size: clamp(0.95rem, 2.4vw, 1.28rem);
+            line-height: 1.15;
+          }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
     if show_logout and _logged_in():
-        col_left, col_lang, col_logout = st.columns([7.2, 1.1, 1.3], vertical_alignment="center")
+        col_top_spacer, col_top_lang, col_top_btn = st.columns(
+            [7.2, 0.85, 1.15],
+            vertical_alignment="top",
+        )
 
-        with col_left:
-            st.markdown(f"""
-            <div class="header-wrap">
-              {logo_img}
-              <div class="header-title-block">
-                <div class="platform-title">{_t("header.title")}</div>
-                {f'<div class="platform-sub">{plan_html}</div>' if plan_html else ''}
-              </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        with col_lang:
-            st.markdown('<div class="lang-select-wrap">', unsafe_allow_html=True)
+        with col_top_lang:
             _render_lang_toggle()
-            st.markdown('</div>', unsafe_allow_html=True)
 
-        with col_logout:
-            st.markdown('<div class="header-logout-wrap">', unsafe_allow_html=True)
-            if st.button(_t("header.logout"), key="logout_btn"):
+        with col_top_btn:
+            if st.button(_t("header.logout")):
                 _logout()
-            st.markdown('</div>', unsafe_allow_html=True)
+
+        with st.container():
+            st.markdown(
+                f"""
+                <div style="display:flex;align-items:center;gap:1.4rem;margin-bottom:0.6rem;">
+                  {logo_img}
+                  <div>
+                    <div class="platform-title" style="color:white;">
+                      {_t("header.title")}
+                    </div>
+                    {(
+                        '<div style="font-size:0.84rem;color:rgba(255,255,255,0.55);margin-top:0.15rem;white-space:nowrap;">'
+                        + plan_html +
+                        '</div>'
+                    ) if plan_html else ''}
+                  </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
     else:
-        col_left, col_lang = st.columns([7.6, 1.2], vertical_alignment="center")
+        col_top_spacer, col_top_lang = st.columns(
+            [8.3, 0.85],
+            vertical_alignment="top",
+        )
 
-        with col_left:
-            st.markdown(f"""
-            <div class="login-header-center">
-              {logo_img}
-              <div class="platform-title">{_t("header.title")}</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        with col_lang:
-            st.markdown('<div class="lang-select-wrap">', unsafe_allow_html=True)
+        with col_top_lang:
             _render_lang_toggle()
-            st.markdown('</div>', unsafe_allow_html=True)
+
+        with st.container():
+            st.markdown(
+                f"""
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6mm;margin-bottom:0.45rem;">
+                  {logo_img}
+                  <div class="platform-title-login" style="color:white;text-align:center;">
+                    {_t("header.title")}
+                  </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
     st.divider()
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # VIEW: LOGIN
