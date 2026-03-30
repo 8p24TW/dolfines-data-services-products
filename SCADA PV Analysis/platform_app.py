@@ -988,18 +988,54 @@ def _t(key: str, **kwargs) -> str:
 
 def _render_lang_toggle() -> None:
     active = _ui_lang()
-    chosen = st.segmented_control(
-        "Language",
-        options=["en", "fr"],
-        default=active,
-        format_func=lambda value: value.upper(),
-        key="ui_lang_segmented",
-        label_visibility="collapsed",
-        width="content",
+    active_css = (
+        '[data-testid="stHorizontalBlock"]:has(.lang-switch-scope) [data-testid="stColumn"]:nth-child(1) button'
+        if active == "en"
+        else '[data-testid="stHorizontalBlock"]:has(.lang-switch-scope) [data-testid="stColumn"]:nth-child(3) button'
     )
-    if chosen in {"en", "fr"} and chosen != active:
-        st.session_state["ui_lang"] = chosen
-        st.rerun()
+    st.markdown(
+        f"""
+        <style>
+          [data-testid="stHorizontalBlock"]:has(.lang-switch-scope) button {{
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            min-width: 0 !important;
+            width: auto !important;
+            padding: 0 !important;
+            color: rgba(255,255,255,0.72) !important;
+            font-size: 0.95rem !important;
+            font-weight: 600 !important;
+            letter-spacing: 0.02em !important;
+          }}
+          [data-testid="stHorizontalBlock"]:has(.lang-switch-scope) button:hover {{
+            color: white !important;
+          }}
+          {active_css} {{
+            color: #f39200 !important;
+            font-weight: 700 !important;
+          }}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    c1, c2, c3 = st.columns([1, 0.2, 1], vertical_alignment="center")
+    with c1:
+        st.markdown('<span class="lang-switch-scope"></span>', unsafe_allow_html=True)
+        if st.button("EN", key="lang_en_text_simple"):
+            if active != "en":
+                st.session_state["ui_lang"] = "en"
+                st.rerun()
+    with c2:
+        st.markdown(
+            "<div style='text-align:center;color:rgba(255,255,255,0.45);font-size:0.95rem;'>/</div>",
+            unsafe_allow_html=True,
+        )
+    with c3:
+        if st.button("FR", key="lang_fr_text_simple"):
+            if active != "fr":
+                st.session_state["ui_lang"] = "fr"
+                st.rerun()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
