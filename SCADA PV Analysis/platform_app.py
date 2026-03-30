@@ -1048,6 +1048,7 @@ def _render_lang_buttons(key_prefix: str = "lang_inline") -> None:
             justify-content: center !important;
             align-items: center !important;
             text-align: center !important;
+            transform: translateY(-0.85rem) !important;
             padding-left: 0.2rem !important;
             padding-right: 0.2rem !important;
             color: white !important;
