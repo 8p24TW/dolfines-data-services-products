@@ -82,10 +82,10 @@ SITES = {
         "cod": "01/11/2019",
         "technology": "Vestas V136-4.5 MW",
         "inverter_model": "—",
-        "n_inverters": 0,
-        "inv_ac_kw": 0.0,
+        "n_inverters": 4,
+        "inv_ac_kw": 4_500.0,      # kW per turbine
         "cap_ac_kw": 18_000.0,
-        "cap_dc_kwp": 18_000.0,    # reused field — MW for wind
+        "cap_dc_kwp": 18_000.0,    # reused field — kW for wind
         "n_modules": 0,
         "module_wp": 0.0,
         "dc_ac_ratio": 1.0,
@@ -99,6 +99,11 @@ SITES = {
         "status": "maintenance",
         "lat": 45.8,
         "lon": 1.9,
+        # Wind-specific technical data
+        "hub_height_m": 112,
+        "tip_height_m": 180,       # hub + rotor_radius (136/2 = 68 m)
+        "rotor_diameter_m": 136,
+        "expected_aep_gwh": 52.4,  # Annual Energy Production
     },
     "NORMANDIE_PV": {
         "display_name": "Normandie Agri-PV",

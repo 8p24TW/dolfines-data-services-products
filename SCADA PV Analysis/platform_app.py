@@ -1792,10 +1792,16 @@ def _view_site_detail():
                     unsafe_allow_html=True)
         if is_wind:
             tech_rows = [
-                ("Turbine model",    site.get("inverter_model", "—")),
+                ("Turbine model",    site.get("technology", "—")),
                 ("No. of turbines",  str(site.get("n_inverters", "—"))),
-                ("Unit capacity",    (f"{site['inv_ac_kw']:.0f} kW"
+                ("Unit capacity",    (f"{site['inv_ac_kw']/1000:.1f} MW"
                                       if site.get("inv_ac_kw") else "—")),
+                ("Hub height",       (f"{site['hub_height_m']} m"
+                                      if site.get("hub_height_m") else "—")),
+                ("Height to blade tip", (f"{site['tip_height_m']} m"
+                                         if site.get("tip_height_m") else "—")),
+                ("Expected AEP",     (f"{site['expected_aep_gwh']:.1f} GWh/yr"
+                                      if site.get("expected_aep_gwh") else "—")),
             ]
         else:
             tech_rows = [
@@ -1855,47 +1861,96 @@ def _view_site_detail():
         import matplotlib.pyplot as _plt
         import matplotlib.patches as _mpatches
 
-        design_pr = site.get("design_pr") or 0.80
-        target_pr = site.get("operating_pr_target") or max(design_pr - 0.02, 0.55)
-
-        _months = ["Jan","Feb","Mar","Apr","May","Jun",
-                   "Jul","Aug","Sep","Oct","Nov","Dec"]
-        # Seasonal swing: PR higher in cool months, lower in summer heat
-        _seasonal = _np.array([0.02,0.02,0.01,0,-0.01,-0.03,
-                                -0.04,-0.03,-0.01, 0, 0.01,0.02])
-        _pr_vals  = _np.clip(design_pr + _seasonal - 0.03, 0.55, 0.99)
-
         _fig, _ax = _plt.subplots(figsize=(4.2, 2.0))
         _fig.patch.set_facecolor("#0d1b2a")
         _ax.set_facecolor("#0d1b2a")
 
-        _colors = ["#2E8B57" if v >= target_pr else "#E67E22" for v in _pr_vals]
-        _ax.bar(_months, _pr_vals * 100, color=_colors, width=0.65, zorder=3)
-        _ax.axhline(target_pr * 100, color="#f0c040", linewidth=1.2,
-                    linestyle="--", zorder=4)
+        if is_wind:
+            # ── Wind: power curve scatter plot ────────────────────────────
+            rated_kw = site.get("inv_ac_kw", 4500.0)
+            cut_in, rated_ws, cut_out = 3.0, 13.0, 22.0
 
-        _ymin = max(0,   (float(_pr_vals.min()) - 0.06) * 100)
-        _ymax = min(100, (float(_pr_vals.max()) + 0.06) * 100)
-        _ax.set_ylim(_ymin, _ymax)
-        _ax.tick_params(colors="white", labelsize=6.5)
-        for spine in _ax.spines.values():
-            spine.set_visible(False)
-        _ax.set_ylabel("PR (%)", color=(1, 1, 1, 0.55), fontsize=6.5)
-        _ax.grid(axis="y", color="white", alpha=0.08, zorder=0)
+            def _mfr_curve(ws):
+                p = _np.zeros_like(ws, dtype=float)
+                mask = (ws >= cut_in) & (ws < rated_ws)
+                p[mask] = rated_kw * ((ws[mask] - cut_in) / (rated_ws - cut_in)) ** 3
+                p[(ws >= rated_ws) & (ws < cut_out)] = rated_kw
+                return p
 
-        _patch = _mpatches.Patch(color="#f0c040",
-                                  label=f"Target {target_pr*100:.0f}%")
-        _ax.legend(handles=[_patch], fontsize=6, facecolor="#0d1b2a",
-                   labelcolor="white", framealpha=0.5, loc="lower right")
+            _rng = _np.random.default_rng(42)
+            _ws_scatter = _np.clip(_rng.weibull(2.2, 320) * 9.0, 0, 25)
+            _pw_scatter = _np.clip(
+                _mfr_curve(_ws_scatter) + _rng.normal(0, 90, len(_ws_scatter)),
+                0, rated_kw * 1.02,
+            )
+            # Inject ~6 % curtailment / stop points
+            _stop_idx = _rng.choice(len(_ws_scatter), size=20, replace=False)
+            _pw_scatter[_stop_idx] = _rng.uniform(0, 40, 20)
 
-        _plt.tight_layout(pad=0.3)
-        st.pyplot(_fig, use_container_width=True)
-        _plt.close(_fig)
+            _ax.scatter(_ws_scatter, _pw_scatter / 1000,
+                        color="#5B9BD5", alpha=0.45, s=7, zorder=3,
+                        label="SCADA (indicative)")
 
-        st.markdown(
-            "<p style='color:rgba(255,255,255,0.38);font-size:0.70rem;margin-top:0;'>"
-            "Indicative monthly PR — connect SCADA for live data.</p>",
-            unsafe_allow_html=True)
+            _ws_line = _np.linspace(0, 25, 200)
+            _ax.plot(_ws_line, _mfr_curve(_ws_line) / 1000,
+                     color="#F39200", linewidth=1.6, zorder=4,
+                     label="Mfr. curve")
+
+            _ax.set_xlim(0, 25)
+            _ax.set_ylim(-0.1, rated_kw / 1000 * 1.12)
+            _ax.set_xlabel("Wind speed (m/s)", color=(1,1,1,0.55), fontsize=6.5)
+            _ax.set_ylabel("Power (MW)", color=(1,1,1,0.55), fontsize=6.5)
+            _ax.tick_params(colors="white", labelsize=6.5)
+            for spine in _ax.spines.values():
+                spine.set_visible(False)
+            _ax.grid(color="white", alpha=0.07, zorder=0)
+            _ax.legend(fontsize=6, facecolor="#0d1b2a", labelcolor="white",
+                       framealpha=0.5, loc="upper left")
+            _plt.tight_layout(pad=0.3)
+            st.pyplot(_fig, use_container_width=True)
+            _plt.close(_fig)
+            st.markdown(
+                "<p style='color:rgba(255,255,255,0.38);font-size:0.70rem;margin-top:0;'>"
+                "Indicative power curve — connect SCADA for live data.</p>",
+                unsafe_allow_html=True)
+
+        else:
+            # ── Solar: monthly PR bar chart ───────────────────────────────
+            design_pr = site.get("design_pr") or 0.80
+            target_pr = site.get("operating_pr_target") or max(design_pr - 0.02, 0.55)
+
+            _months = ["Jan","Feb","Mar","Apr","May","Jun",
+                       "Jul","Aug","Sep","Oct","Nov","Dec"]
+            _seasonal = _np.array([0.02,0.02,0.01,0,-0.01,-0.03,
+                                    -0.04,-0.03,-0.01, 0, 0.01,0.02])
+            _pr_vals  = _np.clip(design_pr + _seasonal - 0.03, 0.55, 0.99)
+
+            _colors = ["#2E8B57" if v >= target_pr else "#E67E22" for v in _pr_vals]
+            _ax.bar(_months, _pr_vals * 100, color=_colors, width=0.65, zorder=3)
+            _ax.axhline(target_pr * 100, color="#f0c040", linewidth=1.2,
+                        linestyle="--", zorder=4)
+
+            _ymin = max(0,   (float(_pr_vals.min()) - 0.06) * 100)
+            _ymax = min(100, (float(_pr_vals.max()) + 0.06) * 100)
+            _ax.set_ylim(_ymin, _ymax)
+            _ax.tick_params(colors="white", labelsize=6.5)
+            for spine in _ax.spines.values():
+                spine.set_visible(False)
+            _ax.set_ylabel("PR (%)", color=(1, 1, 1, 0.55), fontsize=6.5)
+            _ax.grid(axis="y", color="white", alpha=0.08, zorder=0)
+
+            _patch = _mpatches.Patch(color="#f0c040",
+                                      label=f"Target {target_pr*100:.0f}%")
+            _ax.legend(handles=[_patch], fontsize=6, facecolor="#0d1b2a",
+                       labelcolor="white", framealpha=0.5, loc="lower right")
+
+            _plt.tight_layout(pad=0.3)
+            st.pyplot(_fig, use_container_width=True)
+            _plt.close(_fig)
+            st.markdown(
+                "<p style='color:rgba(255,255,255,0.38);font-size:0.70rem;margin-top:0;'>"
+                "Indicative monthly PR — connect SCADA for live data.</p>",
+                unsafe_allow_html=True)
 
     st.divider()
     _, col_gen, _ = st.columns([2, 2, 2])
