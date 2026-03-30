@@ -1222,18 +1222,17 @@ def _view_login():
     login_title_col, login_lang_col = st.columns([4.1, 1.35], vertical_alignment="top")
     with login_title_col:
         st.markdown(f"""
-        <div style="font-size:1.05rem;font-weight:700;color:white;margin-bottom:3px;">
-          {_t("login.title")}
+        <div style="margin-bottom:0.25rem;">
+          <div style="font-size:1.05rem;font-weight:700;color:white;margin-bottom:3px;">
+            {_t("login.title")}
+          </div>
+          <div style="font-size:0.80rem;color:rgba(255,255,255,0.50);">
+            {_t("login.subtitle")}
+          </div>
         </div>
         """, unsafe_allow_html=True)
     with login_lang_col:
         _render_lang_buttons("login_lang")
-
-    st.markdown(f"""
-    <div style="margin-bottom:0.25rem;font-size:0.80rem;color:rgba(255,255,255,0.50);">
-      {_t("login.subtitle")}
-    </div>
-    """, unsafe_allow_html=True)
 
     email    = st.text_input(_t("login.email"), placeholder="you@company.com", key="login_email")
     password = st.text_input(_t("login.password"), type="password", key="login_pw")
