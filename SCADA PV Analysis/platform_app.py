@@ -38,11 +38,48 @@ _CUSTOM_SITES_FILE = SCRIPT_DIR / "custom_sites.json"
 _SP_CUSTOM_SITES_PATH = "pvpat_platform/custom_sites.json"
 
 
+def _looks_like_site_cfg(value) -> bool:
+    return isinstance(value, dict) and any(
+        key in value for key in ("display_name", "site_type", "cap_dc_kwp", "technology")
+    )
+
+
+def _looks_like_report_entry(value) -> bool:
+    return isinstance(value, dict) and any(
+        key in value for key in ("report_type", "filename", "generated_at", "sp_path", "date")
+    )
+
+
+def _normalize_custom_sites_payload(raw) -> dict:
+    if isinstance(raw, dict) and isinstance(raw.get("custom_sites"), dict):
+        raw = raw["custom_sites"]
+    if not isinstance(raw, dict):
+        return {}
+    return {site_id: cfg for site_id, cfg in raw.items() if _looks_like_site_cfg(cfg)}
+
+
+def _normalize_report_history_payload(raw) -> dict:
+    if isinstance(raw, dict) and isinstance(raw.get("report_history"), dict):
+        raw = raw["report_history"]
+    if not isinstance(raw, dict):
+        return {}
+    normalized = {}
+    for site_id, entries in raw.items():
+        if not isinstance(entries, list):
+            continue
+        cleaned = [entry for entry in entries if _looks_like_report_entry(entry)]
+        if cleaned:
+            normalized[site_id] = cleaned[:20]
+    return normalized
+
+
 def _load_custom_sites_from_disk() -> dict:
     # L1: local file (fast — available for all sessions in this deployment)
     try:
         if _CUSTOM_SITES_FILE.exists():
-            return json.loads(_CUSTOM_SITES_FILE.read_text(encoding="utf-8"))
+            return _normalize_custom_sites_payload(
+                json.loads(_CUSTOM_SITES_FILE.read_text(encoding="utf-8"))
+            )
     except Exception:
         pass
     # L2: SharePoint (called once after a redeploy wipes the local file)
@@ -53,7 +90,7 @@ def _load_custom_sites_from_disk() -> dict:
                f"/drive/root:/{_SP_CUSTOM_SITES_PATH}:/content")
         r = _req.get(url, headers={"Authorization": f"Bearer {token}"}, timeout=15)
         if r.status_code == 200:
-            data = r.json()
+            data = _normalize_custom_sites_payload(r.json())
             # Populate L1 so subsequent sessions in this deployment skip SharePoint
             try:
                 _CUSTOM_SITES_FILE.write_text(
@@ -84,13 +121,35 @@ def _save_custom_sites_to_disk() -> None:
 _REPORT_HISTORY_FILE = SCRIPT_DIR / "report_history.json"
 _SP_REPORT_HISTORY_PATH = "pvpat_platform/report_history.json"
 _SP_REPORTS_DIR = "pvpat_platform/reports"
+_LEGACY_REPORTS_DIR = SCRIPT_DIR / "previous reports"
+
+
+def _list_legacy_reports() -> list[dict]:
+    if not _LEGACY_REPORTS_DIR.exists():
+        return []
+    legacy = []
+    for path in sorted(_LEGACY_REPORTS_DIR.iterdir(), key=lambda item: item.stat().st_mtime, reverse=True):
+        if not path.is_file():
+            continue
+        if path.suffix.lower() not in {".pdf", ".doc", ".docx", ".ppt", ".pptx"}:
+            continue
+        legacy.append({
+            "filename": path.name,
+            "generated_at": date.fromtimestamp(path.stat().st_mtime).isoformat(),
+            "local_path": str(path),
+            "report_type": path.suffix.lower().lstrip("."),
+            "date": "Legacy file",
+        })
+    return legacy[:20]
 
 
 def _load_report_history() -> dict:
     """Return {site_id: [metadata, ...]} newest-first, up to 20 per site."""
     try:
         if _REPORT_HISTORY_FILE.exists():
-            return json.loads(_REPORT_HISTORY_FILE.read_text(encoding="utf-8"))
+            return _normalize_report_history_payload(
+                json.loads(_REPORT_HISTORY_FILE.read_text(encoding="utf-8"))
+            )
     except Exception:
         pass
     try:
@@ -100,7 +159,7 @@ def _load_report_history() -> dict:
                f"/drive/root:/{_SP_REPORT_HISTORY_PATH}:/content")
         r = _req.get(url, headers={"Authorization": f"Bearer {token}"}, timeout=15)
         if r.status_code == 200:
-            data = r.json()
+            data = _normalize_report_history_payload(r.json())
             try:
                 _REPORT_HISTORY_FILE.write_text(
                     json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -827,7 +886,7 @@ def _view_login():
 
     email    = st.text_input("Email address", placeholder="you@company.com", key="login_email")
     password = st.text_input("Password", type="password", key="login_pw")
-    submit   = st.button("Sign In →", use_container_width=True)
+    submit   = st.button("Sign In →", width="stretch")
 
     if submit:
         user = USERS.get(email.strip().lower())
@@ -1179,7 +1238,7 @@ def _view_report_select():
             "border:none!important;font-weight:600!important;}</style>",
             unsafe_allow_html=True)
         if st.button("📋 Previous Reports", key="btn_prev_reports",
-                     use_container_width=True):
+                     width="stretch"):
             st.session_state["view"] = "report_history"
             st.rerun()
 
@@ -1273,7 +1332,7 @@ def _view_report_select():
             {"".join(f"<li>{b}</li>" for b in daily_bullets)}
           </ul>
         </div>""", unsafe_allow_html=True)
-        if st.button("Select Daily Report", key="btn_daily", use_container_width=True):
+        if st.button("Select Daily Report", key="btn_daily", width="stretch"):
             st.session_state["report_choice"] = "daily"
             st.rerun()
 
@@ -1308,7 +1367,7 @@ def _view_report_select():
             {"".join(f"<li>{b}</li>" for b in monthly_bullets)}
           </ul>
         </div>""", unsafe_allow_html=True)
-        if st.button("Select Monthly Report", key="btn_monthly", use_container_width=True):
+        if st.button("Select Monthly Report", key="btn_monthly", width="stretch"):
             st.session_state["report_choice"] = "monthly"
             st.rerun()
 
@@ -1339,7 +1398,7 @@ def _view_report_select():
             ))}
           </ul>
         </div>""", unsafe_allow_html=True)
-        if st.button("Select Comprehensive Report", key="btn_comp", use_container_width=True):
+        if st.button("Select Comprehensive Report", key="btn_comp", width="stretch"):
             st.session_state["report_choice"] = "comprehensive"
             st.rerun()
 
@@ -1358,7 +1417,7 @@ def _view_report_select():
                 else "📅 Generate Monthly Report →" if choice == "monthly"
                 else "📊 Generate Comprehensive Report →"
             )
-            if st.button(btn_label, key="btn_generate", use_container_width=True):
+            if st.button(btn_label, key="btn_generate", width="stretch"):
                 st.session_state["report_type"] = choice
                 st.session_state.pop("report_choice", None)
                 st.session_state["view"] = (
@@ -2014,7 +2073,7 @@ def _view_site_detail():
             _ax.legend(fontsize=6, facecolor="#0d1b2a", labelcolor="white",
                        framealpha=0.5, loc="upper left")
             _plt.tight_layout(pad=0.3)
-            st.pyplot(_fig, use_container_width=True)
+            st.pyplot(_fig, width="stretch")
             _plt.close(_fig)
             st.markdown(
                 "<p style='color:rgba(255,255,255,0.38);font-size:0.70rem;margin-top:0;'>"
@@ -2052,7 +2111,7 @@ def _view_site_detail():
                        labelcolor="white", framealpha=0.5, loc="lower right")
 
             _plt.tight_layout(pad=0.3)
-            st.pyplot(_fig, use_container_width=True)
+            st.pyplot(_fig, width="stretch")
             _plt.close(_fig)
             st.markdown(
                 "<p style='color:rgba(255,255,255,0.38);font-size:0.70rem;margin-top:0;'>"
@@ -2063,7 +2122,7 @@ def _view_site_detail():
     _, col_gen, _ = st.columns([2, 2, 2])
     with col_gen:
         if st.button(f"{'🌬️' if is_wind else '⚡'} Generate Report →",
-                     key="btn_detail_gen", use_container_width=True):
+                     key="btn_detail_gen", width="stretch"):
             st.session_state["view"] = "report_select"
             st.rerun()
 
@@ -2102,9 +2161,86 @@ def _view_site_edit():
     _render_header()
 
     from equipment_kb import (
-        WIND_TURBINES, SOLAR_INVERTERS, SOLAR_MODULE_MANUFACTURERS,
-        detect_wind_manufacturer, detect_inverter_manufacturer,
+        WIND_TURBINES, SOLAR_INVERTERS, SOLAR_MODULES, SOLAR_MODULE_MANUFACTURERS,
+        detect_wind_manufacturer, detect_inverter_manufacturer, detect_module_manufacturer,
+        get_wind_turbine_spec, get_inverter_spec, get_solar_module_spec,
     )
+
+    def _init_state(key: str, value):
+        if key not in st.session_state:
+            st.session_state[key] = value
+
+    def _safe_float(raw):
+        try:
+            return float(str(raw).replace(",", ".").strip())
+        except (TypeError, ValueError, AttributeError):
+            return None
+
+    def _safe_int(raw):
+        try:
+            return int(str(raw).replace(" ", "").strip())
+        except (TypeError, ValueError, AttributeError):
+            return None
+
+    def _fmt_number(value, decimals: int = 3) -> str:
+        if value in (None, ""):
+            return ""
+        text = f"{float(value):.{decimals}f}"
+        return text.rstrip("0").rstrip(".")
+
+    def _find_matching_model(candidates: list[str], text: str) -> str:
+        _txt = (text or "").lower()
+        for candidate in candidates:
+            if candidate.lower() in _txt:
+                return candidate
+        return ""
+
+    def _infer_module_rows(site_cfg: dict) -> list[dict]:
+        module_mix = site_cfg.get("module_mix")
+        if isinstance(module_mix, list):
+            rows = []
+            for entry in module_mix:
+                if not isinstance(entry, dict):
+                    continue
+                rows.append({
+                    "manufacturer": str(entry.get("manufacturer", "")).strip(),
+                    "model": str(entry.get("model", "")).strip(),
+                    "quantity": int(entry.get("quantity", 0) or 0),
+                    "power_wp": float(entry.get("power_wp", 0) or 0),
+                })
+            if rows:
+                return rows
+
+        technology = site_cfg.get("technology", "")
+        manufacturer = detect_module_manufacturer(technology)
+        model = _find_matching_model(SOLAR_MODULES.get(manufacturer, []), technology)
+        power_wp = float(site_cfg.get("module_wp", 0) or 0)
+        if not power_wp and manufacturer and model:
+            power_wp = float(get_solar_module_spec(manufacturer, model).get("power_wp", 0) or 0)
+        quantity = int(site_cfg.get("n_modules", 0) or 0)
+        return [{
+            "manufacturer": manufacturer,
+            "model": model,
+            "quantity": quantity,
+            "power_wp": power_wp,
+        }]
+
+    def _build_module_summary(rows: list[dict]) -> str:
+        clean_rows = []
+        for row in rows:
+            qty = int(row.get("quantity", 0) or 0)
+            power_wp = float(row.get("power_wp", 0) or 0)
+            manufacturer = str(row.get("manufacturer", "")).strip()
+            model = str(row.get("model", "")).strip()
+            if qty <= 0 or power_wp <= 0:
+                continue
+            label = " ".join(part for part in (manufacturer, model) if part).strip() or "Module"
+            clean_rows.append(f"{qty:,} x {label} ({power_wp:.0f} Wp)")
+        if not clean_rows:
+            return site.get("technology", "—")
+        if len(clean_rows) == 1:
+            return clean_rows[0]
+        return "Mixed modules: " + " + ".join(clean_rows)
 
     site_id   = st.session_state.get("selected_site", "")
     site      = dict(SITES.get(site_id, {}))
@@ -2126,9 +2262,14 @@ def _view_site_edit():
 
     is_wind = site.get("site_type") == "wind"
 
-    # ── Manufacturer selectors sit OUTSIDE the form so they trigger reruns
-    # and the dependent model dropdown refreshes immediately.
+    prefix = f"edit_{site_id}"
     _div = "<hr style='border-color:rgba(255,255,255,0.1);margin:0.6rem 0;'>"
+
+    _init_state(f"{prefix}_name", site.get("display_name", ""))
+    _init_state(f"{prefix}_status", site.get("status", "operational"))
+    _init_state(f"{prefix}_country", site.get("country", ""))
+    _init_state(f"{prefix}_region", site.get("region", ""))
+    _init_state(f"{prefix}_cod", site.get("cod", ""))
 
     if is_wind:
         st.markdown("<div class='sub-hdr'>Wind Turbine Details</div>", unsafe_allow_html=True)
@@ -2142,8 +2283,108 @@ def _view_site_edit():
             key=f"edit_wind_mfr_{site_id}",
         )
         _turbine_models = WIND_TURBINES.get(new_turbine_mfr, [])
+
+        _wind_model_key = f"{prefix}_wind_model"
+        _wind_capacity_key = f"{prefix}_wind_unit_cap_mw"
+        _wind_last_model_key = f"{prefix}_wind_last_model"
+        _wind_qty_key = f"{prefix}_wind_qty"
+        _wind_hub_key = f"{prefix}_wind_hub"
+        _wind_tip_key = f"{prefix}_wind_tip"
+        _wind_aep_key = f"{prefix}_wind_aep"
+
+        _wind_model_default = _find_matching_model(_turbine_models, site.get("technology", ""))
+        _init_state(_wind_model_key, _wind_model_default)
+        _init_state(_wind_qty_key, str(site.get("n_inverters", "") or ""))
+        _init_state(_wind_hub_key, str(site.get("hub_height_m", "") or ""))
+        _init_state(_wind_tip_key, str(site.get("tip_height_m", "") or ""))
+        _init_state(_wind_aep_key, str(site.get("expected_aep_gwh", "") or ""))
+
+        if _turbine_models:
+            if st.session_state.get(_wind_model_key) not in _turbine_models:
+                st.session_state[_wind_model_key] = _wind_model_default if _wind_model_default in _turbine_models else ""
+            st.selectbox("Turbine model", [""] + _turbine_models, key=_wind_model_key)
+            new_tech = st.session_state.get(_wind_model_key, "")
+        else:
+            _init_state(_wind_model_key, site.get("technology", ""))
+            st.text_input("Turbine model", key=_wind_model_key, placeholder="e.g. V136-4.5")
+            new_tech = st.session_state.get(_wind_model_key, "")
+
+        _wind_spec = get_wind_turbine_spec(new_turbine_mfr, new_tech)
+        _wind_default_capacity = _wind_spec.get("rated_mw")
+        if _wind_default_capacity is None:
+            _wind_default_capacity = (site.get("inv_ac_kw") or 0) / 1000 if site.get("inv_ac_kw") else None
+        _init_state(_wind_capacity_key, _fmt_number(_wind_default_capacity, 3))
+        if st.session_state.get(_wind_last_model_key) != new_tech:
+            st.session_state[_wind_last_model_key] = new_tech
+            st.session_state[_wind_capacity_key] = _fmt_number(_wind_default_capacity, 3)
     else:
         st.markdown("<div class='sub-hdr'>Solar Equipment Details</div>", unsafe_allow_html=True)
+        _module_rows = _infer_module_rows(site)
+        _module_type_default = max(1, min(len(_module_rows), 4))
+        _init_state(f"{prefix}_module_multi", _module_type_default > 1)
+        _init_state(f"{prefix}_module_type_count", _module_type_default)
+
+        _multi_modules = st.checkbox(
+            "Multiple module types on this site",
+            key=f"{prefix}_module_multi",
+        )
+        if not _multi_modules:
+            st.session_state[f"{prefix}_module_type_count"] = 1
+        else:
+            current_count = int(st.session_state.get(f"{prefix}_module_type_count", _module_type_default) or 2)
+            count_options = [1, 2, 3, 4]
+            count_index = count_options.index(current_count) if current_count in count_options else 1
+            st.selectbox(
+                "Number of module types",
+                count_options,
+                index=count_index,
+                key=f"{prefix}_module_type_count",
+            )
+        module_type_count = int(st.session_state.get(f"{prefix}_module_type_count", 1) or 1)
+
+        for idx in range(module_type_count):
+            existing = _module_rows[idx] if idx < len(_module_rows) else {}
+            mfr_key = f"{prefix}_module_mfr_{idx}"
+            model_key = f"{prefix}_module_model_{idx}"
+            power_key = f"{prefix}_module_power_wp_{idx}"
+            qty_key = f"{prefix}_module_qty_{idx}"
+            last_model_key = f"{prefix}_module_last_model_{idx}"
+
+            _init_state(mfr_key, existing.get("manufacturer", ""))
+            _init_state(model_key, existing.get("model", ""))
+            _init_state(power_key, _fmt_number(existing.get("power_wp"), 1))
+            _init_state(qty_key, str(existing.get("quantity", "") or ""))
+
+            st.markdown(f"**Module Type {idx + 1}**")
+            mod_col1, mod_col2 = st.columns(2)
+            with mod_col1:
+                st.selectbox(
+                    "Module manufacturer",
+                    [""] + SOLAR_MODULE_MANUFACTURERS,
+                    key=mfr_key,
+                )
+            with mod_col2:
+                _module_models = SOLAR_MODULES.get(st.session_state.get(mfr_key, ""), [])
+                if _module_models:
+                    if st.session_state.get(model_key) not in _module_models:
+                        st.session_state[model_key] = existing.get("model", "") if existing.get("model", "") in _module_models else ""
+                    st.selectbox(
+                        "Module model",
+                        [""] + _module_models,
+                        key=model_key,
+                    )
+                else:
+                    st.text_input("Module model", key=model_key, placeholder="e.g. Hi-MO 6 LR5-72HTH")
+
+            _module_spec = get_solar_module_spec(st.session_state.get(mfr_key, ""), st.session_state.get(model_key, ""))
+            _module_default_power = _module_spec.get("power_wp")
+            if not _module_default_power:
+                _module_default_power = _safe_float(existing.get("power_wp"))
+            if st.session_state.get(last_model_key) != st.session_state.get(model_key):
+                st.session_state[last_model_key] = st.session_state.get(model_key)
+                if _module_default_power:
+                    st.session_state[power_key] = _fmt_number(_module_default_power, 1)
+
         _inv_mfr_list = [""] + list(SOLAR_INVERTERS.keys())
         _cur_inv_mfr  = detect_inverter_manufacturer(site.get("inverter_model", ""))
         _inv_mfr_idx  = _inv_mfr_list.index(_cur_inv_mfr) if _cur_inv_mfr in _inv_mfr_list else 0
@@ -2154,160 +2395,206 @@ def _view_site_edit():
             key=f"edit_inv_mfr_{site_id}",
         )
         _inv_models = SOLAR_INVERTERS.get(new_inv_mfr, [])
+        _inv_model_key = f"{prefix}_inv_model"
+        _inv_last_model_key = f"{prefix}_inv_last_model"
+        _inv_power_key = f"{prefix}_inv_ac_kw"
+        _inv_qty_key = f"{prefix}_inv_qty"
+        _init_state(_inv_model_key, _find_matching_model(_inv_models, site.get("inverter_model", "")))
+        _init_state(_inv_qty_key, str(site.get("n_inverters", "") or ""))
+        _init_state(_inv_power_key, _fmt_number(site.get("inv_ac_kw"), 1))
+
+        if _inv_models:
+            if st.session_state.get(_inv_model_key) not in _inv_models:
+                st.session_state[_inv_model_key] = _find_matching_model(_inv_models, site.get("inverter_model", ""))
+            st.selectbox("Inverter model", [""] + _inv_models, key=_inv_model_key)
+        else:
+            st.text_input("Inverter model", key=_inv_model_key, placeholder="e.g. SG250HX")
+
+        _inv_spec = get_inverter_spec(new_inv_mfr, st.session_state.get(_inv_model_key, ""))
+        _inv_default_power = _inv_spec.get("ac_kw")
+        if not _inv_default_power:
+            _inv_default_power = site.get("inv_ac_kw")
+        if st.session_state.get(_inv_last_model_key) != st.session_state.get(_inv_model_key):
+            st.session_state[_inv_last_model_key] = st.session_state.get(_inv_model_key)
+            if _inv_default_power:
+                st.session_state[_inv_power_key] = _fmt_number(_inv_default_power, 1)
 
     st.markdown(_div, unsafe_allow_html=True)
 
-    # ── All remaining fields inside a form ────────────────────────────────────
-    with st.form("site_edit_form"):
-        c1, c2 = st.columns(2)
-        with c1:
-            new_name = st.text_input("Site name", value=site.get("display_name", ""))
-            new_cap  = st.text_input(
-                "Capacity (MW)" if is_wind else "Capacity (MWp DC)",
-                value=str(round(site.get("cap_dc_kwp", 0) / 1000, 3)),
-            )
-            new_status = st.selectbox(
-                "Status",
-                ["operational", "maintenance", "offline"],
-                index=["operational", "maintenance", "offline"].index(
-                    site.get("status", "operational")),
-            )
-        with c2:
-            new_country = st.text_input("Country",  value=site.get("country",  ""))
-            new_region  = st.text_input("Region",   value=site.get("region",   ""))
-            new_cod     = st.text_input("COD date", value=site.get("cod",      ""))
+    c1, c2 = st.columns(2)
+    with c1:
+        st.text_input("Site name", key=f"{prefix}_name")
+        st.selectbox(
+            "Status",
+            ["operational", "maintenance", "offline"],
+            key=f"{prefix}_status",
+        )
+    with c2:
+        st.text_input("Country", key=f"{prefix}_country")
+        st.text_input("Region", key=f"{prefix}_region")
+        st.text_input("COD date", key=f"{prefix}_cod")
 
-        if is_wind:
-            # Turbine model (options depend on manufacturer chosen above)
-            _cur_model = site.get("technology", "")
-            if _turbine_models:
-                _model_list = [""] + _turbine_models
-                _model_idx  = _model_list.index(_cur_model) if _cur_model in _model_list else 0
-                new_tech = st.selectbox("Turbine model", _model_list, index=_model_idx)
-            else:
-                new_tech = st.text_input("Turbine model", value=_cur_model,
-                                         placeholder="e.g. V136-4.5")
+    if is_wind:
+        _wind_unit_mw = _safe_float(st.session_state.get(_wind_capacity_key)) or 0.0
+        _wind_qty = _safe_int(st.session_state.get(_wind_qty_key)) or 0
+        _wind_total_mw = _wind_unit_mw * _wind_qty
 
-            _wc1, _wc2 = st.columns(2)
-            with _wc1:
-                _unit_kw_default = site.get("inv_ac_kw") or 0
-                new_unit_cap_mw = st.text_input(
-                    "Rated capacity per turbine (MW)",
-                    value=str(round(_unit_kw_default / 1000, 2)) if _unit_kw_default else "",
-                    placeholder="e.g. 4.5",
-                )
-                new_hub_height = st.text_input(
-                    "Hub height (m)",
-                    value=str(site.get("hub_height_m", "")) if site.get("hub_height_m") else "",
-                    placeholder="e.g. 112",
-                )
-            with _wc2:
-                new_n_turbines = st.text_input(
-                    "Number of turbines",
-                    value=str(site.get("n_inverters", "")) if site.get("n_inverters") else "",
-                    placeholder="e.g. 4",
-                )
-                new_tip_height = st.text_input(
-                    "Height to blade tip (m)",
-                    value=str(site.get("tip_height_m", "")) if site.get("tip_height_m") else "",
-                    placeholder="e.g. 180",
-                )
-            new_aep = st.text_input(
-                "Expected AEP (GWh/yr)",
-                value=str(site.get("expected_aep_gwh", "")) if site.get("expected_aep_gwh") else "",
-                placeholder="e.g. 52.4",
+        w1, w2 = st.columns(2)
+        with w1:
+            st.text_input(
+                "Rated capacity per turbine (MW)",
+                key=_wind_capacity_key,
+                placeholder="e.g. 4.5",
             )
-            new_inv = site.get("inverter_model", "—")  # not used for wind
-
-        else:
-            # Solar: module tech description + inverter model
-            _mod_mfr_list = [""] + SOLAR_MODULE_MANUFACTURERS
-            _cur_mod_mfr = next(
-                (m for m in SOLAR_MODULE_MANUFACTURERS
-                 if site.get("technology", "").lower().startswith(m.lower().split()[0])),
-                "")
-            _mod_mfr_idx = _mod_mfr_list.index(_cur_mod_mfr) if _cur_mod_mfr in _mod_mfr_list else 0
-            st.selectbox(
-                "Module manufacturer (reference)",
-                _mod_mfr_list,
-                index=_mod_mfr_idx,
+            st.text_input(
+                "Hub height (m)",
+                key=_wind_hub_key,
+                placeholder="e.g. 112",
             )
-            new_tech = st.text_input(
-                "Module technology / description",
-                value=site.get("technology", ""),
-                placeholder="e.g. Bifacial (LONGi Hi-MO 6)",
+        with w2:
+            st.text_input(
+                "Number of turbines",
+                key=_wind_qty_key,
+                placeholder="e.g. 4",
+            )
+            st.text_input(
+                "Height to blade tip (m)",
+                key=_wind_tip_key,
+                placeholder="e.g. 180",
             )
 
-            _cur_inv = site.get("inverter_model", "")
-            if _inv_models:
-                _inv_list = [""] + _inv_models
-                _inv_idx  = _inv_list.index(_cur_inv) if _cur_inv in _inv_list else 0
-                new_inv = st.selectbox("Inverter model", _inv_list, index=_inv_idx)
-            else:
-                new_inv = st.text_input(
-                    "Inverter model",
-                    value=_cur_inv,
-                    placeholder="e.g. SG250HX",
-                )
-            new_unit_cap_mw = None
-            new_n_turbines  = None
-            new_hub_height  = None
-            new_tip_height  = None
-            new_aep         = None
+        st.text_input(
+            "Expected AEP (GWh/yr)",
+            key=_wind_aep_key,
+            placeholder="e.g. 52.4",
+        )
+        st.text_input("Calculated site capacity (MW)", value=_fmt_number(_wind_total_mw, 3), disabled=True)
+        if _wind_spec.get("rotor_diameter_m"):
+            st.caption(f"Detected rotor diameter: {_wind_spec['rotor_diameter_m']:.0f} m")
+        saved = st.button("💾 Save changes", key=f"{prefix}_save", width="content")
 
-        saved = st.form_submit_button("💾 Save changes", use_container_width=False)
+    else:
+        solar_rows = []
+        st.markdown("**Module Quantities and Power**")
+        for idx in range(module_type_count):
+            mfr_key = f"{prefix}_module_mfr_{idx}"
+            model_key = f"{prefix}_module_model_{idx}"
+            power_key = f"{prefix}_module_power_wp_{idx}"
+            qty_key = f"{prefix}_module_qty_{idx}"
+
+            row_col1, row_col2 = st.columns(2)
+            with row_col1:
+                st.text_input(
+                    f"Number of modules for type {idx + 1}",
+                    key=qty_key,
+                    placeholder="e.g. 10815",
+                )
+            with row_col2:
+                st.text_input(
+                    f"Capacity per module for type {idx + 1} (Wp)",
+                    key=power_key,
+                    placeholder="e.g. 585",
+                )
+
+            qty = _safe_int(st.session_state.get(qty_key)) or 0
+            power_wp = _safe_float(st.session_state.get(power_key)) or 0.0
+            subtotal_kwp = qty * power_wp / 1000.0
+            manufacturer = st.session_state.get(mfr_key, "")
+            model = st.session_state.get(model_key, "")
+            label = " ".join(part for part in (manufacturer, model) if part).strip() or f"Module type {idx + 1}"
+            st.caption(f"{label}: {subtotal_kwp / 1000:.3f} MWp DC")
+            solar_rows.append({
+                "manufacturer": manufacturer,
+                "model": model,
+                "quantity": qty,
+                "power_wp": power_wp,
+            })
+
+        st.markdown("**Inverter Capacity**")
+        inv_col1, inv_col2 = st.columns(2)
+        with inv_col1:
+            st.text_input("Number of inverters", key=_inv_qty_key, placeholder="e.g. 21")
+        with inv_col2:
+            st.text_input("Rated capacity per inverter (kW)", key=_inv_power_key, placeholder="e.g. 250")
+
+        total_modules = sum(row["quantity"] for row in solar_rows)
+        total_dc_kwp = sum(row["quantity"] * row["power_wp"] / 1000.0 for row in solar_rows)
+        weighted_module_wp = (total_dc_kwp * 1000.0 / total_modules) if total_modules else 0.0
+        inv_count = _safe_int(st.session_state.get(_inv_qty_key)) or 0
+        inv_unit_kw = _safe_float(st.session_state.get(_inv_power_key)) or 0.0
+        total_ac_kw = inv_count * inv_unit_kw
+        dc_ac_ratio = total_dc_kwp / total_ac_kw if total_ac_kw > 0 else 0.0
+
+        sum_col1, sum_col2, sum_col3 = st.columns(3)
+        with sum_col1:
+            st.text_input("Calculated DC capacity (MWp)", value=_fmt_number(total_dc_kwp / 1000.0, 3), disabled=True)
+        with sum_col2:
+            st.text_input("Calculated AC capacity (MW)", value=_fmt_number(total_ac_kw / 1000.0, 3), disabled=True)
+        with sum_col3:
+            st.text_input("Calculated DC/AC ratio", value=_fmt_number(dc_ac_ratio, 3), disabled=True)
+
+        saved = st.button("💾 Save changes", key=f"{prefix}_save", width="content")
 
     if saved:
-        try:
-            cap_kwp = float(str(new_cap).replace(",", ".")) * 1000
-        except ValueError:
-            st.error("Capacity must be a number.")
-            return
-
         updates: dict = {
-            "display_name":   str(new_name).strip() or site.get("display_name", ""),
-            "cap_dc_kwp":     cap_kwp,
-            "cap_ac_kw":      (cap_kwp * (1 / site.get("dc_ac_ratio", 1.0))
-                               if not is_wind else cap_kwp),
-            "status":         new_status,
-            "country":        str(new_country).strip(),
-            "region":         str(new_region).strip(),
-            "cod":            str(new_cod).strip(),
-            "technology":     str(new_tech).strip(),
-            "inverter_model": str(new_inv).strip() if not is_wind else site.get("inverter_model", "—"),
+            "display_name": str(st.session_state.get(f"{prefix}_name", "")).strip() or site.get("display_name", ""),
+            "status": str(st.session_state.get(f"{prefix}_status", site.get("status", "operational"))),
+            "country": str(st.session_state.get(f"{prefix}_country", "")).strip(),
+            "region": str(st.session_state.get(f"{prefix}_region", "")).strip(),
+            "cod": str(st.session_state.get(f"{prefix}_cod", "")).strip(),
         }
 
         if is_wind:
-            try:
-                _v = float(str(new_unit_cap_mw).replace(",", "."))
-                if _v > 0:
-                    updates["inv_ac_kw"] = _v * 1000
-            except (ValueError, TypeError):
-                pass
-            try:
-                _v = int(str(new_n_turbines).strip())
-                if _v > 0:
-                    updates["n_inverters"] = _v
-            except (ValueError, TypeError):
-                pass
-            try:
-                _v = int(str(new_hub_height).strip())
-                if _v > 0:
-                    updates["hub_height_m"] = _v
-            except (ValueError, TypeError):
-                pass
-            try:
-                _v = int(str(new_tip_height).strip())
-                if _v > 0:
-                    updates["tip_height_m"] = _v
-            except (ValueError, TypeError):
-                pass
-            try:
-                _v = float(str(new_aep).replace(",", "."))
-                if _v > 0:
-                    updates["expected_aep_gwh"] = _v
-            except (ValueError, TypeError):
-                pass
+            unit_cap_mw = _safe_float(st.session_state.get(_wind_capacity_key))
+            n_turbines = _safe_int(st.session_state.get(_wind_qty_key))
+            if not unit_cap_mw or unit_cap_mw <= 0 or not n_turbines or n_turbines <= 0:
+                st.error("Please provide a turbine model capacity and a positive turbine count.")
+                return
+
+            total_kw = unit_cap_mw * n_turbines * 1000.0
+            updates.update({
+                "technology": " ".join(part for part in (new_turbine_mfr, new_tech) if part).strip() or site.get("technology", ""),
+                "inverter_model": site.get("inverter_model", "—"),
+                "inv_ac_kw": unit_cap_mw * 1000.0,
+                "n_inverters": n_turbines,
+                "cap_ac_kw": total_kw,
+                "cap_dc_kwp": total_kw,
+            })
+            hub_height = _safe_int(st.session_state.get(_wind_hub_key))
+            tip_height = _safe_int(st.session_state.get(_wind_tip_key))
+            aep_gwh = _safe_float(st.session_state.get(_wind_aep_key))
+            if hub_height and hub_height > 0:
+                updates["hub_height_m"] = hub_height
+            if tip_height and tip_height > 0:
+                updates["tip_height_m"] = tip_height
+            if aep_gwh and aep_gwh > 0:
+                updates["expected_aep_gwh"] = aep_gwh
+            if _wind_spec.get("rotor_diameter_m"):
+                updates["rotor_diameter_m"] = int(_wind_spec["rotor_diameter_m"])
+        else:
+            clean_rows = [
+                row for row in solar_rows
+                if row["quantity"] > 0 and row["power_wp"] > 0
+            ]
+            if not clean_rows:
+                st.error("Please enter at least one valid module type with quantity and module power.")
+                return
+            if total_ac_kw <= 0 or inv_count <= 0:
+                st.error("Please enter a positive inverter count and inverter capacity.")
+                return
+
+            updates.update({
+                "technology": _build_module_summary(clean_rows),
+                "inverter_model": str(st.session_state.get(_inv_model_key, "")).strip() or site.get("inverter_model", ""),
+                "module_mix": clean_rows,
+                "n_modules": total_modules,
+                "module_wp": weighted_module_wp,
+                "cap_dc_kwp": total_dc_kwp,
+                "n_inverters": inv_count,
+                "inv_ac_kw": inv_unit_kw,
+                "cap_ac_kw": total_ac_kw,
+                "dc_ac_ratio": dc_ac_ratio if dc_ac_ratio > 0 else site.get("dc_ac_ratio", 1.0),
+            })
 
         if is_custom:
             st.session_state["custom_sites"][site_id].update(updates)
@@ -2391,13 +2678,18 @@ def _view_report_history():
     with st.spinner("Loading report history…"):
         history = _load_report_history()
     reports = history.get(site_id, [])
+    legacy_reports = _list_legacy_reports() if not reports else []
 
-    if not reports:
+    if not reports and not legacy_reports:
         st.markdown(
             "<p style='color:rgba(255,255,255,0.55);margin-top:1.5rem;'>"
             "No reports have been generated for this site yet.</p>",
             unsafe_allow_html=True)
         return
+
+    if legacy_reports:
+        st.caption("Showing legacy files from the local `previous reports` folder because no structured report history was found.")
+        reports = legacy_reports
 
     # Track which entry the user wants to download (avoids loading all PDFs at once)
     if "hist_dl_idx" not in st.session_state:
@@ -2422,7 +2714,20 @@ def _view_report_history():
                 unsafe_allow_html=True)
 
         with col_dl:
-            if st.session_state["hist_dl_idx"] == i and sp_path:
+            if entry.get("local_path"):
+                try:
+                    with open(entry["local_path"], "rb") as fh:
+                        st.download_button(
+                            label="⬇️ Save file",
+                            data=fh.read(),
+                            file_name=filename,
+                            mime="application/octet-stream",
+                            key=f"save_local_{i}",
+                            width="stretch",
+                        )
+                except Exception as _exc:
+                    st.error(f"Failed: {_exc}")
+            elif st.session_state["hist_dl_idx"] == i and sp_path:
                 # Fetch PDF from SharePoint and offer download
                 try:
                     import requests as _req
@@ -2438,6 +2743,7 @@ def _view_report_history():
                             file_name = filename,
                             mime      = "application/pdf",
                             key       = f"save_{i}",
+                            width     = "stretch",
                         )
                     else:
                         st.error("Not found in storage.")
@@ -2446,7 +2752,7 @@ def _view_report_history():
                 st.session_state["hist_dl_idx"] = None
             else:
                 if st.button("⬇️ Download", key=f"fetch_{i}",
-                             use_container_width=True):
+                             width="stretch"):
                     st.session_state["hist_dl_idx"] = i
                     st.rerun()
 
