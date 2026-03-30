@@ -1207,11 +1207,19 @@ def build_scada_analysis_html(
 
     _pdf_errors: list[str] = []
 
-    # ── Try Playwright (Chromium headless — installed via setup.sh) ────────
-    # Use set_content() + emulate_media("screen") so the PDF renders exactly
-    # as the HTML looks in a browser: correct background colours, white text,
-    # embedded fonts.  page.goto(file://) triggers @media print which strips
-    # backgrounds and leaves white text invisible on a white page.
+    # ── Try Playwright (Chromium headless) ────────────────────────────────
+    # setup.sh installs Chromium at deploy time, but Streamlit Cloud can
+    # restart the app process within a deployment and wipe the HOME cache.
+    # Re-running the install here is near-instant when already present.
+    try:
+        import subprocess as _sp, sys as _sys
+        _sp.run(
+            [_sys.executable, "-m", "playwright", "install", "chromium"],
+            capture_output=True, timeout=180,
+        )
+    except Exception:
+        pass
+
     try:
         from playwright.sync_api import sync_playwright as _spw
         with _spw() as pw:

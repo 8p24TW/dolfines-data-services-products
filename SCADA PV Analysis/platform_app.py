@@ -80,6 +80,59 @@ def _save_custom_sites_to_disk() -> None:
         _sp_put(token, site_id, _SP_CUSTOM_SITES_PATH, payload.encode())
     except Exception:
         pass
+# ── Report history storage (same L1/L2 pattern as custom_sites) ───────────
+_REPORT_HISTORY_FILE = SCRIPT_DIR / "report_history.json"
+_SP_REPORT_HISTORY_PATH = "pvpat_platform/report_history.json"
+_SP_REPORTS_DIR = "pvpat_platform/reports"
+
+
+def _load_report_history() -> dict:
+    """Return {site_id: [metadata, ...]} newest-first, up to 20 per site."""
+    try:
+        if _REPORT_HISTORY_FILE.exists():
+            return json.loads(_REPORT_HISTORY_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        pass
+    try:
+        import requests as _req
+        token, sp_site_id = _sharepoint_session()
+        url = (f"https://graph.microsoft.com/v1.0/sites/{sp_site_id}"
+               f"/drive/root:/{_SP_REPORT_HISTORY_PATH}:/content")
+        r = _req.get(url, headers={"Authorization": f"Bearer {token}"}, timeout=15)
+        if r.status_code == 200:
+            data = r.json()
+            try:
+                _REPORT_HISTORY_FILE.write_text(
+                    json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+            except Exception:
+                pass
+            return data
+    except Exception:
+        pass
+    return {}
+
+
+def _save_report_to_history(site_id: str, metadata: dict, pdf_bytes: bytes | None) -> None:
+    """Append entry to history JSON and upload PDF to SharePoint."""
+    from datetime import datetime as _dt
+    history = _load_report_history()
+    site_entries = history.setdefault(site_id, [])
+    site_entries.insert(0, metadata)
+    history[site_id] = site_entries[:20]  # keep newest 20 per site
+    payload = json.dumps(history, ensure_ascii=False, indent=2)
+    try:
+        _REPORT_HISTORY_FILE.write_text(payload, encoding="utf-8")
+    except Exception:
+        pass
+    try:
+        token, sp_site_id = _sharepoint_session()
+        _sp_put(token, sp_site_id, _SP_REPORT_HISTORY_PATH, payload.encode())
+        if pdf_bytes and metadata.get("sp_path"):
+            _sp_put(token, sp_site_id, metadata["sp_path"], pdf_bytes)
+    except Exception:
+        pass
+
+
 from solar_farm_explorer import render_solar_farm_explorer
 
 
@@ -1091,11 +1144,21 @@ def _view_report_select():
     if "report_choice" not in st.session_state:
         st.session_state["report_choice"] = None
 
-    col_back, _ = st.columns([2, 4])
+    col_back, col_hist, _ = st.columns([2, 2, 2])
     with col_back:
         if st.button("← Back to Portfolio"):
             st.session_state.pop("report_choice", None)
             st.session_state["view"] = "portfolio"
+            st.rerun()
+    with col_hist:
+        st.markdown(
+            "<style>div[data-testid='stButton']:has(button[kind='secondary']#btn_prev_reports)"
+            " button{background:#22c55e!important;color:#fff!important;"
+            "border:none!important;font-weight:600!important;}</style>",
+            unsafe_allow_html=True)
+        if st.button("📋 Previous Reports", key="btn_prev_reports",
+                     use_container_width=True):
+            st.session_state["view"] = "report_history"
             st.rerun()
 
     st.markdown(
@@ -1425,13 +1488,23 @@ def _view_daily_config():
                     pdf_errors = result[2] if len(result) > 2 else []
 
                     if pdf_path and pdf_path.exists():
+                        pdf_bytes = pdf_path.read_bytes()
                         st.success(f"✅ Daily report generated: **{pdf_path.name}**")
                         st.download_button(
                             label    = "⬇️  Download PDF Report",
-                            data     = pdf_path.read_bytes(),
+                            data     = pdf_bytes,
                             file_name= pdf_path.name,
                             mime     = "application/pdf",
                         )
+                        from datetime import datetime as _dt
+                        _sp_path = f"{_SP_REPORTS_DIR}/{site_id}/{pdf_path.name}"
+                        _save_report_to_history(site_id, {
+                            "report_type": "daily",
+                            "date":        report_date.strftime("%d %b %Y"),
+                            "filename":    pdf_path.name,
+                            "sp_path":     _sp_path,
+                            "generated_at": _dt.now().strftime("%Y-%m-%d %H:%M"),
+                        }, pdf_bytes)
                     elif html_path and html_path.exists():
                         st.warning(
                             "PDF generation requires WeasyPrint or Playwright. "
@@ -1608,13 +1681,23 @@ def _view_comp_info():
                 pdf_errors = result[2] if len(result) > 2 else []
 
                 if pdf_path and pdf_path.exists():
+                    pdf_bytes = pdf_path.read_bytes()
                     st.success(f"✅ Comprehensive report generated: **{pdf_path.name}**")
                     st.download_button(
                         label     = "⬇️  Download PDF Report",
-                        data      = pdf_path.read_bytes(),
+                        data      = pdf_bytes,
                         file_name = pdf_path.name,
                         mime      = "application/pdf",
                     )
+                    from datetime import datetime as _dt
+                    _sp_path = f"{_SP_REPORTS_DIR}/{site_id}/{pdf_path.name}"
+                    _save_report_to_history(site_id, {
+                        "report_type": "comprehensive",
+                        "date":        _dt.now().strftime("%d %b %Y"),
+                        "filename":    pdf_path.name,
+                        "sp_path":     _sp_path,
+                        "generated_at": _dt.now().strftime("%Y-%m-%d %H:%M"),
+                    }, pdf_bytes)
                 elif html_path and html_path.exists():
                     st.warning(
                         "PDF generation requires WeasyPrint system libraries. "
@@ -2115,6 +2198,95 @@ def _view_monthly_config():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# VIEW: REPORT HISTORY
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _view_report_history():
+    _sync_custom_sites()
+    _render_header()
+
+    site_id = st.session_state.get("selected_site", "")
+    site    = SITES.get(site_id, {})
+    is_wind = site.get("site_type") == "wind"
+    if is_wind:
+        _apply_wind_bg()
+    else:
+        _apply_solar2_bg()
+
+    col_back, _ = st.columns([2, 4])
+    with col_back:
+        if st.button("← Back", key="hist_back"):
+            st.session_state["view"] = "report_select"
+            st.rerun()
+
+    st.markdown(
+        f"<div class='step-hdr'>Previous Reports — {site.get('display_name', '')}</div>",
+        unsafe_allow_html=True)
+
+    with st.spinner("Loading report history…"):
+        history = _load_report_history()
+    reports = history.get(site_id, [])
+
+    if not reports:
+        st.markdown(
+            "<p style='color:rgba(255,255,255,0.55);margin-top:1.5rem;'>"
+            "No reports have been generated for this site yet.</p>",
+            unsafe_allow_html=True)
+        return
+
+    # Track which entry the user wants to download (avoids loading all PDFs at once)
+    if "hist_dl_idx" not in st.session_state:
+        st.session_state["hist_dl_idx"] = None
+
+    for i, entry in enumerate(reports):
+        rtype    = entry.get("report_type", "report").title()
+        rdate    = entry.get("date", "—")
+        gen_at   = entry.get("generated_at", "")
+        filename = entry.get("filename", "report.pdf")
+        sp_path  = entry.get("sp_path")
+
+        col_info, col_dl = st.columns([3, 1])
+        with col_info:
+            st.markdown(
+                f"<div style='padding:0.55rem 0;"
+                f"border-bottom:1px solid rgba(255,255,255,0.10);'>"
+                f"<span style='color:white;font-weight:600;'>{rtype}</span>"
+                f"<span style='color:rgba(255,255,255,0.50);font-size:0.82rem;'>"
+                f" &nbsp;·&nbsp; {rdate} &nbsp;·&nbsp; generated {gen_at}</span>"
+                f"</div>",
+                unsafe_allow_html=True)
+
+        with col_dl:
+            if st.session_state["hist_dl_idx"] == i and sp_path:
+                # Fetch PDF from SharePoint and offer download
+                try:
+                    import requests as _req
+                    token, sp_site_id = _sharepoint_session()
+                    url = (f"https://graph.microsoft.com/v1.0/sites/{sp_site_id}"
+                           f"/drive/root:/{sp_path}:/content")
+                    r = _req.get(url, headers={"Authorization": f"Bearer {token}"},
+                                 timeout=30)
+                    if r.status_code == 200:
+                        st.download_button(
+                            label     = "⬇️ Save PDF",
+                            data      = r.content,
+                            file_name = filename,
+                            mime      = "application/pdf",
+                            key       = f"save_{i}",
+                        )
+                    else:
+                        st.error("Not found in storage.")
+                except Exception as _exc:
+                    st.error(f"Failed: {_exc}")
+                st.session_state["hist_dl_idx"] = None
+            else:
+                if st.button("⬇️ Download", key=f"fetch_{i}",
+                             use_container_width=True):
+                    st.session_state["hist_dl_idx"] = i
+                    st.rerun()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # ROUTER
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -2141,5 +2313,7 @@ else:
         _view_site_edit()
     elif view == "solar_explorer":
         _view_solar_explorer()
+    elif view == "report_history":
+        _view_report_history()
     else:
         _view_portfolio()
