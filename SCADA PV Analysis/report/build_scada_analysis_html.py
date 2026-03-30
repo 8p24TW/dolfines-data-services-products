@@ -1211,13 +1211,6 @@ def build_scada_analysis_html(
     # embedded fonts.  page.goto(file://) triggers @media print which strips
     # backgrounds and leaves white text invisible on a white page.
     try:
-        import subprocess as _sp
-        _sp.run(["playwright", "install", "chromium"],
-                capture_output=True, timeout=120)
-    except Exception:
-        pass
-
-    try:
         from playwright.sync_api import sync_playwright as _spw
         with _spw() as pw:
             browser = pw.chromium.launch()

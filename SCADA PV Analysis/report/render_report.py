@@ -139,8 +139,8 @@ def render_pdf_with_playwright(*, html_path: Path, pdf_path: Path) -> None:
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch()
             page = browser.new_page()
+            page.emulate_media(media="screen")
             page.goto(html_path.resolve().as_uri(), wait_until="networkidle")
-            page.emulate_media(media="print")
             page.wait_for_function("Array.from(document.images).every((img) => img.complete)")
             page.pdf(
                 path=str(pdf_path),
