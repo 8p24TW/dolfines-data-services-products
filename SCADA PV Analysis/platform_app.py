@@ -993,13 +993,13 @@ def _render_lang_toggle() -> None:
     st.markdown(
         f"""
         <style>
-          .lang-toggle-row {
+          .lang-toggle-row {{
             display:flex;
             justify-content:flex-end;
             gap:0.35rem;
             align-items:flex-start;
             margin-top:0.15rem;
-          }
+          }}
           .lang-toggle-row div[data-testid="stButton"] > button {{
             min-width: 30px !important;
             width: 30px !important;
