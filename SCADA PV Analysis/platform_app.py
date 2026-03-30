@@ -302,7 +302,10 @@ st.markdown(f"""
     color:white !important; border-bottom-color:#F07820 !important;
   }}
   hr {{ border-color:rgba(255,255,255,0.15) !important; }}
-  html,body,[class*="css"] {{ font-family:'Open Sans',Arial,sans-serif; }}
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+  html,body,[class*="css"],[data-testid="stAppViewContainer"],[data-testid="stMarkdownContainer"],input,textarea,select,button {{
+    font-family:'Montserrat',Arial,sans-serif !important;
+  }}
 
   .step-hdr {{
     background:rgba(240,120,32,0.85); color:white; padding:0.45rem 1rem;
@@ -991,16 +994,17 @@ def _render_lang_toggle() -> None:
         f"""
         <style>
           .lang-flag {{
-            width: 34px;
-            height: 24px;
-            border-radius: 8px;
+            width: 28px;
+            height: 20px;
+            border-radius: 4px;
             background-position: center;
             background-repeat: no-repeat;
             background-size: 28px 20px;
-            margin-bottom: -24px;
+            margin: 2px 0 -20px 0;
             position: relative;
             z-index: 2;
             pointer-events: none;
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.10);
           }}
           .lang-flag-en {{
             border: 1px solid {gb_border};
@@ -1011,17 +1015,19 @@ def _render_lang_toggle() -> None:
             background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='20' viewBox='0 0 28 20'><rect width='28' height='20' rx='2' fill='%23fff'/><path d='M0 0h9.33v20H0z' fill='%230055A4'/><path d='M18.67 0H28v20h-9.33z' fill='%23EF4135'/></svg>");
           }}
           .lang-toggle-row div[data-testid="stButton"] > button {{
-            min-width: 34px !important;
-            width: 34px !important;
-            height: 24px !important;
+            min-width: 28px !important;
+            width: 28px !important;
+            height: 20px !important;
             padding: 0 !important;
             font-size: 0 !important;
             line-height: 0 !important;
-            border-radius: 8px !important;
+            min-height: 20px !important;
+            border-radius: 4px !important;
             background: transparent !important;
-            border: 1px solid transparent !important;
+            border: none !important;
             color: transparent !important;
             box-shadow: none !important;
+            outline: none !important;
           }}
         </style>
         """,
