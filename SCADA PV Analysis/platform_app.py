@@ -31,23 +31,53 @@ BG_WIND_PATH  = SCRIPT_DIR / "bg_wind.jpg"
 sys.path.insert(0, str(SCRIPT_DIR))
 from platform_users import USERS, SITES, PRICING
 
-# ── Persistent custom-site storage (survives session reloads; lost on redeploy)
+# ── Persistent custom-site storage ────────────────────────────────────────────
+# L1: local filesystem — fast; present within a single deployment lifecycle
+# L2: SharePoint — survives redeploys; loaded once then cached to L1
 _CUSTOM_SITES_FILE = SCRIPT_DIR / "custom_sites.json"
+_SP_CUSTOM_SITES_PATH = "pvpat_platform/custom_sites.json"
+
 
 def _load_custom_sites_from_disk() -> dict:
+    # L1: local file (fast — available for all sessions in this deployment)
     try:
         if _CUSTOM_SITES_FILE.exists():
             return json.loads(_CUSTOM_SITES_FILE.read_text(encoding="utf-8"))
     except Exception:
         pass
+    # L2: SharePoint (called once after a redeploy wipes the local file)
+    try:
+        import requests as _req
+        token, site_id = _sharepoint_session()
+        url = (f"https://graph.microsoft.com/v1.0/sites/{site_id}"
+               f"/drive/root:/{_SP_CUSTOM_SITES_PATH}:/content")
+        r = _req.get(url, headers={"Authorization": f"Bearer {token}"}, timeout=15)
+        if r.status_code == 200:
+            data = r.json()
+            # Populate L1 so subsequent sessions in this deployment skip SharePoint
+            try:
+                _CUSTOM_SITES_FILE.write_text(
+                    json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+            except Exception:
+                pass
+            return data
+    except Exception:
+        pass
     return {}
 
+
 def _save_custom_sites_to_disk() -> None:
+    data = st.session_state.get("custom_sites", {})
+    payload = json.dumps(data, ensure_ascii=False, indent=2)
+    # L1: local file
     try:
-        _CUSTOM_SITES_FILE.write_text(
-            json.dumps(st.session_state.get("custom_sites", {}), ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
+        _CUSTOM_SITES_FILE.write_text(payload, encoding="utf-8")
+    except Exception:
+        pass
+    # L2: SharePoint (persists across redeploys)
+    try:
+        token, site_id = _sharepoint_session()
+        _sp_put(token, site_id, _SP_CUSTOM_SITES_PATH, payload.encode())
     except Exception:
         pass
 from solar_farm_explorer import render_solar_farm_explorer
