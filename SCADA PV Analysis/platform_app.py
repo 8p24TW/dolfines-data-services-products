@@ -991,8 +991,17 @@ def _render_lang_toggle() -> None:
           .lang-toggle-row div[data-testid="stButton"] > button {
             min-width: 2.7rem !important;
             padding: 0.2rem 0.45rem !important;
-            font-size: 1.15rem !important;
+            font-size: 0 !important;
             line-height: 1.1 !important;
+            background-position: center !important;
+            background-repeat: no-repeat !important;
+            background-size: 28px 20px !important;
+          }
+          .lang-toggle-row [data-testid="stColumn"]:nth-child(1) div[data-testid="stButton"] > button {
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='20' viewBox='0 0 28 20'><clipPath id='a'><rect width='28' height='20' rx='2'/></clipPath><g clip-path='url(%23a)'><rect width='28' height='20' fill='%23012169'/><path d='M0 0l28 20M28 0L0 20' stroke='%23fff' stroke-width='4'/><path d='M0 0l28 20M28 0L0 20' stroke='%23C8102E' stroke-width='2.2'/><path d='M14 0v20M0 10h28' stroke='%23fff' stroke-width='6'/><path d='M14 0v20M0 10h28' stroke='%23C8102E' stroke-width='4'/></g></svg>") !important;
+          }
+          .lang-toggle-row [data-testid="stColumn"]:nth-child(2) div[data-testid="stButton"] > button {
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='20' viewBox='0 0 28 20'><rect width='28' height='20' rx='2' fill='%23fff'/><path d='M0 0h9.33v20H0z' fill='%230055A4'/><path d='M18.67 0H28v20h-9.33z' fill='%23EF4135'/></svg>") !important;
           }
         </style>
         """,
@@ -1001,12 +1010,12 @@ def _render_lang_toggle() -> None:
     st.markdown('<div class="lang-toggle-row"></div>', unsafe_allow_html=True)
     col_en, col_fr = st.columns(2)
     with col_en:
-        if st.button("🇬🇧", key="lang_en", type="primary" if active == "en" else "secondary"):
+        if st.button("English", key="lang_en", type="primary" if active == "en" else "secondary"):
             if active != "en":
                 st.session_state["ui_lang"] = "en"
                 st.rerun()
     with col_fr:
-        if st.button("🇫🇷", key="lang_fr", type="primary" if active == "fr" else "secondary"):
+        if st.button("Français", key="lang_fr", type="primary" if active == "fr" else "secondary"):
             if active != "fr":
                 st.session_state["ui_lang"] = "fr"
                 st.rerun()
