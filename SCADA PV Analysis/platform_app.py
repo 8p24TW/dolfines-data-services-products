@@ -706,10 +706,32 @@ def _normalise_files(mapped_result, site_type="solar") -> list:
 # SESSION STATE HELPERS
 # ─────────────────────────────────────────────────────────────────────────────
 
+_POSITIVE_NUMERIC_FIELDS = frozenset({
+    "n_inverters", "inv_ac_kw", "cap_ac_kw", "cap_dc_kwp",
+    "n_modules", "module_wp", "hub_height_m", "tip_height_m",
+    "rotor_diameter_m", "expected_aep_gwh",
+})
+
 def _sync_custom_sites():
-    """Ensure any user-added sites are always available in the SITES dict."""
+    """Merge custom/overridden sites into SITES.
+
+    For built-in sites, zero/None values in the override dict are NOT allowed
+    to overwrite valid positive-numeric base values — this prevents stale
+    SharePoint data (e.g. n_inverters=0 from an old edit) from clobbering
+    freshly updated platform_users.py entries.
+    """
+    from platform_users import SITES as _BASE_SITES
     for sid, cfg in st.session_state.get("custom_sites", {}).items():
-        SITES[sid] = cfg
+        if sid in _BASE_SITES:
+            # Merge: start from base, apply only meaningful overrides
+            merged = dict(_BASE_SITES[sid])
+            for k, v in cfg.items():
+                if k in _POSITIVE_NUMERIC_FIELDS and not v:
+                    continue  # skip zero/None — keep base value
+                merged[k] = v
+            SITES[sid] = merged
+        else:
+            SITES[sid] = cfg
 
 def _logged_in() -> bool:
     return st.session_state.get("user") is not None
@@ -1950,7 +1972,9 @@ def _view_site_detail():
 
         if is_wind:
             # ── Wind: power curve scatter plot ────────────────────────────
-            rated_kw = site.get("inv_ac_kw", 4500.0)
+            _inv_kw  = site.get("inv_ac_kw") or 0
+            _n_turb  = max(site.get("n_inverters") or 1, 1)
+            rated_kw = _inv_kw or (site.get("cap_ac_kw", 0) / _n_turb) or 4500.0
             cut_in, rated_ws, cut_out = 3.0, 13.0, 22.0
 
             def _mfr_curve(ws):
@@ -1994,7 +2018,7 @@ def _view_site_detail():
             _plt.close(_fig)
             st.markdown(
                 "<p style='color:rgba(255,255,255,0.38);font-size:0.70rem;margin-top:0;'>"
-                "Indicative power curve — connect SCADA for live data.</p>",
+                "Indicative power curve — connect SCADA or upload data for live results.</p>",
                 unsafe_allow_html=True)
 
         else:
@@ -2077,8 +2101,13 @@ def _view_site_edit():
     _sync_custom_sites()
     _render_header()
 
-    site_id  = st.session_state.get("selected_site", "")
-    site     = dict(SITES.get(site_id, {}))
+    from equipment_kb import (
+        WIND_TURBINES, SOLAR_INVERTERS, SOLAR_MODULE_MANUFACTURERS,
+        detect_wind_manufacturer, detect_inverter_manufacturer,
+    )
+
+    site_id   = st.session_state.get("selected_site", "")
+    site      = dict(SITES.get(site_id, {}))
     is_custom = site_id in st.session_state.get("custom_sites", {})
 
     col_back, _ = st.columns([2, 4])
@@ -2097,12 +2126,44 @@ def _view_site_edit():
 
     is_wind = site.get("site_type") == "wind"
 
+    # ── Manufacturer selectors sit OUTSIDE the form so they trigger reruns
+    # and the dependent model dropdown refreshes immediately.
+    _div = "<hr style='border-color:rgba(255,255,255,0.1);margin:0.6rem 0;'>"
+
+    if is_wind:
+        st.markdown("<div class='sub-hdr'>Wind Turbine Details</div>", unsafe_allow_html=True)
+        _mfr_list = [""] + list(WIND_TURBINES.keys())
+        _cur_mfr  = detect_wind_manufacturer(site.get("technology", ""))
+        _mfr_idx  = _mfr_list.index(_cur_mfr) if _cur_mfr in _mfr_list else 0
+        new_turbine_mfr = st.selectbox(
+            "Turbine manufacturer",
+            _mfr_list,
+            index=_mfr_idx,
+            key=f"edit_wind_mfr_{site_id}",
+        )
+        _turbine_models = WIND_TURBINES.get(new_turbine_mfr, [])
+    else:
+        st.markdown("<div class='sub-hdr'>Solar Equipment Details</div>", unsafe_allow_html=True)
+        _inv_mfr_list = [""] + list(SOLAR_INVERTERS.keys())
+        _cur_inv_mfr  = detect_inverter_manufacturer(site.get("inverter_model", ""))
+        _inv_mfr_idx  = _inv_mfr_list.index(_cur_inv_mfr) if _cur_inv_mfr in _inv_mfr_list else 0
+        new_inv_mfr = st.selectbox(
+            "Inverter manufacturer",
+            _inv_mfr_list,
+            index=_inv_mfr_idx,
+            key=f"edit_inv_mfr_{site_id}",
+        )
+        _inv_models = SOLAR_INVERTERS.get(new_inv_mfr, [])
+
+    st.markdown(_div, unsafe_allow_html=True)
+
+    # ── All remaining fields inside a form ────────────────────────────────────
     with st.form("site_edit_form"):
         c1, c2 = st.columns(2)
         with c1:
             new_name = st.text_input("Site name", value=site.get("display_name", ""))
             new_cap  = st.text_input(
-                "Capacity (MWp DC)" if not is_wind else "Capacity (MW)",
+                "Capacity (MW)" if is_wind else "Capacity (MWp DC)",
                 value=str(round(site.get("cap_dc_kwp", 0) / 1000, 3)),
             )
             new_status = st.selectbox(
@@ -2112,42 +2173,146 @@ def _view_site_edit():
                     site.get("status", "operational")),
             )
         with c2:
-            new_country  = st.text_input("Country",  value=site.get("country",  ""))
-            new_region   = st.text_input("Region",   value=site.get("region",   ""))
-            new_cod      = st.text_input("COD date", value=site.get("cod",      ""))
+            new_country = st.text_input("Country",  value=site.get("country",  ""))
+            new_region  = st.text_input("Region",   value=site.get("region",   ""))
+            new_cod     = st.text_input("COD date", value=site.get("cod",      ""))
 
-        new_tech  = st.text_input("Technology / turbine model",
-                                  value=site.get("technology", ""))
-        new_inv   = st.text_input("Inverter model",
-                                  value=site.get("inverter_model", ""))
+        if is_wind:
+            # Turbine model (options depend on manufacturer chosen above)
+            _cur_model = site.get("technology", "")
+            if _turbine_models:
+                _model_list = [""] + _turbine_models
+                _model_idx  = _model_list.index(_cur_model) if _cur_model in _model_list else 0
+                new_tech = st.selectbox("Turbine model", _model_list, index=_model_idx)
+            else:
+                new_tech = st.text_input("Turbine model", value=_cur_model,
+                                         placeholder="e.g. V136-4.5")
+
+            _wc1, _wc2 = st.columns(2)
+            with _wc1:
+                _unit_kw_default = site.get("inv_ac_kw") or 0
+                new_unit_cap_mw = st.text_input(
+                    "Rated capacity per turbine (MW)",
+                    value=str(round(_unit_kw_default / 1000, 2)) if _unit_kw_default else "",
+                    placeholder="e.g. 4.5",
+                )
+                new_hub_height = st.text_input(
+                    "Hub height (m)",
+                    value=str(site.get("hub_height_m", "")) if site.get("hub_height_m") else "",
+                    placeholder="e.g. 112",
+                )
+            with _wc2:
+                new_n_turbines = st.text_input(
+                    "Number of turbines",
+                    value=str(site.get("n_inverters", "")) if site.get("n_inverters") else "",
+                    placeholder="e.g. 4",
+                )
+                new_tip_height = st.text_input(
+                    "Height to blade tip (m)",
+                    value=str(site.get("tip_height_m", "")) if site.get("tip_height_m") else "",
+                    placeholder="e.g. 180",
+                )
+            new_aep = st.text_input(
+                "Expected AEP (GWh/yr)",
+                value=str(site.get("expected_aep_gwh", "")) if site.get("expected_aep_gwh") else "",
+                placeholder="e.g. 52.4",
+            )
+            new_inv = site.get("inverter_model", "—")  # not used for wind
+
+        else:
+            # Solar: module tech description + inverter model
+            _mod_mfr_list = [""] + SOLAR_MODULE_MANUFACTURERS
+            _cur_mod_mfr = next(
+                (m for m in SOLAR_MODULE_MANUFACTURERS
+                 if site.get("technology", "").lower().startswith(m.lower().split()[0])),
+                "")
+            _mod_mfr_idx = _mod_mfr_list.index(_cur_mod_mfr) if _cur_mod_mfr in _mod_mfr_list else 0
+            st.selectbox(
+                "Module manufacturer (reference)",
+                _mod_mfr_list,
+                index=_mod_mfr_idx,
+            )
+            new_tech = st.text_input(
+                "Module technology / description",
+                value=site.get("technology", ""),
+                placeholder="e.g. Bifacial (LONGi Hi-MO 6)",
+            )
+
+            _cur_inv = site.get("inverter_model", "")
+            if _inv_models:
+                _inv_list = [""] + _inv_models
+                _inv_idx  = _inv_list.index(_cur_inv) if _cur_inv in _inv_list else 0
+                new_inv = st.selectbox("Inverter model", _inv_list, index=_inv_idx)
+            else:
+                new_inv = st.text_input(
+                    "Inverter model",
+                    value=_cur_inv,
+                    placeholder="e.g. SG250HX",
+                )
+            new_unit_cap_mw = None
+            new_n_turbines  = None
+            new_hub_height  = None
+            new_tip_height  = None
+            new_aep         = None
 
         saved = st.form_submit_button("💾 Save changes", use_container_width=False)
 
     if saved:
         try:
-            cap_kwp = float(new_cap.replace(",", ".")) * 1000
+            cap_kwp = float(str(new_cap).replace(",", ".")) * 1000
         except ValueError:
             st.error("Capacity must be a number.")
             return
 
-        updates = {
-            "display_name":   new_name.strip() or site.get("display_name", ""),
+        updates: dict = {
+            "display_name":   str(new_name).strip() or site.get("display_name", ""),
             "cap_dc_kwp":     cap_kwp,
-            "cap_ac_kw":      cap_kwp * (1 / site.get("dc_ac_ratio", 1.0)) if not is_wind else cap_kwp,
+            "cap_ac_kw":      (cap_kwp * (1 / site.get("dc_ac_ratio", 1.0))
+                               if not is_wind else cap_kwp),
             "status":         new_status,
-            "country":        new_country.strip(),
-            "region":         new_region.strip(),
-            "cod":            new_cod.strip(),
-            "technology":     new_tech.strip(),
-            "inverter_model": new_inv.strip(),
+            "country":        str(new_country).strip(),
+            "region":         str(new_region).strip(),
+            "cod":            str(new_cod).strip(),
+            "technology":     str(new_tech).strip(),
+            "inverter_model": str(new_inv).strip() if not is_wind else site.get("inverter_model", "—"),
         }
+
+        if is_wind:
+            try:
+                _v = float(str(new_unit_cap_mw).replace(",", "."))
+                if _v > 0:
+                    updates["inv_ac_kw"] = _v * 1000
+            except (ValueError, TypeError):
+                pass
+            try:
+                _v = int(str(new_n_turbines).strip())
+                if _v > 0:
+                    updates["n_inverters"] = _v
+            except (ValueError, TypeError):
+                pass
+            try:
+                _v = int(str(new_hub_height).strip())
+                if _v > 0:
+                    updates["hub_height_m"] = _v
+            except (ValueError, TypeError):
+                pass
+            try:
+                _v = int(str(new_tip_height).strip())
+                if _v > 0:
+                    updates["tip_height_m"] = _v
+            except (ValueError, TypeError):
+                pass
+            try:
+                _v = float(str(new_aep).replace(",", "."))
+                if _v > 0:
+                    updates["expected_aep_gwh"] = _v
+            except (ValueError, TypeError):
+                pass
 
         if is_custom:
             st.session_state["custom_sites"][site_id].update(updates)
         else:
-            # Update in-memory SITES (persists for this session)
             SITES[site_id].update(updates)
-            # Also store as a custom override so it survives via disk
             overrides = st.session_state.setdefault("custom_sites", {})
             if site_id not in overrides:
                 overrides[site_id] = dict(SITES[site_id])
