@@ -1416,11 +1416,13 @@ def _view_daily_config():
                         / f"PVPAT_Daily_{site_safe}_{date_str}.html"
                     )
 
-                    pdf_path, html_path = build_scada_analysis_html(
+                    result = build_scada_analysis_html(
                         site_cfg = site,
                         data_dir = tmp_data_dir,
                         out_path = out_html,
                     )
+                    pdf_path, html_path = result[0], result[1]
+                    pdf_errors = result[2] if len(result) > 2 else []
 
                     if pdf_path and pdf_path.exists():
                         st.success(f"✅ Daily report generated: **{pdf_path.name}**")
@@ -1436,6 +1438,10 @@ def _view_daily_config():
                             "Downloading as HTML instead — open in any browser and use "
                             "**File → Print → Save as PDF**."
                         )
+                        if pdf_errors:
+                            with st.expander("🔧 PDF engine errors (for diagnosis)"):
+                                for err in pdf_errors:
+                                    st.code(err)
                         st.download_button(
                             label    = "⬇️  Download Report (HTML)",
                             data     = html_path.read_bytes(),
@@ -1594,10 +1600,12 @@ def _view_comp_info():
                 _sys.path.insert(0, str(SCRIPT_DIR))
                 from report.build_scada_analysis_html import build_scada_analysis_html
 
-                pdf_path, html_path = build_scada_analysis_html(
+                result = build_scada_analysis_html(
                     site_cfg = site,
                     data_dir = tmp_data_dir,
                 )
+                pdf_path, html_path = result[0], result[1]
+                pdf_errors = result[2] if len(result) > 2 else []
 
                 if pdf_path and pdf_path.exists():
                     st.success(f"✅ Comprehensive report generated: **{pdf_path.name}**")
@@ -1613,6 +1621,10 @@ def _view_comp_info():
                         "Downloading as HTML instead — open in any browser and use "
                         "**File → Print → Save as PDF**."
                     )
+                    if pdf_errors:
+                        with st.expander("🔧 PDF engine errors (for diagnosis)"):
+                            for err in pdf_errors:
+                                st.code(err)
                     st.download_button(
                         label     = "⬇️  Download Report (HTML)",
                         data      = html_path.read_bytes(),

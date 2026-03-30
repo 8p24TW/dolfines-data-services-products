@@ -1205,6 +1205,8 @@ def build_scada_analysis_html(
 
     pdf_path = out_path.with_suffix(".pdf")
 
+    _pdf_errors: list[str] = []
+
     # ── Try Playwright (Chromium headless — installed via setup.sh) ────────
     # Use set_content() + emulate_media("screen") so the PDF renders exactly
     # as the HTML looks in a browser: correct background colours, white text,
@@ -1226,15 +1228,15 @@ def build_scada_analysis_html(
             )
             browser.close()
         return pdf_path, out_path
-    except Exception:
-        pass
+    except Exception as _e:
+        _pdf_errors.append(f"Playwright: {_e}")
 
     # ── Fallback: WeasyPrint (Linux system-lib install) ────────────────────
     try:
         from weasyprint import HTML as _WP_HTML
         _WP_HTML(string=html, base_url=str(out_path.parent)).write_pdf(str(pdf_path))
         return pdf_path, out_path
-    except Exception:
-        pass
+    except Exception as _e:
+        _pdf_errors.append(f"WeasyPrint: {_e}")
 
-    return None, out_path
+    return None, out_path, _pdf_errors
