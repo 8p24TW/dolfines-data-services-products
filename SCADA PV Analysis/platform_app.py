@@ -977,6 +977,17 @@ def _ui_lang() -> str:
     return st.session_state.get("ui_lang", "en")
 
 
+def _sync_lang_from_query() -> None:
+    try:
+        lang = st.query_params.get("lang")
+    except Exception:
+        lang = None
+    if isinstance(lang, list):
+        lang = lang[0] if lang else None
+    if lang in {"en", "fr"} and st.session_state.get("ui_lang") != lang:
+        st.session_state["ui_lang"] = lang
+
+
 def _t(key: str, **kwargs) -> str:
     lang = _ui_lang()
     text = _UI_TEXT.get(lang, _UI_TEXT["en"]).get(key, _UI_TEXT["en"].get(key, key))
@@ -985,40 +996,53 @@ def _t(key: str, **kwargs) -> str:
 
 def _render_lang_toggle() -> None:
     active = _ui_lang()
+    gb_border = "#f39200" if active == "en" else "rgba(255,255,255,0.22)"
+    fr_border = "#f39200" if active == "fr" else "rgba(255,255,255,0.22)"
     st.markdown(
-        """
+        f"""
         <style>
-          .lang-toggle-row div[data-testid="stButton"] > button {
-            min-width: 2.7rem !important;
-            padding: 0.2rem 0.45rem !important;
-            font-size: 0 !important;
-            line-height: 1.1 !important;
-            background-position: center !important;
-            background-repeat: no-repeat !important;
-            background-size: 28px 20px !important;
-          }
-          .lang-toggle-row [data-testid="stColumn"]:nth-child(1) div[data-testid="stButton"] > button {
-            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='20' viewBox='0 0 28 20'><clipPath id='a'><rect width='28' height='20' rx='2'/></clipPath><g clip-path='url(%23a)'><rect width='28' height='20' fill='%23012169'/><path d='M0 0l28 20M28 0L0 20' stroke='%23fff' stroke-width='4'/><path d='M0 0l28 20M28 0L0 20' stroke='%23C8102E' stroke-width='2.2'/><path d='M14 0v20M0 10h28' stroke='%23fff' stroke-width='6'/><path d='M14 0v20M0 10h28' stroke='%23C8102E' stroke-width='4'/></g></svg>") !important;
-          }
-          .lang-toggle-row [data-testid="stColumn"]:nth-child(2) div[data-testid="stButton"] > button {
-            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='20' viewBox='0 0 28 20'><rect width='28' height='20' rx='2' fill='%23fff'/><path d='M0 0h9.33v20H0z' fill='%230055A4'/><path d='M18.67 0H28v20h-9.33z' fill='%23EF4135'/></svg>") !important;
-          }
+          .lang-toggle {{
+            display:flex;
+            gap:0.45rem;
+            justify-content:flex-end;
+            align-items:center;
+          }}
+          .lang-toggle a {{
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            width:42px;
+            height:30px;
+            border-radius:8px;
+            background:rgba(255,255,255,0.06);
+            border:1px solid rgba(255,255,255,0.18);
+            text-decoration:none;
+            transition:transform .12s ease, border-color .12s ease, background .12s ease;
+          }}
+          .lang-toggle a:hover {{
+            transform:translateY(-1px);
+            background:rgba(255,255,255,0.10);
+          }}
+          .lang-toggle a.active-en {{ border-color:{gb_border}; }}
+          .lang-toggle a.active-fr {{ border-color:{fr_border}; }}
+          .lang-toggle img {{ width:28px; height:20px; display:block; border-radius:2px; }}
         </style>
         """,
         unsafe_allow_html=True,
     )
-    st.markdown('<div class="lang-toggle-row"></div>', unsafe_allow_html=True)
-    col_en, col_fr = st.columns(2)
-    with col_en:
-        if st.button("English", key="lang_en", type="primary" if active == "en" else "secondary"):
-            if active != "en":
-                st.session_state["ui_lang"] = "en"
-                st.rerun()
-    with col_fr:
-        if st.button("Français", key="lang_fr", type="primary" if active == "fr" else "secondary"):
-            if active != "fr":
-                st.session_state["ui_lang"] = "fr"
-                st.rerun()
+    st.markdown(
+        f"""
+        <div class="lang-toggle">
+          <a class="{'active-en' if active == 'en' else ''}" href="?lang=en" title="English" aria-label="English">
+            <img alt="English" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='20' viewBox='0 0 28 20'><clipPath id='a'><rect width='28' height='20' rx='2'/></clipPath><g clip-path='url(%23a)'><rect width='28' height='20' fill='%23012169'/><path d='M0 0l28 20M28 0L0 20' stroke='%23fff' stroke-width='4'/><path d='M0 0l28 20M28 0L0 20' stroke='%23C8102E' stroke-width='2.2'/><path d='M14 0v20M0 10h28' stroke='%23fff' stroke-width='6'/><path d='M14 0v20M0 10h28' stroke='%23C8102E' stroke-width='4'/></g></svg>" />
+          </a>
+          <a class="{'active-fr' if active == 'fr' else ''}" href="?lang=fr" title="Français" aria-label="Français">
+            <img alt="Français" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='20' viewBox='0 0 28 20'><rect width='28' height='20' rx='2' fill='%23fff'/><path d='M0 0h9.33v20H0z' fill='%230055A4'/><path d='M18.67 0H28v20h-9.33z' fill='%23EF4135'/></svg>" />
+          </a>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -3042,8 +3066,10 @@ def _view_report_history():
 # ─────────────────────────────────────────────────────────────────────────────
 
 if not _logged_in():
+    _sync_lang_from_query()
     _view_login()
 else:
+    _sync_lang_from_query()
     _sync_custom_sites()          # always keep SITES in sync on every render
     view = st.session_state.get("view", "portfolio")
     if view == "portfolio":
