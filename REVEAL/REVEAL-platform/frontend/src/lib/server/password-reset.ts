@@ -101,6 +101,49 @@ export async function resetPassword(token: string, password: string) {
   return { ok: true as const };
 }
 
+export async function sendWelcomeEmail(email: string, name: string) {
+  if (!smtpConfigured()) {
+    return false;
+  }
+
+  const appUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, "") || "https://dolfines-data-services-products.vercel.app";
+  const firstName = name.trim().split(/\s+/)[0] || "there";
+
+  const nodemailer = await import("nodemailer");
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT ?? 587),
+    secure: process.env.SMTP_SECURE === "true",
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASSWORD,
+    },
+  });
+
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM,
+    to: email,
+    subject: "Welcome to the REVEAL platform",
+    text: `Welcome to REVEAL, ${firstName}.\n\nYour account is now active.\n\nYou can sign in here: ${appUrl}\n\nREVEAL supports solar PV and wind performance analysis, long-term normalization, electricity price forecasting, BESS retrofit screening and equipment intelligence.\n\nBest regards,\n8p2 Advisory`,
+    html: `
+      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0b2a3d">
+        <h2 style="margin:0 0 16px;color:#0b2a3d">Welcome to the REVEAL platform</h2>
+        <p>Hello ${firstName},</p>
+        <p>Your REVEAL account is now active.</p>
+        <p>
+          <a href="${appUrl}" style="display:inline-block;padding:12px 18px;background:#f39200;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600">
+            Open REVEAL
+          </a>
+        </p>
+        <p>REVEAL supports solar PV and wind performance analysis, long-term normalization, electricity price forecasting, BESS retrofit screening and equipment intelligence.</p>
+        <p>Best regards,<br />8p2 Advisory</p>
+      </div>
+    `,
+  });
+
+  return true;
+}
+
 async function sendPasswordResetEmail(email: string, resetUrl: string) {
   if (!smtpConfigured()) {
     return false;

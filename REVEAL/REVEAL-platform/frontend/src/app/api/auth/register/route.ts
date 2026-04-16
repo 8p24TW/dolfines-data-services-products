@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/server/passwords";
+import { sendWelcomeEmail } from "@/lib/server/password-reset";
 
 const EXTERNAL_ORGANIZATION = "External Access";
 
@@ -52,6 +53,10 @@ export async function POST(request: Request) {
         plan_type: "unlimited",
         organizationId: organization.id,
       },
+    });
+
+    void sendWelcomeEmail(user.email, user.display_name).catch((mailError) => {
+      console.error("welcome-email-error", mailError);
     });
 
     return NextResponse.json({
