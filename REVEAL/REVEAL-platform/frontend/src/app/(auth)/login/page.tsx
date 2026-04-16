@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/Button";
 import { BrandLockup } from "@/components/layout/BrandLockup";
@@ -14,43 +12,34 @@ const LOGIN_COPY = {
     title: "REVEAL",
     titleSecondary: "Renewable Energy Valuation, Evaluation and Analytics Lab",
     subtitle: "Solar PV and wind performance analysis, long-term normalization, electricity price forecasting, BESS retrofit screening and equipment intelligence.",
-    email: "Email",
-    password: "Password",
-    forgot: "Forgot password?",
-    signIn: "Sign in",
+    signIn: "Sign in with Microsoft",
     powered: "Powered by 8p2 Advisory",
-    invalid: "Incorrect email or password.",
+    helper: "Use your Dolfines Microsoft account to access the platform securely.",
+    invalid: "Unable to start Microsoft sign-in right now.",
   },
   fr: {
     title: "REVEAL",
     titleSecondary: "Renewable Energy Valuation, Evaluation and Analytics Lab",
     subtitle: "Analyse de performance solaire PV et éolienne, normalisation long terme, prévision des prix de l'électricité, dimensionnement de retrofit BESS et intelligence équipement.",
-    email: "E-mail",
-    password: "Mot de passe",
-    forgot: "Mot de passe oublié ?",
-    signIn: "Se connecter",
+    signIn: "Se connecter avec Microsoft",
     powered: "Powered by 8p2 Advisory",
-    invalid: "E-mail ou mot de passe incorrect.",
+    helper: "Utilisez votre compte Microsoft Dolfines pour accéder à la plateforme en toute sécurité.",
+    invalid: "Impossible de lancer la connexion Microsoft pour le moment.",
   },
   de: {
     title: "REVEAL",
     titleSecondary: "Renewable Energy Valuation, Evaluation and Analytics Lab",
     subtitle: "Solar- und Windleistungsanalyse, Langfristnormalisierung, Strompreisvorhersage, BESS-Retrofit-Screening und Anlagenintelligenz.",
-    email: "E-Mail",
-    password: "Passwort",
-    forgot: "Passwort vergessen?",
-    signIn: "Anmelden",
+    signIn: "Mit Microsoft anmelden",
     powered: "Powered by 8p2 Advisory",
-    invalid: "Falsche E-Mail oder falsches Passwort.",
+    helper: "Melden Sie sich mit Ihrem Dolfines-Microsoft-Konto sicher an.",
+    invalid: "Microsoft-Anmeldung konnte gerade nicht gestartet werden.",
   },
 } as const;
 
 export default function LoginPage() {
-  const router = useRouter();
   const { lang, setLang } = useTranslation();
   const [displayLang, setDisplayLang] = useState(lang);
-  const [email, setEmail] = useState("demo@dolfines.com");
-  const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,13 +49,11 @@ export default function LoginPage() {
 
   const copy = LOGIN_COPY[displayLang] ?? LOGIN_COPY.en;
 
-  async function handleDemoLogin() {
+  async function handleAzureLogin() {
     setSubmitting(true);
     setError(null);
     try {
-      const result = await signIn("credentials", {
-        email,
-        password,
+      const result = await signIn("azure-ad", {
         callbackUrl: "/dashboard",
         redirect: false,
       });
@@ -76,7 +63,12 @@ export default function LoginPage() {
         return;
       }
 
-      router.push(result?.url ?? "/dashboard");
+      if (result?.url) {
+        window.location.href = result.url;
+        return;
+      }
+
+      setError(copy.invalid);
     } finally {
       setSubmitting(false);
     }
@@ -140,27 +132,8 @@ export default function LoginPage() {
         </div>
 
         <div className="space-y-4">
-          <div>
-            <label className="mb-1 block text-xs font-bold uppercase tracking-[0.22em] text-slate-200/78">{copy.email}</label>
-            <input
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className="w-full rounded-xl border border-white/12 bg-white px-3 py-2.5 text-sm font-medium text-slate-950 placeholder:text-slate-500 focus:border-orange-DEFAULT focus:outline-none"
-            />
-          </div>
-          <div>
-            <div className="mb-1 flex items-center justify-between gap-3">
-              <label className="block text-xs font-bold uppercase tracking-[0.22em] text-slate-200/78">{copy.password}</label>
-              <Link href="/forgot-password" className="text-xs font-semibold text-orange-DEFAULT hover:text-orange-accent">
-                {copy.forgot}
-              </Link>
-            </div>
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="w-full rounded-xl border border-white/12 bg-white px-3 py-2.5 text-sm font-medium text-slate-950 placeholder:text-slate-500 focus:border-orange-DEFAULT focus:outline-none"
-            />
+          <div className="rounded-2xl border border-white/14 bg-white/7 px-4 py-4 text-sm text-slate-100/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+            {copy.helper}
           </div>
           {error ? <p className="text-sm font-semibold text-red-400">{error}</p> : null}
           <Button
@@ -168,7 +141,7 @@ export default function LoginPage() {
             size="lg"
             className="w-full !bg-[#F39200] hover:!bg-[#F7B540]"
             loading={submitting}
-            onClick={handleDemoLogin}
+            onClick={handleAzureLogin}
           >
             {copy.signIn}
           </Button>
