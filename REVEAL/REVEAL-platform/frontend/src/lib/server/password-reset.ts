@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { prisma } from "@/lib/prisma";
+import { hashPassword } from "@/lib/server/passwords";
 
 const RESET_TOKEN_TTL_MS = 1000 * 60 * 60;
 
@@ -78,10 +79,12 @@ export async function resetPassword(token: string, password: string) {
     return { ok: false as const, message: "This reset link is invalid or has expired." };
   }
 
+  const hashedPassword = await hashPassword(trimmedPassword);
+
   await prisma.$transaction([
     prisma.user.update({
       where: { id: resetRecord.userId },
-      data: { password: trimmedPassword },
+      data: { password: hashedPassword },
     }),
     prisma.passwordResetToken.update({
       where: { id: resetRecord.id },
