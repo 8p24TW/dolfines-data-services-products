@@ -1,0 +1,232 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PlanType {
+  one_shot
+  unlimited
+}
+
+enum SiteType {
+  solar
+  wind
+}
+
+enum SiteStatus {
+  operational
+  maintenance
+  offline
+}
+
+enum ReportType {
+  comprehensive
+  daily
+  monthly
+}
+
+enum ReportStatus {
+  queued
+  running
+  complete
+  error
+}
+
+enum ReportLanguage {
+  en
+  fr
+  de
+}
+
+model Organization {
+  id                String             @id @default(cuid())
+  name              String             @unique
+  users             User[]
+  sites             Site[]
+  portalSubmissions PortalSubmission[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+}
+
+model User {
+  id             String       @id @default(cuid())
+  email          String       @unique
+  password       String?
+  display_name   String
+  plan_type      PlanType
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  sites          Site[]       @relation("UserSiteAccess")
+  passwordResetTokens PasswordResetToken[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model PasswordResetToken {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime @default(now())
+}
+
+model Site {
+  id                  String            @id
+  display_name        String
+  country             String
+  region              String
+  cod                 DateTime          @db.Date
+  technology          String
+  site_type           SiteType
+  status              SiteStatus
+  lat                 Float
+  lon                 Float
+  cap_ac_kw           Float
+  cap_dc_kwp          Float
+  n_inverters         Int
+  inv_ac_kw           Float
+  inv_model           String
+  n_modules           Int
+  module_wp           Float
+  module_brand        String?
+  site_timezone       String?           @default("Europe/Paris")
+  irradiance_basis    String?
+  module_tilt_deg     Float?
+  tariff_eur_mwh      Float?
+  has_bess            Boolean           @default(false)
+  bess_power_kw       Float?
+  bess_energy_kwh     Float?
+  bess_manufacturer   String?
+  bess_model          String?
+  bess_chemistry      String?
+  bess_duration_hours Float?
+  bess_roundtrip_efficiency_pct Float?
+  bess_container_count Int?
+  retrofit_bess_enabled Boolean          @default(false)
+  retrofit_bess_power_kw Float?
+  retrofit_bess_energy_kwh Float?
+  retrofit_bess_cost_eur_kwh Float?
+  retrofit_bess_land_area_m2 Float?
+  dc_ac_ratio         Float
+  design_pr           Float
+  operating_pr_target Float
+  interval_min        Int
+  irr_threshold       Float
+  power_threshold     Float
+  temp_coeff          Float?
+  data_dir            String?
+  owner_id            String?
+  plan_type           PlanType?
+  hub_height_m        Float?
+  tip_height_m        Float?
+  rotor_diameter_m    Float?
+  expected_aep_gwh    Float?
+  organizationId      String?
+  organization        Organization?     @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  users               User[]            @relation("UserSiteAccess")
+  solar_module_types  SolarModuleType[]
+  solar_inverter_units SolarInverterUnit[]
+  reports             Report[]
+  report_jobs         ReportJob[]
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+}
+
+model SolarModuleType {
+  id           String   @id @default(cuid())
+  siteId       String
+  site         Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  manufacturer String?
+  model        String
+  module_wp    Float
+  quantity     Int
+  technology   String?
+  cell_type    String?
+  module_efficiency_pct Float?
+  bifaciality_pct Float?
+  temp_coeff_pmax_pct_per_c Float?
+  temp_coeff_voc_pct_per_c Float?
+  temp_coeff_isc_pct_per_c Float?
+  first_year_degradation_pct Float?
+  annual_degradation_pct Float?
+  length_mm    Float?
+  width_mm     Float?
+  thickness_mm Float?
+  weight_kg    Float?
+  max_system_voltage_v Float?
+  operating_temp_min_c Float?
+  operating_temp_max_c Float?
+  glass_description String?
+  frame_description String?
+  source_url   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model SolarInverterUnit {
+  id              String   @id @default(cuid())
+  siteId          String
+  site            Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  tag             String
+  module_count    Int?
+  dc_capacity_kwp Float
+  ac_capacity_kw  Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([siteId, tag])
+}
+
+model Report {
+  id          String         @id @default(cuid())
+  siteId      String
+  site        Site           @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  reportType  ReportType
+  reportDate  DateTime?      @db.Date
+  generatedAt DateTime       @default(now())
+  lang        ReportLanguage
+  filename    String
+  downloadUrl String
+  sizeBytes   Int?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model ReportJob {
+  id         String         @id
+  siteId     String
+  site       Site           @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  reportType ReportType
+  reportDate DateTime?      @db.Date
+  lang       ReportLanguage
+  status     ReportStatus
+  progress   Int            @default(0)
+  pdfUrl     String?
+  error      String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+}
+
+model PortalSubmission {
+  id             String        @id @default(cuid())
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  contactName    String
+  contactEmail   String
+  company        String
+  contractRef    String?
+  notes          String?
+  numSites       Int
+  dataYear       Int
+  packageName    String?
+  sharePointUrl  String?
+  metadata       Json?
+  submittedAt    DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}

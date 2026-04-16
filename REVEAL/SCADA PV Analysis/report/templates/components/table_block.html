@@ -1,0 +1,24 @@
+<section class="table-card layout-block">
+  <div class="table-card-header">
+    <h3>{{ table.title }}</h3>
+    {% if table.caption %}<p>{{ table.caption }}</p>{% endif %}
+  </div>
+  <table class="report-table">
+    <thead>
+      <tr>
+        {% for column in table.columns %}
+        <th>{{ column }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in table.rows %}
+      <tr{% if row.get('_row_class') %} class="{{ row.get('_row_class') }}"{% endif %}>
+        {% for column in table.columns %}
+        <td>{{ row[column] }}</td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>

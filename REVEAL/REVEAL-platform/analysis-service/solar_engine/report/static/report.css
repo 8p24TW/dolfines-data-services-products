@@ -1,0 +1,1331 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #ffffff;
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 10pt;
+  line-height: 1.38;
+}
+
+* {
+  box-sizing: border-box;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+img {
+  max-width: 100%;
+}
+
+.page {
+  position: relative;
+  min-height: 297mm;
+  background: #ffffff;
+}
+
+.header-shell {
+  margin-bottom: 6mm;
+}
+
+.header-band,
+.cover-band {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: var(--color-primary);
+  color: #ffffff;
+  padding: 7mm 12mm 5.5mm;
+  overflow: hidden;
+}
+
+.header-band img,
+.cover-logo {
+  width: auto;
+  max-width: 185px;
+  max-height: 24mm;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  flex: 0 0 auto;
+}
+
+.header-copy {
+  min-width: 0;
+  padding-top: 1mm;
+  margin-left: auto;
+  text-align: right;
+}
+
+.header-site,
+.header-company,
+.eyebrow,
+.kpi-label,
+.kpi-target,
+.kpi-subtext,
+.table-card-header p,
+.section-summary,
+.note-list p,
+.cover-subtitle {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.header-site,
+.header-company {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.header-site {
+  font-size: 12.4pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.header-company {
+  font-size: 12.2pt;
+  margin-top: 2px;
+}
+
+.header-accent,
+.cover-accent {
+  position: relative;
+  height: 4px;
+  background: var(--color-accent);
+}
+
+.header-accent::after,
+.cover-accent::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  border-left: 16px solid transparent;
+  border-top: 4px solid var(--color-accent);
+}
+
+.page-content,
+.cover-body {
+  padding: 0 10.5mm 8mm;
+}
+
+.cover-body {
+  padding-top: 10mm;
+}
+
+.cover-hero {
+  width: 100%;
+  height: 118mm;
+  border-radius: 10px;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(11, 42, 61, 0.14), rgba(62, 81, 108, 0.08));
+  border: 1px solid var(--color-border);
+  margin-bottom: 10mm;
+}
+
+.cover-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cover-hero-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16mm;
+}
+
+.cover-panel {
+  border: 2.4px solid var(--color-accent);
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 8mm 9mm;
+}
+
+.cover-page h1,
+.section-heading h2,
+.cover-panel h1 {
+  margin: 0 0 5px;
+  color: var(--color-primary);
+  line-height: 1.12;
+}
+
+.cover-panel h1 {
+  font-size: 21pt;
+  max-width: 165mm;
+  color: var(--color-primary);
+}
+
+.cover-subtitle {
+  margin-bottom: 7mm;
+  font-size: 10pt;
+}
+
+.cover-metadata,
+.metadata-card dl {
+  display: grid;
+  gap: 8px;
+}
+
+.cover-metadata div,
+.metadata-card dl div {
+  display: grid;
+  grid-template-columns: minmax(120px, 150px) 1fr;
+  gap: 8px;
+}
+
+.cover-metadata dt,
+.metadata-card dt {
+  color: var(--color-muted);
+  font-weight: 600;
+}
+
+.cover-metadata dd,
+.metadata-card dd {
+  margin: 0;
+  color: var(--color-text);
+}
+
+.section-heading {
+  margin-bottom: 3.5mm;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 7.6pt;
+  color: var(--color-secondary);
+  margin-bottom: 4px;
+}
+
+.section-summary {
+  max-width: 170mm;
+  font-size: 9pt;
+}
+
+.commentary-card,
+.kpi-card,
+.metadata-card,
+.table-card,
+.figure-card,
+.findings-card,
+.note-list,
+.toc-group {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #ffffff;
+  break-inside: avoid;
+}
+
+.commentary-card {
+  background: linear-gradient(180deg, #fbfcfd 0%, #f6f8fa 100%);
+  border-left: 3px solid var(--color-accent);
+  padding: 3.4mm 3.6mm 3mm;
+  margin-bottom: 3.2mm;
+}
+
+.commentary-card h3 {
+  margin: 0 0 4px;
+  color: var(--color-primary);
+  font-size: 10pt;
+}
+
+.commentary-card p {
+  margin: 0 0 5px;
+}
+
+.commentary-card p:last-child {
+  margin-bottom: 0;
+}
+
+.kpi-grid,
+.metadata-grid,
+.figure-grid,
+.toc-groups {
+  display: grid;
+  gap: 3mm;
+  margin-bottom: 3mm;
+}
+
+.kpi-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.metadata-grid {
+  grid-template-columns: 1fr;
+}
+
+.figure-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+
+.figure-card.width-full {
+  grid-column: 1 / -1;
+}
+
+.figure-card.width-half {
+  grid-column: span 1;
+}
+
+.kpi-card,
+.metadata-card,
+.table-card,
+.figure-card,
+.findings-card,
+.note-list,
+.toc-group {
+  padding: 2.8mm;
+}
+
+.kpi-card {
+  background: var(--color-bg);
+}
+
+.kpi-value {
+  margin: 4px 0 2px;
+  font-size: 15.5pt;
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.status-danger .kpi-value {
+  color: var(--color-danger);
+}
+
+.status-warning .kpi-value {
+  color: var(--color-warning);
+}
+
+.status-success .kpi-value {
+  color: var(--color-success);
+}
+
+.status-info .kpi-value {
+  color: var(--color-secondary);
+}
+
+.figure-card img {
+  width: 100%;
+  height: auto;
+  max-height: 82mm;
+  display: block;
+  object-fit: contain;
+}
+
+.figure-card.width-half img {
+  max-height: 62mm;
+}
+
+.figure-card figcaption {
+  display: grid;
+  gap: 2px;
+  margin-top: 6px;
+  font-size: 8.4pt;
+  color: var(--color-muted);
+}
+
+.table-card-header h3,
+.findings-card h3 {
+  margin: 0 0 4px;
+  color: var(--color-primary);
+  font-size: 10pt;
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.report-table th,
+.report-table td {
+  border-top: 1px solid var(--color-border);
+  padding: 5px 6px;
+  vertical-align: top;
+  text-align: left;
+  word-break: break-word;
+  font-size: 7.8pt;
+}
+
+.report-table thead th {
+  background: var(--color-bg);
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.report-table tr.row-danger td {
+  background: #fdecea;
+}
+
+.report-table tr.row-warning td {
+  background: #fff5e6;
+}
+
+.report-table tr.row-success td {
+  background: #edf7e9;
+}
+
+.report-table tr.row-info td {
+  background: #edf4fb;
+}
+
+.findings-list {
+  display: grid;
+  gap: 3mm;
+}
+
+.finding {
+  border-left: 3px solid var(--color-border);
+  padding-left: 3mm;
+}
+
+.finding h4 {
+  margin: 0 0 3px;
+  font-size: 8.6pt;
+  color: var(--color-primary);
+}
+
+.finding p {
+  margin: 0;
+  font-size: 8.2pt;
+}
+
+.finding-danger {
+  border-left-color: var(--color-danger);
+}
+
+.finding-warning {
+  border-left-color: var(--color-warning);
+}
+
+.finding-success {
+  border-left-color: var(--color-success);
+}
+
+.finding-info {
+  border-left-color: var(--color-secondary);
+}
+
+.note-list {
+  background: #fbfcfd;
+}
+
+.note-list p + p {
+  margin-top: 4px;
+}
+
+.toc-groups {
+  grid-template-columns: 1fr;
+}
+
+.toc-group-header {
+  padding-bottom: 3mm;
+  margin-bottom: 3mm;
+  border-bottom: 2px solid rgba(243, 146, 0, 0.7);
+}
+
+.toc-group-header h3 {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: 10pt;
+}
+
+.toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2.5mm;
+}
+
+.toc-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text);
+  font-size: 9pt;
+}
+
+.toc-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--color-accent);
+  flex: 0 0 auto;
+}
+
+.page-executive-summary .commentary-card p {
+  margin-bottom: 3px;
+}
+
+.page-executive-summary .kpi-grid,
+.page-executive-summary .figure-grid,
+.page-executive-summary .table-card {
+  margin-bottom: 1.6mm;
+}
+
+.page-executive-summary .kpi-grid {
+  gap: 1.8mm;
+}
+
+.page-executive-summary .kpi-card {
+  padding: 1.6mm 2.2mm;
+}
+
+.page-executive-summary .kpi-value {
+  font-size: 10.5pt;
+  margin: 2px 0 1px;
+}
+
+.page-executive-summary .findings-card {
+  break-inside: avoid;
+  break-before: avoid-page;
+  margin-top: 1.8mm;
+}
+
+.page-executive-summary .finding {
+  padding-top: 1.6mm;
+  padding-bottom: 1.6mm;
+}
+
+.page-executive-summary .finding h4 {
+  font-size: 8pt;
+}
+
+.page-executive-summary .finding p {
+  font-size: 7.6pt;
+}
+
+.page-executive-summary .report-table th,
+.page-executive-summary .report-table td,
+.page-executive-summary .finding p {
+  font-size: 7.4pt;
+}
+
+.page-executive-summary .report-table {
+  table-layout: fixed;
+}
+
+.page-executive-summary .report-table th:nth-child(1),
+.page-executive-summary .report-table td:nth-child(1) {
+  width: 8%;
+  white-space: nowrap;
+}
+
+.page-executive-summary .report-table th:nth-child(2),
+.page-executive-summary .report-table td:nth-child(2) {
+  width: 12%;
+}
+
+.page-executive-summary .report-table th:nth-child(3),
+.page-executive-summary .report-table td:nth-child(3) {
+  width: 12%;
+}
+
+.page-executive-summary .report-table th:nth-child(4),
+.page-executive-summary .report-table td:nth-child(4) {
+  width: 12%;
+}
+
+.page-executive-summary .report-table th:nth-child(5),
+.page-executive-summary .report-table td:nth-child(5) {
+  width: 56%;
+}
+
+.page-executive-summary .row-warning td:nth-child(1) {
+  color: var(--color-warning);
+  font-weight: 700;
+}
+
+.page-data-quality .figure-card img {
+  max-height: 74mm;
+}
+
+.page-data-quality .commentary-card {
+  margin-bottom: 2.6mm;
+}
+
+.page-data-quality .report-table th,
+.page-data-quality .report-table td {
+  font-size: 7.5pt;
+}
+
+.page-data-quality-detail .figure-card img {
+  max-height: 124mm;
+}
+
+.page-data-quality-detail .report-table {
+  table-layout: auto;
+}
+
+.page-data-quality-detail .report-table th,
+.page-data-quality-detail .report-table td {
+  font-size: 7.2pt;
+}
+
+.page-inverter-performance .figure-card img {
+  max-height: 86mm;
+}
+
+.page-inverter-performance .report-table th,
+.page-inverter-performance .report-table td {
+  font-size: 7.5pt;
+}
+
+.page-specific-yield .commentary-card {
+  margin-bottom: 1.4mm;
+  padding: 2mm 2.8mm 1.8mm;
+}
+
+.page-specific-yield .commentary-card p {
+  margin-bottom: 0;
+  font-size: 8.4pt;
+}
+
+.page-specific-yield .section-heading {
+  margin-bottom: 1.6mm;
+}
+
+.page-specific-yield .figure-card img {
+  max-height: 220mm;
+}
+
+.page-availability-reliability .figure-card img {
+  max-height: 94mm;
+}
+
+.page-availability-reliability .report-table {
+  table-layout: auto;
+}
+
+.page-losses .figure-card img {
+  max-height: 78mm;
+}
+
+.page-losses .report-table th,
+.page-losses .report-table td {
+  font-size: 7.4pt;
+}
+
+.page-targeted-diagnostics .figure-card img {
+  max-height: 102mm;
+}
+
+.page-inverter-performance .section-grid {
+  gap: 4mm;
+}
+
+.page-data-quality .commentary-card,
+.page-data-quality-detail .commentary-card,
+.page-inverter-performance .commentary-card,
+.page-availability-reliability .commentary-card {
+  padding: 2.8mm 3mm 2.6mm;
+  margin-bottom: 2.5mm;
+}
+
+.page-data-quality .figure-card img {
+  max-height: 88mm;
+}
+
+.page-data-quality .report-table th,
+.page-data-quality .report-table td,
+.page-data-quality-detail .report-table th,
+.page-data-quality-detail .report-table td {
+  font-size: 6.9pt;
+  padding: 3px 4px;
+}
+
+.page-data-quality .finding h4,
+.page-data-quality .finding p {
+  font-size: 7.8pt;
+}
+
+.page-data-quality .section-summary,
+.page-data-quality-detail .section-summary,
+.page-irradiance-coherence .section-summary,
+.page-appendix-clipping .section-summary,
+.page-weather-correlation-appendix .section-summary {
+  margin-bottom: 2mm;
+}
+
+.page-data-quality .kpi-grid {
+  margin-bottom: 2mm;
+}
+
+.page-data-quality .kpi-card {
+  padding: 1.8mm 2.4mm;
+}
+
+.page-data-quality .figure-card {
+  padding: 2.4mm;
+}
+
+.page-data-quality .figure-card img {
+  max-height: 88mm;
+}
+
+.page-data-quality .findings-card {
+  margin-top: 0.8mm;
+}
+
+.page-data-quality-detail .figure-card.width-full img {
+  max-height: 122mm;
+}
+
+.page-data-quality-detail .figure-card.width-half img {
+  max-height: 44mm;
+}
+
+.page-data-quality-detail .figure-grid {
+  gap: 2.6mm;
+  margin-bottom: 2.4mm;
+}
+
+.page-data-quality-detail .findings-card {
+  margin-top: 1.4mm;
+}
+
+.page-data-quality-detail .findings-card .finding {
+  padding: 2.2mm 2.6mm;
+}
+
+.page-data-quality-detail .finding h4,
+.page-data-quality-detail .finding p {
+  font-size: 7.2pt;
+}
+
+.page-inverter-performance .section-summary {
+  margin-bottom: 3mm;
+}
+
+.page-inverter-performance .kpi-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2.5mm;
+  margin-bottom: 2.4mm;
+}
+
+.page-inverter-performance .kpi-card {
+  padding: 2.3mm 2.8mm;
+}
+
+.page-inverter-performance .figure-card img {
+  max-height: 86mm;
+}
+
+.page-inverter-performance .report-table.compact th,
+.page-inverter-performance .report-table.compact td,
+.page-inverter-performance .report-table th,
+.page-inverter-performance .report-table td {
+  padding-top: 0.9mm;
+  padding-bottom: 0.9mm;
+  font-size: 6.7pt;
+}
+
+.page-availability-reliability .section-grid {
+  gap: 4mm;
+}
+
+.page-availability-reliability .section-summary {
+  margin-bottom: 3mm;
+}
+
+.page-availability-reliability .kpi-grid {
+  margin-bottom: 3mm;
+  gap: 2.5mm;
+}
+
+.page-availability-reliability .kpi-card {
+  padding: 2.6mm 3mm;
+}
+
+.page-availability-reliability .figure-card img {
+  max-height: 74mm;
+}
+
+.page-availability-reliability .report-table th,
+.page-availability-reliability .report-table td {
+  padding-top: 1.0mm;
+  padding-bottom: 1.0mm;
+  font-size: 6.9pt;
+}
+
+.page-losses .section-grid {
+  gap: 4mm;
+}
+
+.page-losses .section-summary {
+  margin-bottom: 3mm;
+}
+
+.page-losses .kpi-grid {
+  margin-bottom: 3mm;
+  gap: 2.5mm;
+}
+
+.page-losses .kpi-card {
+  padding: 2.6mm 3mm;
+}
+
+.page-losses .figure-card img {
+  max-height: 74mm;
+}
+
+.page-losses .figure-card.width-half img {
+  max-height: 58mm;
+}
+
+.page-losses .report-table th,
+.page-losses .report-table td {
+  padding-top: 1.35mm;
+  padding-bottom: 1.35mm;
+  font-size: 7.05pt;
+}
+
+.page-performance-overview .section-summary {
+  margin-bottom: 2.6mm;
+}
+
+.page-performance-overview .commentary-card {
+  padding: 2.5mm 3mm 2.4mm;
+  margin-bottom: 2.4mm;
+}
+
+.page-performance-overview .commentary-card p {
+  margin-bottom: 2px;
+}
+
+.page-performance-overview .kpi-grid {
+  margin-bottom: 2.6mm;
+  gap: 2.4mm;
+}
+
+.page-performance-overview .figure-grid {
+  gap: 2.2mm;
+}
+
+.page-performance-overview .figure-card {
+  padding: 2.5mm;
+}
+
+.page-performance-overview .figure-card.width-half img {
+  max-height: 76mm;
+}
+
+.page-performance-overview .figure-card.width-full img {
+  max-height: 112mm;
+}
+
+.page-performance-overview .figure-caption {
+  margin-top: 1.2mm;
+}
+
+.page-targeted-diagnostics .section-grid {
+  gap: 4mm;
+}
+
+.page-targeted-diagnostics .section-summary {
+  margin-bottom: 3mm;
+}
+
+.page-targeted-diagnostics .kpi-grid {
+  display: none;
+}
+
+.page-targeted-diagnostics .figure-grid {
+  grid-template-columns: 1fr;
+  gap: 4mm;
+}
+
+.page-targeted-diagnostics .figure-card {
+  padding: 3.2mm;
+}
+
+.page-targeted-diagnostics .figure-card img {
+  max-height: 132mm;
+}
+
+.page-targeted-diagnostics .figure-caption {
+  margin-top: 1.6mm;
+}
+
+.page-appendix-limitations .report-table th,
+.page-appendix-limitations .report-table td {
+  font-size: 8.1pt;
+  padding: 1.5px 3px;
+  line-height: 1.14;
+}
+
+.page-appendix-limitations .section-summary {
+  margin-bottom: 1.6mm;
+}
+
+.page-appendix-limitations .table-card {
+  margin-top: 0;
+  margin-bottom: 1.4mm;
+}
+
+.page-appendix-limitations .table-card-header {
+  padding-bottom: 1mm;
+}
+
+.page-appendix-limitations .report-table {
+  table-layout: fixed;
+}
+
+.page-appendix-limitations .report-table th:nth-child(1),
+.page-appendix-limitations .report-table td:nth-child(1) {
+  width: 24%;
+}
+
+.page-appendix-limitations .report-table th:nth-child(2),
+.page-appendix-limitations .report-table td:nth-child(2) {
+  width: 12%;
+}
+
+.page-appendix-limitations .report-table th:nth-child(3),
+.page-appendix-limitations .report-table td:nth-child(3) {
+  width: 64%;
+}
+
+.page-appendix-limitations .report-table th:nth-child(4),
+.page-appendix-limitations .report-table td:nth-child(4) {
+  width: 55%;
+}
+
+.page-appendix-limitations .report-table th:nth-child(1):nth-last-child(4),
+.page-appendix-limitations .report-table td:nth-child(1):nth-last-child(4) {
+  width: 10%;
+}
+
+.page-appendix-limitations .report-table th:nth-child(2):nth-last-child(3),
+.page-appendix-limitations .report-table td:nth-child(2):nth-last-child(3) {
+  width: 14%;
+}
+
+.page-appendix-limitations .report-table th:nth-child(3):nth-last-child(2),
+.page-appendix-limitations .report-table td:nth-child(3):nth-last-child(2) {
+  width: 14%;
+}
+
+.page-appendix-limitations .report-table th:nth-child(4):nth-last-child(1),
+.page-appendix-limitations .report-table td:nth-child(4):nth-last-child(1) {
+  width: 62%;
+}
+
+.page-appendix-mttf-overview .figure-card.width-half img {
+  max-height: 88mm;
+}
+
+.page-appendix-mttf-detail .report-table th,
+.page-appendix-mttf-detail .report-table td {
+  font-size: 8.25pt;
+  padding: 2px 3px;
+}
+
+.page-appendix-clipping .figure-card img {
+  max-height: 148mm;
+}
+
+.page-appendix-clipping .figure-grid {
+  grid-template-columns: 1fr;
+}
+
+.page-appendix-clipping .commentary-card,
+.page-weather-correlation-appendix .commentary-card {
+  margin-bottom: 2mm;
+}
+
+.page-weather-correlation-appendix .figure-card img {
+  max-height: 178mm;
+}
+
+.page-irradiance-coherence .figure-grid {
+  gap: 2.2mm;
+}
+
+.page-irradiance-coherence .figure-card {
+  padding: 2.5mm;
+}
+
+.page-irradiance-coherence .figure-card.width-half img {
+  max-height: 83mm;
+}
+
+.page-irradiance-coherence .figure-card.width-full img {
+  max-height: 162mm;
+}
+
+.page-irradiance-coherence .report-table th,
+.page-irradiance-coherence .report-table td {
+  font-size: 6.7pt;
+  padding: 2px 4px;
+}
+
+.page-technical-parameters .report-table th,
+.page-technical-parameters .report-table td,
+.page-performance-kpi-dashboard .report-table th,
+.page-performance-kpi-dashboard .report-table td,
+.page-action-punchlist .report-table th,
+.page-action-punchlist .report-table td {
+  font-size: 7.2pt;
+}
+
+.page-technical-parameters .commentary-card,
+.page-action-punchlist .commentary-card,
+.page-appendix-mttf-detail .table-card {
+  margin-bottom: 2mm;
+}
+
+.page-technical-parameters .section-heading,
+.page-action-punchlist .section-heading,
+.page-appendix-mttf-detail .section-heading {
+  margin-bottom: 2.2mm;
+}
+
+.page-technical-parameters .section-summary,
+.page-action-punchlist .section-summary,
+.page-appendix-mttf-detail .section-summary {
+  font-size: 8.4pt;
+}
+
+.page-technical-parameters .section-summary,
+.page-performance-kpi-dashboard .section-summary {
+  margin-bottom: 2mm;
+}
+
+.page-technical-parameters .commentary-card {
+  padding: 2.2mm 2.8mm 2.1mm;
+  margin-bottom: 3.4mm;
+}
+
+.page-performance-kpi-dashboard .commentary-card {
+  padding: 2.2mm 2.8mm 2.1mm;
+  margin-bottom: 1.6mm;
+}
+
+.page-technical-parameters .commentary-card p,
+.page-performance-kpi-dashboard .commentary-card p {
+  margin-bottom: 0;
+}
+
+.page-technical-parameters .table-card,
+.page-performance-kpi-dashboard .table-card {
+  margin-top: 0;
+}
+
+.page-technical-parameters .table-card-header,
+.page-performance-kpi-dashboard .table-card-header {
+  padding-bottom: 1.4mm;
+}
+
+.page-technical-parameters .table-card-header p,
+.page-performance-kpi-dashboard .table-card-header p {
+  margin-top: 1mm;
+  font-size: 7.6pt;
+}
+
+.page-technical-parameters .report-table th,
+.page-technical-parameters .report-table td {
+  font-size: 8.6pt;
+  padding: 2px 3px;
+  line-height: 1.44;
+}
+
+.page-technical-parameters .report-table th:nth-child(1),
+.page-technical-parameters .report-table td:nth-child(1) {
+  width: 23%;
+}
+
+.page-technical-parameters .report-table th:nth-child(2),
+.page-technical-parameters .report-table td:nth-child(2) {
+  width: 25%;
+}
+
+.page-technical-parameters .report-table th:nth-child(3),
+.page-technical-parameters .report-table td:nth-child(3) {
+  width: 52%;
+}
+
+.page-technical-parameters .report-table,
+.page-performance-kpi-dashboard .report-table,
+.page-appendix-faults .report-table {
+  table-layout: auto;
+}
+
+.page-technical-parameters .report-table th,
+.page-technical-parameters .report-table td,
+.page-performance-kpi-dashboard .report-table th,
+.page-performance-kpi-dashboard .report-table td,
+.page-appendix-faults .report-table th,
+.page-appendix-faults .report-table td {
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+.page-performance-kpi-dashboard .report-table th,
+.page-performance-kpi-dashboard .report-table td {
+  font-size: 9pt;
+  padding: 2px 3px;
+  line-height: 1.5;
+}
+
+.page-performance-kpi-dashboard .report-table th:nth-child(1),
+.page-performance-kpi-dashboard .report-table td:nth-child(1) {
+  width: 30%;
+}
+
+.page-performance-kpi-dashboard .report-table th:nth-child(2),
+.page-performance-kpi-dashboard .report-table td:nth-child(2) {
+  width: 16%;
+}
+
+.page-performance-kpi-dashboard .report-table th:nth-child(3),
+.page-performance-kpi-dashboard .report-table td:nth-child(3) {
+  width: 26%;
+  white-space: nowrap;
+}
+
+.page-performance-kpi-dashboard .report-table th:nth-child(4),
+.page-performance-kpi-dashboard .report-table td:nth-child(4) {
+  width: 38%;
+}
+
+.page-performance-kpi-dashboard .kpi-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2.4mm;
+  margin-bottom: 2.6mm;
+}
+
+.page-performance-kpi-dashboard .kpi-card {
+  padding: 2.4mm 2.8mm;
+}
+
+.page-appendix-power-curve .figure-grid,
+.page-appendix-performance-index .figure-grid,
+.page-appendix-faults .figure-grid {
+  grid-template-columns: 1fr;
+}
+
+.page-appendix-power-curve .figure-card,
+.page-appendix-performance-index .figure-card {
+  padding: 2.2mm;
+}
+
+.page-appendix-power-curve .figure-card img {
+  max-height: 198mm;
+}
+
+.page-appendix-performance-index .figure-card img {
+  max-height: 120mm;
+}
+
+.page-appendix-power-curve .figure-card figcaption {
+  margin-top: 1mm;
+}
+
+.page-appendix-faults .table-card {
+  margin-top: 0;
+}
+
+.page-appendix-faults .commentary-card {
+  margin-bottom: 1.4mm;
+}
+
+.page-appendix-faults .figure-card {
+  padding: 2.2mm;
+}
+
+.page-appendix-faults .figure-card img {
+  max-height: 88mm;
+}
+
+.page-appendix-faults .report-table th,
+.page-appendix-faults .report-table td {
+  font-size: 6.9pt;
+  padding: 3px 4px;
+  line-height: 1.16;
+}
+
+.page-appendix-faults .report-table th:nth-child(1),
+.page-appendix-faults .report-table td:nth-child(1) {
+  width: 28%;
+}
+
+.page-appendix-faults .report-table th:nth-child(2),
+.page-appendix-faults .report-table td:nth-child(2) {
+  width: 10%;
+}
+
+.page-appendix-faults .report-table th:nth-child(3),
+.page-appendix-faults .report-table td:nth-child(3) {
+  width: 8%;
+}
+
+.page-appendix-faults .report-table th:nth-child(4),
+.page-appendix-faults .report-table td:nth-child(4) {
+  width: 12%;
+}
+
+.page-appendix-faults .report-table th:nth-child(5),
+.page-appendix-faults .report-table td:nth-child(5) {
+  width: 42%;
+}
+
+.page-action-punchlist .report-table th,
+.page-action-punchlist .report-table td {
+  font-size: 6.8pt;
+  padding: 1.5px 3px;
+  line-height: 1.12;
+}
+
+.page-action-punchlist .section-summary {
+  margin-bottom: 1.8mm;
+}
+
+.page-action-punchlist .commentary-card {
+  padding: 2.1mm 2.6mm 2mm;
+  margin-bottom: 1.5mm;
+}
+
+.page-action-punchlist .commentary-card p {
+  margin-bottom: 0;
+}
+
+.page-action-punchlist .table-card-header {
+  padding-bottom: 1.2mm;
+}
+
+.page-action-punchlist .report-table th:nth-child(1),
+.page-action-punchlist .report-table td:nth-child(1) {
+  width: 9%;
+  white-space: nowrap;
+}
+
+.page-action-punchlist .report-table th:nth-child(2),
+.page-action-punchlist .report-table td:nth-child(2) {
+  width: 9%;
+}
+
+.page-action-punchlist .report-table th:nth-child(3),
+.page-action-punchlist .report-table td:nth-child(3) {
+  width: 7%;
+}
+
+.page-action-punchlist .report-table th:nth-child(4),
+.page-action-punchlist .report-table td:nth-child(4) {
+  width: 7%;
+}
+
+.page-action-punchlist .report-table th:nth-child(5),
+.page-action-punchlist .report-table td:nth-child(5) {
+  width: 32%;
+}
+
+.page-action-punchlist .report-table th:nth-child(6),
+.page-action-punchlist .report-table td:nth-child(6) {
+  width: 36%;
+}
+
+.page-appendix-mttf-detail .report-table th:nth-child(1),
+.page-appendix-mttf-detail .report-table td:nth-child(1) {
+  width: 18%;
+}
+
+.page-appendix-mttf-detail .report-table th:nth-child(2),
+.page-appendix-mttf-detail .report-table td:nth-child(2) {
+  width: 10%;
+}
+
+.page-appendix-mttf-detail .report-table th:nth-child(3),
+.page-appendix-mttf-detail .report-table td:nth-child(3) {
+  width: 18%;
+}
+
+.page-appendix-mttf-detail .report-table th:nth-child(4),
+.page-appendix-mttf-detail .report-table td:nth-child(4),
+.page-appendix-mttf-detail .report-table th:nth-child(5),
+.page-appendix-mttf-detail .report-table td:nth-child(5),
+.page-appendix-mttf-detail .report-table th:nth-child(6),
+.page-appendix-mttf-detail .report-table td:nth-child(6) {
+  width: 12%;
+}
+
+.page-performance-overview .figure-card img {
+  max-height: 62mm;
+}
+
+.page-losses .figure-card img {
+  max-height: 74mm;
+}
+
+.page-technology-risk .report-table th,
+.page-technology-risk .report-table td {
+  font-size: 7.4pt;
+  padding: 3px 4px;
+  line-height: 1.2;
+}
+
+.page-technology-risk .report-table th:nth-child(1),
+.page-technology-risk .report-table td:nth-child(1) {
+  width: 7%;
+  white-space: nowrap;
+}
+
+.page-technology-risk .report-table th:nth-child(2),
+.page-technology-risk .report-table td:nth-child(2) {
+  width: 13%;
+}
+
+.page-technology-risk .report-table th:nth-child(3),
+.page-technology-risk .report-table td:nth-child(3) {
+  width: 40%;
+}
+
+.page-technology-risk .report-table th:nth-child(4),
+.page-technology-risk .report-table td:nth-child(4) {
+  width: 40%;
+}
+
+.page-technology-risk .commentary-card {
+  margin-bottom: 2mm;
+}
+
+.page-technology-risk .section-heading {
+  margin-bottom: 2mm;
+}
+
+.page-site-overview .figure-grid {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.page-site-overview .figure-card.width-full img {
+  max-height: 72mm;
+}
+
+.page-site-overview .kpi-grid {
+  gap: 1.4mm;
+  margin-bottom: 1.4mm;
+}
+
+.page-site-overview .kpi-card {
+  padding: 1.1mm 2mm;
+}
+
+.page-site-overview .kpi-value {
+  font-size: 10.5pt;
+  margin: 1px 0 1px;
+}
+
+.page-site-overview .kpi-label {
+  font-size: 7.5pt;
+}
+
+.page-site-overview .commentary-card {
+  padding: 2mm 2.8mm 1.8mm;
+  margin-bottom: 2mm;
+}

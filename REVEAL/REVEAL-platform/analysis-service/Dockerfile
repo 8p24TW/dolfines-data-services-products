@@ -1,0 +1,32 @@
+FROM python:3.12-slim-bookworm
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential curl fonts-dejavu-core libasound2 \
+    libatk-bridge2.0-0 libatk1.0-0 libcairo2 libdrm2 libffi8 \
+    libfontconfig1 libgbm1 libgdk-pixbuf-2.0-0 libglib2.0-0 \
+    libgtk-3-0 libharfbuzz0b libnss3 libpango-1.0-0 libpangocairo-1.0-0 \
+    libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxdamage1 libxext6 \
+    libxfixes3 libxkbcommon0 libxrandr2 shared-mime-info \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY ["REVEAL-platform/analysis-service/requirements.txt", "./requirements.txt"]
+RUN pip install --upgrade pip \
+    && pip install -r requirements.txt \
+    && python -m playwright install chromium
+
+COPY ["REVEAL-platform/analysis-service/app/", "./app/"]
+COPY ["REVEAL-platform/analysis-service/solar_engine/", "./solar_engine/"]
+COPY ["REVEAL-platform/analysis-service/data/", "./data/"]
+COPY ["SCADA PV Analysis/", "./legacy_scada_pv/"]
+
+RUN mkdir -p /app/cache /tmp/repat-analysis
+
+EXPOSE 8000
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", \
+     "--workers", "2", "--timeout-keep-alive", "120"]

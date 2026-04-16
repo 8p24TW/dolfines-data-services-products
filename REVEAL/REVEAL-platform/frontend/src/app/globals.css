@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-navy: #0B2A3D;
+  --color-navy-light: #003366;
+  --color-navy-dark: #001a2a;
+  --color-orange: #F39200;
+  --color-orange-accent: #F07820;
+  --color-success: #70AD47;
+  --color-warning: #C98A00;
+  --color-danger: #C62828;
+}
+
+body {
+  background-color: var(--color-navy-dark);
+  color: #e2e8f0;
+  font-family: var(--font-dolfines), "Open Sans", Aptos, Calibri, sans-serif;
+}
+
+.font-dolfines {
+  font-family: var(--font-dolfines), "Open Sans", Aptos, Calibri, sans-serif;
+}
+
+/* Scrollbar */
+html {
+  scrollbar-width: auto;
+  scrollbar-color: rgba(255, 255, 255, 0.72) rgba(255, 255, 255, 0.08);
+}
+
+::-webkit-scrollbar { width: 11px; }
+::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.08); }
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+  border: 2px solid rgba(11, 42, 61, 0.92);
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.9); }
+
+@keyframes workflow-flicker {
+  0%, 100% {
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.12), 0 0 18px rgba(255,255,255,0.12), 0 0 34px rgba(255,255,255,0.16);
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.18), 0 0 30px rgba(255,255,255,0.2), 0 0 58px rgba(255,255,255,0.28);
+  }
+}
+
+.workflow-step-glow {
+  animation: workflow-flicker 1.8s ease-in-out infinite;
+}

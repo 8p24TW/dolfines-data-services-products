@@ -1,0 +1,40 @@
+<section class="page standard-page appendix-page page-{{ page.id or 'appendix' }}">
+  {% include "components/header_band.html" %}
+  <div class="page-content">
+    <div class="section-heading layout-block">
+      <p class="eyebrow">Appendix</p>
+      <h2>{{ page.title }}{% if page.continued %} cont.{% endif %}</h2>
+      {% if page.summary %}<p class="section-summary">{{ page.summary }}</p>{% endif %}
+    </div>
+    {% if page.commentary %}
+    <section class="commentary-card layout-block">
+      <h3>{{ page.commentary_title or "Technical Detail" }}</h3>
+      {% for paragraph in page.commentary %}
+      <p>{{ paragraph }}</p>
+      {% endfor %}
+    </section>
+    {% endif %}
+    {% if page.figures %}
+    <div class="figure-grid layout-block">
+      {% for figure in page.figures %}
+        {% include "components/figure_block.html" %}
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if page.tables %}
+      {% for table in page.tables %}
+        {% include "components/table_block.html" %}
+      {% endfor %}
+    {% endif %}
+    {% if page.findings %}
+      {% include "components/findings_box.html" %}
+    {% endif %}
+    {% if page.notes %}
+    <div class="note-list layout-block">
+      {% for note in page.notes %}
+      <p>{{ note }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</section>

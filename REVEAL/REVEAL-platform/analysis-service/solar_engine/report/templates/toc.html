@@ -1,0 +1,24 @@
+<section class="page standard-page page-toc">
+  {% include "components/header_band.html" %}
+  <div class="page-content layout-block">
+    <h2>{{ page.title }}</h2>
+    <p class="section-summary">Report structure and section navigation.</p>
+    <div class="toc-groups">
+      {% for group in page.groups %}
+      <section class="toc-group">
+        <div class="toc-group-header">
+          <h3>{{ group.title }}</h3>
+        </div>
+        <ul class="toc-list">
+          {% for entry in group.entries %}
+          <li>
+            <span class="toc-dot"></span>
+            <span>{{ entry.title }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </section>
+      {% endfor %}
+    </div>
+  </div>
+</section>

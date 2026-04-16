@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ report.document.report_title }}</title>
+  <link rel="icon" href="{{ report.document.favicon }}">
+  <style>
+    :root {
+      --color-primary: {{ report.document.tokens.colors.primary_navy }};
+      --color-accent: {{ report.document.tokens.colors.accent_orange }};
+      --color-secondary: {{ report.document.tokens.colors.secondary_slate_blue }};
+      --color-indigo: {{ report.document.tokens.colors.deep_indigo }};
+      --color-text: {{ report.document.tokens.colors.body_text }};
+      --color-muted: {{ report.document.tokens.colors.muted_text }};
+      --color-bg: {{ report.document.tokens.colors.light_background }};
+      --color-border: {{ report.document.tokens.colors.border_grey }};
+      --color-success: {{ report.document.tokens.colors.success_green }};
+      --color-warning: {{ report.document.tokens.colors.warning_amber }};
+      --color-danger: {{ report.document.tokens.colors.danger_red }};
+      --font-sans: {{ report.document.tokens.fonts.sans }};
+      --page-margin-top: {{ report.document.tokens.page.margin_top }};
+      --page-margin-right: {{ report.document.tokens.page.margin_right }};
+      --page-margin-bottom: {{ report.document.tokens.page.margin_bottom }};
+      --page-margin-left: {{ report.document.tokens.page.margin_left }};
+    }
+  </style>
+  <style>{{ css.report_css }}</style>
+  <style>{{ css.print_css }}</style>
+  {% if report.document.debug_layout %}
+  <style>{{ css.debug_css }}</style>
+  {% endif %}
+</head>
+<body>
+  {% for page in report.pages %}
+    {% if page.template == "cover" %}
+      {% include "cover.html" %}
+    {% elif page.template == "metadata" %}
+      {% include "components/metadata_block.html" %}
+    {% elif page.template == "toc" %}
+      {% include "toc.html" %}
+    {% elif page.template == "section_divider" %}
+      {% include "components/section_divider.html" %}
+    {% elif page.template == "appendix" %}
+      {% include "appendix.html" %}
+    {% else %}
+      {% include "section.html" %}
+    {% endif %}
+  {% endfor %}
+</body>
+</html>

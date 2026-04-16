@@ -1,0 +1,198 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Utility-scale solar PV and BESS single-line diagram</title>
+  <desc id="desc">Schematic single-line electrical architecture from PV modules to grid connection with a parallel BESS branch and auxiliary systems.</desc>
+  <defs>
+    <style>
+      .title { font: 700 30px Georgia, serif; fill: #1B2A4A; }
+      .subtitle { font: 500 14px 'Segoe UI', sans-serif; fill: #5E6D82; }
+      .label { font: 700 17px 'Segoe UI', sans-serif; fill: #1B2A4A; }
+      .note { font: 500 12px 'Segoe UI', sans-serif; fill: #6F7C8E; }
+      .wire { fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-width: 8; }
+      .wire-dc { stroke: #C57B48; }
+      .wire-ac { stroke: #2E7D5B; }
+      .wire-aux { stroke: #97A7BA; stroke-width: 4; stroke-dasharray: 10 10; }
+      .wire-ground { stroke: #7A5B45; stroke-width: 4; }
+      .component .frame { fill: #F6F1E8; stroke: #42526B; stroke-width: 2; }
+      .component .detail { fill: #E5D5C2; stroke: #42526B; stroke-width: 1.5; }
+      .component .accent { fill: #D8E2D2; stroke: #42526B; stroke-width: 1.5; }
+      .component .solar { fill: #4D6C8D; stroke: #42526B; stroke-width: 1.5; }
+      .legend-text { font: 600 12px 'Segoe UI', sans-serif; fill: #536276; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1600" height="900" fill="#FAFAF7"/>
+  <text x="64" y="64" class="title">Utility-Scale Solar PV + BESS Single-Line Diagram</text>
+  <text x="64" y="90" class="subtitle">Professional schematic view from generation through conversion, collection, substation, and grid export</text>
+
+  <path class="wire wire-dc" d="M228 248 C310 248 344 248 420 248"/>
+  <path class="wire wire-dc" d="M542 248 C618 248 654 248 726 248"/>
+  <path class="wire wire-ac" d="M844 248 C928 248 956 248 1028 248"/>
+  <path class="wire wire-ac" d="M1140 248 C1208 248 1238 248 1312 248"/>
+  <path class="wire wire-ac" d="M1416 248 C1466 248 1490 248 1540 248"/>
+
+  <path class="wire wire-dc" d="M654 640 C716 640 744 640 796 640"/>
+  <path class="wire wire-ac" d="M910 640 C982 640 1010 640 1082 640"/>
+  <path class="wire wire-ac" d="M1140 640 C1140 472 1140 392 1140 248"/>
+
+  <path class="wire wire-aux" d="M214 138 C510 118 864 110 1220 132 C1306 138 1392 152 1468 188"/>
+  <path class="wire wire-aux" d="M214 720 C502 760 760 774 1086 736"/>
+  <path class="wire wire-ground" d="M96 830 H1506"/>
+  <path class="wire wire-ground" d="M206 742 V830 M148 338 V830 M860 708 V830 M1388 318 V830"/>
+
+  <g id="component-monitoring-scada" class="component" data-component-type="monitoring" transform="translate(1186 112)">
+    <rect class="frame" x="0" y="0" rx="18" width="210" height="92"/>
+    <rect class="detail" x="16" y="18" rx="7" width="86" height="30"/>
+    <rect class="detail" x="116" y="18" rx="7" width="56" height="30"/>
+    <line class="detail" x1="18" y1="62" x2="186" y2="62"/>
+    <text x="0" y="118" class="label">SCADA / Monitoring</text>
+    <text x="0" y="136" class="note">Plant historian, alarms, remote control</text>
+  </g>
+
+  <g id="component-weather-station" class="component" data-component-type="monitoring" transform="translate(126 116)">
+    <line class="detail" x1="38" y1="18" x2="38" y2="86"/>
+    <circle class="frame" cx="38" cy="20" r="16"/>
+    <path class="detail" d="M40 36 L70 48 L70 58 L40 50 Z"/>
+    <line class="detail" x1="38" y1="60" x2="74" y2="82"/>
+    <text x="0" y="116" class="label">Weather Station</text>
+    <text x="0" y="134" class="note">GHI, POA, temperatures, wind</text>
+  </g>
+
+  <g id="component-pv-modules" class="component" data-component-type="generation" transform="translate(64 182)">
+    <rect class="frame" x="0" y="0" rx="20" width="164" height="126"/>
+    <polygon class="solar" points="18,38 64,18 118,42 72,62"/>
+    <polygon class="solar" points="50,74 96,54 150,78 104,98"/>
+    <polygon class="solar" points="28,90 74,70 128,94 82,114"/>
+    <text x="0" y="154" class="label">PV Modules</text>
+    <text x="0" y="172" class="note">Monocrystalline / bifacial generation block</text>
+  </g>
+
+  <g id="component-tracker-system" class="component" data-component-type="generation" transform="translate(74 612)">
+    <rect class="frame" x="0" y="0" rx="18" width="204" height="88"/>
+    <line class="detail" x1="28" y1="42" x2="28" y2="14"/>
+    <line class="detail" x1="94" y1="42" x2="94" y2="14"/>
+    <line class="detail" x1="160" y1="42" x2="160" y2="14"/>
+    <polygon class="solar" points="10,28 44,14 84,30 50,44"/>
+    <polygon class="solar" points="76,28 110,14 150,30 116,44"/>
+    <polygon class="solar" points="142,28 176,14 216,30 182,44"/>
+    <text x="0" y="116" class="label">Tracker System</text>
+    <text x="0" y="134" class="note">Single-axis orientation and backtracking</text>
+  </g>
+
+  <g id="component-dc-cables" class="component" data-component-type="transmission" transform="translate(284 212)">
+    <rect class="frame" x="0" y="0" rx="18" width="136" height="70"/>
+    <path class="detail" d="M14 28 C42 10 54 44 82 24 C100 12 116 30 122 16"/>
+    <path class="detail" d="M14 42 C42 24 54 58 82 38 C100 26 116 44 122 30"/>
+    <text x="0" y="96" class="label">DC Cables</text>
+    <text x="0" y="114" class="note">String and homerun circuits</text>
+  </g>
+
+  <g id="component-string-combiner" class="component" data-component-type="protection" transform="translate(420 194)">
+    <rect class="frame" x="0" y="0" rx="18" width="122" height="108"/>
+    <rect class="detail" x="24" y="18" rx="6" width="74" height="26"/>
+    <line class="detail" x1="61" y1="44" x2="61" y2="74"/>
+    <line class="detail" x1="40" y1="74" x2="82" y2="74"/>
+    <text x="0" y="136" class="label">Combiner Boxes</text>
+    <text x="0" y="154" class="note">String aggregation, fusing, SPD</text>
+  </g>
+
+  <g id="component-inverter" class="component" data-component-type="conversion" transform="translate(726 182)">
+    <rect class="frame" x="0" y="0" rx="18" width="118" height="132"/>
+    <rect class="detail" x="18" y="18" rx="7" width="66" height="28"/>
+    <path class="detail" d="M20 84 L36 70 L48 84 L62 68 L76 84"/>
+    <text x="0" y="160" class="label">Inverters</text>
+    <text x="0" y="178" class="note">DC to AC conversion, MPPT, protection</text>
+  </g>
+
+  <g id="component-ac-cables-lv" class="component" data-component-type="transmission" transform="translate(866 212)">
+    <rect class="frame" x="0" y="0" rx="18" width="162" height="70"/>
+    <path class="detail" d="M12 22 L40 10 L70 24 L98 12 L126 26"/>
+    <path class="detail" d="M12 40 L40 28 L70 42 L98 30 L126 44"/>
+    <text x="0" y="96" class="label">LV AC Cables</text>
+    <text x="0" y="114" class="note">Inverter output feeders to transformer</text>
+  </g>
+
+  <g id="component-mv-transformer" class="component" data-component-type="conversion" transform="translate(1028 188)">
+    <rect class="frame" x="0" y="0" rx="18" width="112" height="120"/>
+    <circle class="detail" cx="42" cy="52" r="16"/>
+    <circle class="detail" cx="70" cy="52" r="16"/>
+    <text x="0" y="148" class="label">MV Transformer</text>
+    <text x="0" y="166" class="note">Step-up from LV to MV collection</text>
+  </g>
+
+  <g id="component-mv-switchgear" class="component" data-component-type="protection" transform="translate(1140 186)">
+    <rect class="frame" x="0" y="0" rx="16" width="116" height="124"/>
+    <rect class="detail" x="30" y="18" rx="6" width="38" height="58"/>
+    <line class="detail" x1="49" y1="78" x2="49" y2="98"/>
+    <text x="0" y="152" class="label">MV Switchgear</text>
+    <text x="0" y="170" class="note">Protection, switching, isolation</text>
+  </g>
+
+  <g id="component-mv-cables" class="component" data-component-type="transmission" transform="translate(1312 208)">
+    <rect class="frame" x="0" y="0" rx="18" width="104" height="76"/>
+    <path class="detail" d="M10 26 C30 8 42 46 64 24 C78 10 92 28 96 16"/>
+    <path class="detail" d="M10 42 C30 24 42 62 64 40 C78 26 92 44 96 32"/>
+    <text x="0" y="102" class="label">MV Collection Cables</text>
+    <text x="0" y="120" class="note">Underground network to substation</text>
+  </g>
+
+  <g id="component-hv-transformer" class="component" data-component-type="conversion" transform="translate(1260 388)">
+    <rect class="frame" x="0" y="0" rx="18" width="144" height="96"/>
+    <circle class="detail" cx="54" cy="44" r="18"/>
+    <circle class="detail" cx="84" cy="44" r="18"/>
+    <text x="0" y="124" class="label">HV Main Transformer</text>
+    <text x="0" y="142" class="note">MV to HV export transformation</text>
+  </g>
+
+  <g id="component-substation" class="component" data-component-type="transmission" transform="translate(1388 204)">
+    <rect class="frame" x="0" y="0" rx="18" width="134" height="112"/>
+    <rect class="detail" x="18" y="22" rx="4" width="16" height="44"/>
+    <rect class="detail" x="50" y="18" rx="4" width="16" height="50"/>
+    <rect class="detail" x="82" y="26" rx="4" width="16" height="40"/>
+    <line class="detail" x1="18" y1="78" x2="98" y2="78"/>
+    <text x="0" y="140" class="label">HV Substation</text>
+    <text x="0" y="158" class="note">Metering, protection, export bus</text>
+  </g>
+
+  <g id="component-grid-connection" class="component" data-component-type="transmission" transform="translate(1520 204)">
+    <polygon class="frame" points="0,44 30,20 30,34 88,34 88,54 30,54 30,68"/>
+    <line class="detail" x1="88" y1="44" x2="136" y2="44"/>
+    <text x="0" y="100" class="label">Grid Connection Point</text>
+    <text x="0" y="118" class="note">PCC, utility interface, compliance</text>
+  </g>
+
+  <g id="component-bess-batteries" class="component" data-component-type="storage" transform="translate(476 586)">
+    <rect class="frame" x="0" y="0" rx="18" width="178" height="76"/>
+    <rect class="accent" x="18" y="18" rx="4" width="36" height="34"/>
+    <rect class="accent" x="68" y="18" rx="4" width="36" height="34"/>
+    <rect class="accent" x="118" y="18" rx="4" width="36" height="34"/>
+    <text x="0" y="104" class="label">BESS Battery Racks</text>
+    <text x="0" y="122" class="note">Containerized LFP / NMC storage blocks</text>
+  </g>
+
+  <g id="component-bess-pcs" class="component" data-component-type="conversion" transform="translate(796 576)">
+    <rect class="frame" x="0" y="0" rx="18" width="114" height="110"/>
+    <rect class="detail" x="18" y="18" rx="6" width="62" height="24"/>
+    <path class="detail" d="M18 70 L34 56 L48 70 L60 56 L74 70"/>
+    <text x="0" y="138" class="label">BESS PCS</text>
+    <text x="0" y="156" class="note">Bidirectional converter and controls</text>
+  </g>
+
+  <g id="component-bess-transformer" class="component" data-component-type="conversion" transform="translate(968 584)">
+    <rect class="frame" x="0" y="0" rx="18" width="114" height="104"/>
+    <circle class="detail" cx="42" cy="44" r="15"/>
+    <circle class="detail" cx="68" cy="44" r="15"/>
+    <text x="0" y="132" class="label">BESS Transformer</text>
+    <text x="0" y="150" class="note">Step-up from PCS to shared MV bus</text>
+  </g>
+
+  <g id="component-grounding-system" class="component" data-component-type="protection" transform="translate(110 742)">
+    <line class="detail" x1="40" y1="0" x2="40" y2="28"/>
+    <line class="detail" x1="12" y1="28" x2="68" y2="28"/>
+    <line class="detail" x1="20" y1="42" x2="60" y2="42"/>
+    <line class="detail" x1="28" y1="56" x2="52" y2="56"/>
+    <text x="0" y="88" class="label">Grounding System</text>
+    <text x="0" y="106" class="note">Earthing grid and lightning protection</text>
+  </g>
+
+  <text x="86" y="862" class="legend-text">Legend: DC path in copper, AC / MV path in green, auxiliary communications in dashed blue-grey, grounding network in brown.</text>
+</svg>

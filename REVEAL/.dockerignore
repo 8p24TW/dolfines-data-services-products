@@ -1,0 +1,10 @@
+SCADA PV Analysis/Test files/
+SCADA PV Analysis/_report_test_output/
+SCADA PV Analysis/previous reports/
+SCADA PV Analysis/Iterations/
+SCADA PV Analysis/__pycache__/
+REPAT-platform/frontend/.next/
+REPAT-platform/frontend/node_modules/
+REPAT-platform/frontend/.turbo/
+REPAT-platform/analysis-service/__pycache__/
+**/__pycache__/

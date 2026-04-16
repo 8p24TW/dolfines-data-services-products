@@ -1,0 +1,37 @@
+<section class="page cover-page">
+  <div class="cover-band">
+    <img class="cover-logo" src="{{ report.document.logo_white }}" alt="8.2 Advisory logo">
+    <div class="header-copy">
+      <p class="header-site">{{ report.document.site_name }}</p>
+      <p class="header-company">{{ report.document.company }}</p>
+    </div>
+  </div>
+  <div class="cover-accent"></div>
+  <div class="cover-body layout-block">
+    {% if report.document.cover_image %}
+    <div class="cover-hero">
+      <img src="{{ report.document.cover_image }}" alt="Solar farm cover image">
+    </div>
+    {% else %}
+    <div class="cover-hero cover-hero-fallback">
+      <div>
+        <p class="eyebrow">Renewable Energy SCADA Assessment</p>
+        <h1>{{ page.title }}</h1>
+      </div>
+    </div>
+    {% endif %}
+    <div class="cover-panel">
+      <p class="eyebrow">Renewable Energy SCADA Assessment</p>
+      <h1>{{ page.title }}</h1>
+      <p class="cover-subtitle">{{ page.subtitle }}</p>
+      <dl class="cover-metadata">
+        {% for label, value in page.metadata %}
+        <div>
+          <dt>{{ label }}</dt>
+          <dd>{{ value }}</dd>
+        </div>
+        {% endfor %}
+      </dl>
+    </div>
+  </div>
+</section>

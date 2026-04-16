@@ -1,0 +1,16 @@
+node_modules/
+.next/
+dist/
+*.env
+.env.local
+*.pdf
+*.zip
+/tmp/
+__pycache__/
+*.pyc
+.venv/
+weather_cache.json
+report_history.json
+custom_sites.json
+*.manifest.json
+.turbo/

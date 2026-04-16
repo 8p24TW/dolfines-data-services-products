@@ -1,0 +1,24 @@
+<section class="page standard-page">
+  {% include "components/header_band.html" %}
+  <div class="page-content">
+    <div class="section-heading layout-block">
+      <h2>{{ page.title }}</h2>
+      <p class="section-summary">{{ page.summary }}</p>
+    </div>
+    <div class="metadata-grid">
+      {% for group in page.metadata_groups %}
+      <section class="metadata-card layout-block">
+        <h3>{{ group.title }}</h3>
+        <dl>
+          {% for label, value in group["items"] %}
+          <div>
+            <dt>{{ label }}</dt>
+            <dd>{{ value }}</dd>
+          </div>
+          {% endfor %}
+        </dl>
+      </section>
+      {% endfor %}
+    </div>
+  </div>
+</section>

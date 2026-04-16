@@ -1,0 +1,985 @@
+{
+  "metadata": {
+    "title": "Solar PV Fault & Degradation Knowledge Base — Multi-Manufacturer",
+    "created": "2026-03-03",
+    "version": "1.2",
+    "updated": "2026-03-18",
+    "scope": "Utility-scale and commercial PV inverters and modules",
+    "note": "Fault codes are indicative — always cross-reference with manufacturer service manual for specific firmware version",
+    "sources_note": "Sources added from v1.2 — includes field experience from 5 French utility-scale PV sites (8.2 France internal reports 2021-2024), Sungrow EMEA Academy fault code documentation, First Solar technical papers, NREL yield modelling research, IEA PVPS monitoring standards, and industry sources."
+  },
+
+  "inverter_manufacturers": [
+
+    {
+      "manufacturer": "Sungrow",
+      "common_models": ["SG250HX", "SG333HX", "SG350HX", "SG3125HV-MV (central)"],
+      "monitoring_platform": "SolarInfo / iSolarCloud",
+      "fault_log_export": "SolarInfo portal > Device > Event Log > export CSV",
+      "faults": [
+        {
+          "id": "SUN-001",
+          "code": "Fault 101 / E001",
+          "name": "Grid Overvoltage",
+          "category": "Grid",
+          "severity": "MEDIUM",
+          "frequency": "Common",
+          "symptoms": ["Short trips 10–30 min mid-day on high-irradiance days", "Correlates with peak export"],
+          "root_causes": ["MV transformer tap too high", "Reactive power export stacking voltage", "Long LV cable impedance"],
+          "actions": ["Adjust transformer tap down 2.5–5%", "Enable Q-droop (cos φ = 0.90 leading)", "Coordinate with DSO on MV quality"],
+          "mttf_benchmark_days": 30
+        },
+        {
+          "id": "SUN-002",
+          "code": "Fault 302 / E008",
+          "name": "DC Insulation / Earth Fault",
+          "category": "DC Side",
+          "severity": "HIGH",
+          "frequency": "Very Common",
+          "symptoms": ["Trip after rain or heavy dew", "Alarm: 'ISO fault' or 'insulation resistance low'", "Repeated trips on same inverter"],
+          "root_causes": ["Damaged DC cable insulation", "Water ingress in module junction boxes", "Loose or incompatible MC4 connectors", "Combiner box moisture"],
+          "actions": ["Megger test all strings at 1000 V DC (target >1 MΩ)", "Use Sungrow Riso per MPPT channel to isolate fault", "Replace damaged cable, seal glands", "Inspect and re-crimp all MC4 connectors"],
+          "mttf_benchmark_days": 5
+        },
+        {
+          "id": "SUN-003",
+          "code": "Fault 401",
+          "name": "AC Contactor Wear / Failure",
+          "category": "AC Side",
+          "severity": "HIGH",
+          "frequency": "Common on high-trip-count inverters",
+          "symptoms": ["Fails to reconnect after trip", "Audible clicking with no production", "Alarm: 'relay fault'"],
+          "root_causes": ["Contact pitting from frequent arcing", "Contactor rated for fewer operations than actual trip count"],
+          "actions": ["Extract trip event count from SolarInfo — if >500/year, replace contactor proactively", "Use OEM spare rated for 1 million mechanical operations", "Resolve root-cause of frequent tripping first"],
+          "mttf_benchmark_days": 3
+        },
+        {
+          "id": "SUN-004",
+          "code": "Fault 501 / 502",
+          "name": "Overtemperature / Fan Failure",
+          "category": "Thermal",
+          "severity": "MEDIUM",
+          "frequency": "Seasonal (summer peak)",
+          "symptoms": ["De-rating or trip 12:00–16:00 in summer", "Cabinet hot to touch", "Alarm: 'overtemperature' or 'fan fault'"],
+          "root_causes": ["Ambient >45°C at cabinet (direct sun)", "Seized fan bearings", "Blocked air filters"],
+          "actions": ["Replace seized fans with OEM brushless DC equivalent", "Clean/replace air filters every 6 months", "Install sunshade if ambient regularly >45°C"],
+          "mttf_benchmark_days": 20
+        },
+        {
+          "id": "SUN-005",
+          "code": "Fault 601 / E-COM",
+          "name": "MPPT Startup Failure (Low Irradiance)",
+          "category": "MPPT",
+          "severity": "LOW",
+          "frequency": "Seasonal (winter mornings)",
+          "symptoms": ["Late morning start vs neighbouring inverters", "Fails to restart after passing cloud in winter"],
+          "root_causes": ["MPPT minimum threshold too high", "String Vmpp below minimum MPPT range (200 V)", "Partial shading reducing string voltage"],
+          "actions": ["Lower startup power threshold from 1.0% to 0.5% of rated power", "Clear new shading sources from affected strings", "IV-curve at low irradiance to check mismatch"],
+          "mttf_benchmark_days": 120
+        },
+        {
+          "id": "SUN-006",
+          "code": "Fault 201",
+          "name": "DC Overvoltage (Cold Morning)",
+          "category": "DC Side",
+          "severity": "MEDIUM",
+          "frequency": "Occasional",
+          "symptoms": ["Refuses to start on cold mornings", "Trip immediately at sunrise after cold night"],
+          "root_causes": ["String Voc at low temperature exceeds inverter 1500 V DC max", "Mis-designed string — too many modules in series"],
+          "actions": ["Calculate cold-weather Voc for site minimum temperature", "Verify string count in as-built drawings", "Reduce modules per string by 1 if structurally over-voltage"],
+          "mttf_benchmark_days": 60
+        },
+        {
+          "id": "SUN-008",
+          "code": "Fault 038",
+          "name": "AC Relay Fault",
+          "category": "AC Side",
+          "severity": "HIGH",
+          "frequency": "Common on high-trip-count sites",
+          "symptoms": ["Inverter fails to reconnect after trip", "Audible relay click absent at restart", "Repeated fault on same inverter despite no external cause"],
+          "root_causes": ["Contact pitting from frequent arcing (>500 trips/year)", "Failed SPD (surge protection device) with short to earth in LV cabinet", "Low-impedance neutral-to-earth fault in MV transformer or LV network", "Internal relay contacts worn beyond rated mechanical operations"],
+          "actions": ["Listen for relay click during restart — absent click = failed relay", "Measure phase-to-earth voltage at AC output terminals: if <100V indicates external neutral-earth fault", "Inspect and test all SPDs in LV cabinet for earth short", "Extract trip count from iSolarCloud — if >500/year, replace relay proactively", "Resolve root cause of frequent tripping before relay replacement"],
+          "mttf_benchmark_days": 3,
+          "sources": ["https://academy.sungrow-emea.com/en/articles/95366-fault-codes-and-troubleshooting-steps-031-040-036-037-038-039-040", "https://portal.rnwbl.com/support/solutions/articles/36000111318-fault-038"]
+        },
+        {
+          "id": "SUN-009",
+          "code": "Fault 036 / 037",
+          "name": "IGBT / Ambient Overtemperature",
+          "category": "Thermal",
+          "severity": "MEDIUM",
+          "frequency": "Seasonal (summer peak)",
+          "symptoms": ["Single IGBT module temperature diverges from others", "Inverter shuts down 12:00–16:00 in summer", "Cabinet hot to touch; fan noise absent or abnormal"],
+          "root_causes": ["Seized or failed cooling fan bearings", "Blocked air inlet filters (cotton or agricultural dust)", "Insufficient ventilation clearance (<500 mm around enclosure)", "South-facing row of inverters without shade canopy in direct sun"],
+          "actions": ["Verify all fans spinning on startup; replace any that are stuck", "Clean/replace air inlet filters every 6 months minimum", "Ensure 500 mm minimum clearance around inverter enclosure", "Install shade canopy if ambient regularly >45°C", "For Code 036: if one IGBT temperature diverges from others, replace IGBT module"],
+          "mttf_benchmark_days": 20,
+          "sources": ["https://academy.sungrow-emea.com/en/articles/95366-fault-codes-and-troubleshooting-steps-031-040-036-037-038-039-040"]
+        },
+        {
+          "id": "SUN-010",
+          "code": "Fault 039",
+          "name": "DC Insulation Fault — String-Level Diagnostic",
+          "category": "DC Side",
+          "severity": "HIGH",
+          "frequency": "Very Common (particularly after rain)",
+          "symptoms": ["Fault triggered after rain or heavy dew", "Repeated fault on same inverter", "Alarm: 'insulation resistance low' or ISO fault"],
+          "root_causes": ["Damaged MC4 connector — third-party connectors incompatible with Sungrow tolerances", "Water ingress into module junction boxes", "Cable jacket damaged by animal chewing or tracker drive rail pinching", "PV array Riso below 50 kΩ (default threshold)"],
+          "actions": ["Systematic string isolation: disconnect all strings, reconnect one by one — string that re-triggers fault contains the defect", "Megger test all strings at 1000 V DC (target >1 MΩ)", "Inspect and re-crimp all MC4 connectors; replace third-party connectors with OEM Sungrow-compatible type", "Inspect cable routes under tracker rails for pinching", "Seal all junction box cable glands"],
+          "mttf_benchmark_days": 5,
+          "sources": ["https://academy.sungrow-emea.com/en/articles/95366-fault-codes-and-troubleshooting-steps-031-040-036-037-038-039-040"]
+        },
+        {
+          "id": "SUN-011",
+          "code": "N/A — Configuration",
+          "name": "MPPT String Mismatch / MPPT Overload from Wiring Error",
+          "category": "MPPT",
+          "severity": "HIGH",
+          "frequency": "Site-specific (DC wiring error)",
+          "symptoms": ["Single inverter PR permanently 10–15% below fleet with no seasonal variation", "No fault alarms raised", "Clipping visible on affected MPPT channels at lower irradiance than normal"],
+          "root_causes": ["Unequal number of modules per string on same MPPT input — voltage mismatch causes one string to pull the other off MPP", "Overloaded MPPT input (more strings than rated) — clips at rated input power causing permanent energy loss", "DC cabling design error assigning wrong string count to certain MPPT inputs"],
+          "actions": ["Verify string count and module count per MPPT from single-line diagram vs. physical site", "Calculate total DC power per MPPT vs. rated input power — overloaded if >100% of rated MPPT input", "Check maximum string Voc at minimum site temperature against inverter max DC voltage limit", "Run iSolarCloud I-V curve scan to identify anomalous MPPT channels", "Rebalance string connections to equalise MPPT loading"],
+          "mttf_benchmark_days": null,
+          "sources": ["Previous report: Mas d'En Ramis (PTR3 Inv13) — 8.2 France internal analysis 2024", "https://www.solarquotes.com.au/blog/sungrows-snafu-solved/"]
+        },
+        {
+          "id": "SUN-012",
+          "code": "N/A — Monitoring",
+          "name": "Inverter Clipping Loss Underestimation in Hourly SCADA",
+          "category": "Monitoring / Data Quality",
+          "severity": "INFO",
+          "frequency": "Common at DC/AC ratio ≥1.3",
+          "symptoms": ["Yield model predicts higher energy than SCADA shows during high-irradiance periods", "PR appears lower than expected in summer midday hours"],
+          "root_causes": ["SCADA logs hourly averages; clipping is a sub-hourly event that is averaged away", "Clipping occurs 3.5–4.0% of annual operating hours at ILR 1.34", "Hourly TMY data introduces positive yield bias vs. actual 5-min reality"],
+          "actions": ["Configure SCADA to log at 5-minute resolution for all power and irradiance channels", "Use sub-hourly irradiance data for yield model validation", "Apply clipping correction factor when comparing hourly SCADA PR to hourly yield model"],
+          "mttf_benchmark_days": null,
+          "sources": ["https://docs.nrel.gov/docs/fy24osti/87894.pdf", "https://docs.nrel.gov/docs/fy22osti/82812.pdf"]
+        },
+        {
+          "id": "SUN-013",
+          "code": "Fault 087–089",
+          "name": "AFCI Arc Fault Warning",
+          "category": "DC Side",
+          "severity": "HIGH",
+          "frequency": "Uncommon",
+          "symptoms": ["AFCI warning alarm in iSolarCloud", "Intermittent DC-side fault", "No obvious cable damage visible on inspection"],
+          "root_causes": ["Series arc in DC string cable — damaged insulation, loose terminal connection", "Parallel arc at module junction box terminal", "Induced false positive from specific cable routing geometries"],
+          "actions": ["Inspect DC cable routing and insulation integrity thoroughly on affected string", "Thermographic inspection of all DC junction boxes on affected MPPT", "Re-enable AFCI function after verification and resolution", "If recurring false positives: review cable routing and separation from grounded structures"],
+          "mttf_benchmark_days": null,
+          "sources": ["https://academy.sungrow-emea.com/en/articles/95366-fault-codes-and-troubleshooting-steps-031-040-036-037-038-039-040"]
+        },
+        {
+          "id": "SUN-014",
+          "code": "N/A — Operational",
+          "name": "French Grid Curtailment / Q-Regulation Active Power Loss",
+          "category": "Grid",
+          "severity": "MEDIUM",
+          "frequency": "Increasing — spring/summer peak export periods",
+          "symptoms": ["Unexplained PR dip during high-irradiance periods with no fault alarms", "Active power limited below inverter rated output", "Curtailment commands visible in RTE/Enedis SCADA logs"],
+          "root_causes": ["RTE or Enedis curtailment dispatch during negative-price or grid congestion periods (~3 TWh curtailed in France in 2025)", "Q-regulation (reactive power) commanded by DSO consuming a share of inverter apparent power capacity — reduces available P at sites near AC connection limit", "Curtailment events not correctly flagged in plant SCADA, appearing as unexplained underperformance"],
+          "actions": ["Verify RTE/Enedis curtailment command timestamps are logged in plant SCADA and correctly labelled", "Exclude curtailment periods from contractual PR and availability calculations", "Verify Q setpoint compliance — Sungrow SG250HX supports night reactive power delivery (Q at P=0) which satisfies certain French grid code obligations", "Coordinate with DSO to receive curtailment log for reconciliation against SCADA"],
+          "mttf_benchmark_days": null,
+          "sources": ["https://www.pv-magazine.com/2026/03/02/pv-curtailment-surges-in-france-as-grid-adapts-to-rising-solar-output/", "https://www.glintsolar.com/resources/navigating-frances-solar-power-grid-what-developers-need-to-know-gsnext-clone-lars"]
+        }
+      ]
+    },
+
+    {
+      "manufacturer": "SMA",
+      "common_models": ["Sunny Tripower STP 25000TL", "Sunny Tripower Core1 50", "STP 50-41 / 60-10", "Sunny Central 2200 (central)"],
+      "monitoring_platform": "SMA Sunny Portal / Sunny Explorer / SMA Energy System Home",
+      "fault_log_export": "Sunny Portal > Plant > Device Configuration > Event List > Export",
+      "faults": [
+        {
+          "id": "SMA-001",
+          "code": "3501 / Ground Fault",
+          "name": "DC Ground / Earth Fault",
+          "category": "DC Side",
+          "severity": "HIGH",
+          "frequency": "Very Common",
+          "symptoms": ["Trip with 'insulation fault' alarm", "SMA ISOLAN monitoring triggers at <600 kΩ (much more sensitive than most brands)", "Intermittent fault correlated with rain"],
+          "root_causes": ["Damaged DC wiring insulation", "Module frame-to-cell insulation degradation", "Moisture in junction box or combiner"],
+          "actions": ["SMA ISOLAN stores faulty MPPT channel — use Sunny Explorer to identify", "Megger test at 1000 V DC on isolated strings", "Replace damaged cables; seal all cable entry glands"],
+          "note": "SMA's ISOLAN insulation monitoring is more sensitive than Sungrow/Huawei (triggers at 600 kΩ vs 30 kΩ) — some false positives in wet conditions are expected",
+          "mttf_benchmark_days": 7
+        },
+        {
+          "id": "SMA-002",
+          "code": "3501-B / AFCI",
+          "name": "Arc Fault Detection (AFCI) — False Positive",
+          "category": "DC Side",
+          "severity": "MEDIUM",
+          "frequency": "Occasional",
+          "symptoms": ["Trip with 'arc fault detected' alarm", "Clears on manual reset with no physical fault found", "More common in long cable runs with high capacitance"],
+          "root_causes": ["Long DC cables causing capacitive discharge waveforms that mimic arc signature", "Slightly loose MC4 connector (even without actual arcing)", "AFCI algorithm false trigger in high-humidity conditions"],
+          "actions": ["Inspect all MC4 connectors on affected MPPT channel — re-crimp any loose ones", "Check cable routing for any abrasion points", "If structural false positives: consult SMA on AFCI sensitivity threshold adjustment (service password required)"],
+          "note": "AFCI is a safety feature required in some markets — do NOT disable without OEM guidance",
+          "mttf_benchmark_days": 45
+        },
+        {
+          "id": "SMA-003",
+          "code": "6225 / VDE-AR-N 4105",
+          "name": "Grid Parameter Exceedance (Overvoltage / Overfrequency)",
+          "category": "Grid",
+          "severity": "MEDIUM",
+          "frequency": "Common",
+          "symptoms": ["Trip with 'grid overvoltage' or 'grid overfrequency'", "SMA has tighter default trip thresholds than many brands", "Alarm: 'AC voltage too high'"],
+          "root_causes": ["MV transformer tap set too high for full export conditions", "SMA default voltage trip set at 253 V (110% of 230 V) — some installations need adjustment", "Reactive power export not configured"],
+          "actions": ["Review and adjust trip thresholds within grid code allowances (EN 50549-1 in France: 264 V max)", "Enable reactive power provision: cos φ characteristic or Q(U) droop", "Engage with DSO if grid voltage structurally high"],
+          "mttf_benchmark_days": 25
+        },
+        {
+          "id": "SMA-004",
+          "code": "7700 / Fan",
+          "name": "Fan / Cooling Failure",
+          "category": "Thermal",
+          "severity": "MEDIUM",
+          "frequency": "Common on >5-year old units",
+          "symptoms": ["Alarm: 'cooling fan fault'", "Internal temperature rising trend in Sunny Portal", "De-rating in summer before trip"],
+          "root_causes": ["Fan bearing wear — SMA Tripower fans typically last 5–8 years", "Dust accumulation on fan blades reducing airflow", "Internal heatsink fins blocked by debris"],
+          "actions": ["Replace fans proactively at 5-year inspection — SMA fan replacement kit available", "Clean heatsink fins with compressed air", "Monitor internal temperature trend in Sunny Portal"],
+          "mttf_benchmark_days": 20
+        },
+        {
+          "id": "SMA-005",
+          "code": "Communication / Speedwire",
+          "name": "Speedwire / Webconnect Communication Loss",
+          "category": "Communication",
+          "severity": "LOW",
+          "frequency": "Occasional",
+          "symptoms": ["Inverter appears offline in Sunny Portal despite running", "SCADA shows data gaps for SMA devices only", "Alarm: 'no SMA Speedwire connection'"],
+          "root_causes": ["Ethernet cable fault or switch port failure", "IP address conflict on local network", "Router firmware update disrupting DHCP assignment", "Sunny Home Manager or Cluster Controller firmware incompatibility"],
+          "actions": ["Power-cycle the Sunny Home Manager / Cluster Controller", "Check Ethernet physical layer — replace cable if >10 m without quality shielding", "Assign static IP to inverter in router DHCP table", "Update Speedwire firmware via Sunny Explorer"],
+          "mttf_benchmark_days": 90
+        }
+      ]
+    },
+
+    {
+      "manufacturer": "Huawei FusionSolar",
+      "common_models": ["SUN2000-100KTL-M1", "SUN2000-185KTL", "SUN2000-215KTL", "SUN2000-330KTL"],
+      "monitoring_platform": "FusionSolar App / FusionSolar SmartPVMS",
+      "fault_log_export": "FusionSolar SmartPVMS > O&M > Alarm Management > Export",
+      "faults": [
+        {
+          "id": "HW-001",
+          "code": "2063 / Insulation",
+          "name": "DC Insulation Fault",
+          "category": "DC Side",
+          "severity": "HIGH",
+          "frequency": "Very Common",
+          "symptoms": ["Trip with alarm 'PV1/PV2 insulation resistance too low'", "Often recovers after dry weather", "Alarm log timestamp matches rainfall events"],
+          "root_causes": ["Water ingress in module junction boxes or string combiner", "Damaged DC cable insulation", "MC4 connector not fully engaged"],
+          "actions": ["FusionSolar identifies fault per MPPT — export alarm log and cross-reference to string plan", "Megger test at 1000 V DC on isolated strings", "Inspect MC4 connectors; replace non-OEM types with certified equivalents"],
+          "mttf_benchmark_days": 6
+        },
+        {
+          "id": "HW-002",
+          "code": "2064 / Arc Detection",
+          "name": "Arc Fault Detection (AFCI)",
+          "category": "DC Side",
+          "severity": "HIGH",
+          "frequency": "Occasional",
+          "symptoms": ["Trip with 'arc fault' alarm", "May recur on same MPPT input", "Often no visual evidence of burning on initial inspection"],
+          "root_causes": ["Loose MC4 connector creating intermittent arcing", "Abraded cable insulation with intermittent contact to metalwork", "Huawei's AFCI algorithm is among the most sensitive in the industry"],
+          "actions": ["Inspect all connectors on reported MPPT string — torque-pull test each MC4", "Check cable routing for contact with sharp metalwork", "Replace any connector with carbon tracking (black marks)"],
+          "note": "Huawei AFCI must not be disabled. Any MC4 arcing is a fire risk — treat as priority regardless of energy impact",
+          "mttf_benchmark_days": 30
+        },
+        {
+          "id": "HW-003",
+          "code": "SmartLogger / 2021",
+          "name": "SmartLogger / Communications Gateway Failure",
+          "category": "Communication",
+          "severity": "HIGH",
+          "frequency": "Occasional",
+          "symptoms": ["All Huawei inverters appear offline in FusionSolar simultaneously", "SCADA shows complete data gap across all devices", "Inverters running normally locally (SUN2000 display shows OK)"],
+          "root_causes": ["SmartLogger3000 hardware failure", "SmartLogger firmware crash (restart usually recovers)", "4G SIM card failure or data plan expired", "Ethernet or RS485 cable break between SmartLogger and inverters"],
+          "actions": ["Power-cycle SmartLogger (hold reset button 10 s)", "Check 4G signal strength LED — replace SIM if no signal", "Verify RS485 termination resistance (120 Ω at each end)", "If repeated crashes: update SmartLogger firmware via FusionSolar"],
+          "mttf_benchmark_days": 180
+        },
+        {
+          "id": "HW-004",
+          "code": "2051 / Temperature",
+          "name": "Overtemperature / Thermal Throttling",
+          "category": "Thermal",
+          "severity": "MEDIUM",
+          "frequency": "Seasonal (Summer)",
+          "symptoms": ["Power ramp-down 12:00–16:00 in summer", "FusionSolar shows 'derating' status", "Cabinet exceeds 75°C internal temperature"],
+          "root_causes": ["Ambient temperature >45°C at cabinet", "Cabinet installed in direct sun without shade", "Air filter blocked", "Heat sink fins fouled with dust — common in 5+ year old units"],
+          "actions": ["Clean heat sink fins with compressed air annually", "Replace air filters every 6 months in dusty environments", "Install reflective shade canopy over inverter if ambient routinely >45°C"],
+          "mttf_benchmark_days": 25
+        },
+        {
+          "id": "HW-005",
+          "code": "Grid / 2031",
+          "name": "Grid Voltage / Frequency Out of Range",
+          "category": "Grid",
+          "severity": "MEDIUM",
+          "frequency": "Common",
+          "symptoms": ["Trip correlated with peak export periods", "FusionSolar alarm: 'AC overvoltage' or 'grid frequency too high'"],
+          "root_causes": ["LV/MV transformer tap settings incorrect for export conditions", "Grid code reactive power settings not configured"],
+          "actions": ["Enable reactive power: configure cos φ characteristic or Q(V) droop in FusionSolar", "Coordinate with DSO on transformer tap adjustment", "Review French RPfR grid code compliance (cos φ = 0.85 inductive to 0.95 capacitive)"],
+          "mttf_benchmark_days": 28
+        },
+        {
+          "id": "HW-006",
+          "code": "Optimiser / SmartPV",
+          "name": "Optimizer Offline / Mismatch (if SmartPV optimizers installed)",
+          "category": "MPPT",
+          "severity": "MEDIUM",
+          "frequency": "Common when optimizers are deployed",
+          "symptoms": ["FusionSolar optimizer view shows red modules", "Specific yield heatmap shows individual module-level underperformance", "Optimizer offline alarm in FusionSolar"],
+          "root_causes": ["Power line communication (PLC) signal loss between optimizer and SmartLogger", "Optimizer firmware inconsistency after partial update", "Physical optimizer failure — internal MOSFET failure"],
+          "actions": ["Trigger remote optimizer firmware update from FusionSolar", "Check PLC signal path — long cable runs or filters can attenuate signal", "Replace physically failed optimizers — swap and re-commission in FusionSolar"],
+          "mttf_benchmark_days": 365
+        }
+      ]
+    },
+
+    {
+      "manufacturer": "ABB / FIMER",
+      "common_models": ["PVS-100/120-TL", "PVS800 (central)", "UNO-DM-6.0-TL-PLUS"],
+      "monitoring_platform": "FIMER Aurora Vision / ABB Ability",
+      "fault_log_export": "Aurora Vision > Plant > Events > Export CSV",
+      "faults": [
+        {
+          "id": "ABB-001",
+          "code": "F001 / Ground Fault",
+          "name": "DC Ground Fault",
+          "category": "DC Side",
+          "severity": "HIGH",
+          "frequency": "Common",
+          "symptoms": ["Alarm: 'ground fault detected'", "Inverter shuts down and latches — requires manual reset"],
+          "root_causes": ["Cable insulation failure", "Junction box moisture ingress"],
+          "actions": ["ABB Aurora Vision identifies fault to MPPT level", "Megger test at 1000 V DC per string", "Replace faulty cable; seal junction boxes"],
+          "mttf_benchmark_days": 8
+        },
+        {
+          "id": "ABB-002",
+          "code": "F010 / Grid",
+          "name": "Grid Overvoltage / Frequency Fault",
+          "category": "Grid",
+          "severity": "MEDIUM",
+          "frequency": "Common",
+          "symptoms": ["Short trips at peak production", "Alarm: 'grid voltage outside limits'"],
+          "root_causes": ["Transformer tap too high", "No reactive power configured"],
+          "actions": ["Enable reactive power provision in ABB settings", "Adjust transformer tap", "Verify trip thresholds match EN 50549-1"],
+          "mttf_benchmark_days": 30
+        },
+        {
+          "id": "ABB-003",
+          "code": "F030 / Fan",
+          "name": "Fan Failure / Overtemperature",
+          "category": "Thermal",
+          "severity": "MEDIUM",
+          "frequency": "Seasonal",
+          "symptoms": ["De-rating in summer afternoons", "Alarm: 'overtemperature' or 'fan fault'"],
+          "root_causes": ["Fan bearing failure", "Heatsink fouled with dust"],
+          "actions": ["Replace fans proactively at 5-year service", "Clean heatsink fins with compressed air at biannual O&M"],
+          "mttf_benchmark_days": 22
+        }
+      ]
+    },
+
+    {
+      "manufacturer": "Fronius",
+      "common_models": ["Fronius Symo Advanced 25.0-3-M", "Fronius Primo", "Fronius Eco (central)"],
+      "monitoring_platform": "Fronius Solar.web",
+      "fault_log_export": "Solar.web > System > Logbook > Export",
+      "faults": [
+        {
+          "id": "FRO-001",
+          "code": "503 / Insulation",
+          "name": "DC Isolation Fault",
+          "category": "DC Side",
+          "severity": "HIGH",
+          "frequency": "Common",
+          "symptoms": ["Alarm: 'isolation fault'", "Trip after rain"],
+          "root_causes": ["Cable insulation damage", "Junction box moisture ingress"],
+          "actions": ["Fronius identifies faulty PV input — log shows MPPT channel", "Megger test at 1000 V DC", "Replace damaged cable or junction box seal"],
+          "mttf_benchmark_days": 7
+        },
+        {
+          "id": "FRO-002",
+          "code": "429 / Grid",
+          "name": "Grid Voltage / Frequency Out of Range",
+          "category": "Grid",
+          "severity": "MEDIUM",
+          "frequency": "Common",
+          "symptoms": ["Short trips at peak export", "Alarm: 'AC voltage too high'", "More common at end-of-feeder installations"],
+          "root_causes": ["Grid voltage high due to export stacking", "Fronius default trip thresholds are strict"],
+          "actions": ["Enable Fronius Q-mode reactive power control", "Adjust voltage trip threshold via Fronius interface (within EN 50549-1 limits)", "Engage DSO if structurally high voltage"],
+          "mttf_benchmark_days": 28
+        },
+        {
+          "id": "FRO-003",
+          "code": "502 / Fan",
+          "name": "Fan / Cooling Failure",
+          "category": "Thermal",
+          "severity": "MEDIUM",
+          "frequency": "Seasonal",
+          "symptoms": ["De-rating in summer", "Alarm: 'temperature too high'"],
+          "root_causes": ["Fan bearing failure", "Blocked ventilation"],
+          "actions": ["Replace fan at 5-year service interval", "Check rear clearance (minimum 200 mm from wall)"],
+          "mttf_benchmark_days": 22
+        }
+      ]
+    },
+
+    {
+      "manufacturer": "Ingeteam",
+      "common_models": ["INGECON SUN 3Play 100TL M", "INGECON SUN 1Play 27.5TL"],
+      "monitoring_platform": "Ingeteam InCloud / PVIS",
+      "fault_log_export": "InCloud > Plant > Events > Export",
+      "faults": [
+        {
+          "id": "ING-001",
+          "code": "E301 / Insulation",
+          "name": "DC Ground Fault",
+          "category": "DC Side",
+          "severity": "HIGH",
+          "frequency": "Common",
+          "symptoms": ["Alarm: 'ground fault' or 'Riso below minimum'", "Trip after rain"],
+          "root_causes": ["Cable or junction box moisture ingress", "MC4 connector incompatibility"],
+          "actions": ["Ingeteam INGECON identifies fault per string input", "Megger test; replace damaged cables", "Inspect MC4 connectors"],
+          "mttf_benchmark_days": 8
+        },
+        {
+          "id": "ING-002",
+          "code": "E201 / Grid",
+          "name": "Grid Overvoltage",
+          "category": "Grid",
+          "severity": "MEDIUM",
+          "frequency": "Common",
+          "symptoms": ["Short trip at peak export", "Correlated with high production periods"],
+          "root_causes": ["MV transformer tap too high", "No reactive power provision"],
+          "actions": ["Enable reactive power in Ingeteam settings", "Adjust transformer tap", "Verify compliance with RD 1699 / EN 50549-1"],
+          "mttf_benchmark_days": 30
+        }
+      ]
+    }
+  ],
+
+  "module_technologies": [
+
+    {
+      "technology": "CdTe Thin-Film",
+      "manufacturers": ["First Solar (Series 4, 5, 6, 6 Plus)"],
+      "temp_coeff_pmax_pct_per_c": -0.26,
+      "typical_degradation_pct_per_year": 0.4,
+      "pid_risk": "Very Low",
+      "lid_effect": "Positive (light soaking — output increases initially)",
+      "issues": [
+        {
+          "id": "MOD-CdTe-001",
+          "name": "Soiling & Surface Contamination",
+          "severity": "HIGH",
+          "frequency": "Universal",
+          "symptoms": ["PR decline Apr–Sep", "Recovery after autumn rain"],
+          "root_causes": ["Agricultural dust, road dust, bird droppings on flat glass surface"],
+          "actions": ["Structured cleaning: May and August", "Bird droppings: remove within 48 h", "Pre/post-rain specific yield comparison to quantify soiling rate"],
+          "energy_impact": "3–8% in dry summer months"
+        },
+        {
+          "id": "MOD-CdTe-002",
+          "name": "DC Insulation Degradation (Cell-to-Frame)",
+          "severity": "HIGH",
+          "frequency": "Occasional on older units",
+          "symptoms": ["Inverter DC insulation fault traced to specific string", "Fault correlates with wet weather"],
+          "root_causes": ["Thin-film cell-to-glass-frame insulation ageing", "Micro-cracks from hail or mechanical stress allowing moisture"],
+          "actions": ["Megger per string at 1000 V DC", "EL imaging to locate micro-cracked cells", "Replace modules with <100 kΩ insulation resistance"],
+          "energy_impact": "HIGH locally — causes inverter trip; full string offline"
+        },
+        {
+          "id": "MOD-CdTe-003",
+          "name": "Junction Box Failure / Bypass Diode Overload",
+          "severity": "HIGH",
+          "frequency": "Occasional",
+          "symptoms": ["Thermal hotspot on junction box in IR imaging", "String open-circuit", "DC insulation alarm on inverter"],
+          "root_causes": ["Persistent bird dropping shadow activating bypass diode repeatedly", "Sealant degradation allowing moisture"],
+          "actions": ["Replace all 3 bypass diodes when one fails", "Remove bird droppings within 48 h", "Annual thermal imaging campaign"],
+          "energy_impact": "33% loss per module when one bypass diode group is shorted"
+        },
+        {
+          "id": "MOD-CdTe-004",
+          "name": "Light Soaking (Expected — Positive Effect)",
+          "severity": "INFO",
+          "frequency": "Universal in new installations",
+          "symptoms": ["Year-1 PR slightly above nameplate predictions"],
+          "root_causes": ["CdTe photodoping increases carrier lifetime in first 100–200 kWh/m² cumulative irradiance"],
+          "actions": ["No action required — exclude first 3 months from long-term PR benchmarking"],
+          "energy_impact": "Positive — 1–3% above nameplate in first months"
+        },
+        {
+          "id": "MOD-CdTe-005",
+          "name": "Long-Term Degradation",
+          "severity": "MEDIUM",
+          "frequency": "Universal — expected over lifetime",
+          "symptoms": ["PR decline 0.3–0.5%/year when corrected for soiling and irradiance"],
+          "root_causes": ["CdS/CdTe junction interface changes — slower than c-Si"],
+          "actions": ["Annual IV-curve sampling (5% of modules) to track rate", "If >0.5%/year: submit First Solar warranty claim"],
+          "warranty_reference": "First Solar: 97.5% at year 1, declining to 86.5% at year 25 (0.5%/year linear guarantee)",
+          "energy_impact": "0.5%/year — cumulative 5% loss by year 10"
+        },
+        {
+          "id": "MOD-CdTe-006",
+          "name": "Micro-Cracking (Hail or Mechanical)",
+          "severity": "MEDIUM",
+          "frequency": "Occasional",
+          "symptoms": ["Dark patches in EL imaging", "Localised power loss 2–5% per affected module"],
+          "root_causes": ["Hail >25 mm diameter on glass-glass construction", "Point loads from improper mounting"],
+          "actions": ["EL imaging post-hail event", "Replace modules with cracks >50% of cell area", "File insurance claim if hail confirmed"],
+          "energy_impact": "2–5% per module — significant if multiple modules affected"
+        },
+        {
+          "id": "FS-CdTe-006",
+          "name": "Potential-Induced Degradation (PID) — TCO Corrosion",
+          "category": "PID / Electrochemical",
+          "severity": "HIGH",
+          "frequency": "Uncommon — risk elevated at negative string end in ungrounded systems",
+          "symptoms": ["Power loss concentrated at modules at highest negative potential relative to ground", "EL imaging shows TCO corrosion around module clamps and edge regions", "Voc and fill factor reduction without significant Isc loss", "Loss gradient along string — negative-end modules worst"],
+          "root_causes": ["Sodium migration from soda-lime glass superstrate toward CdTe junction under high system voltage + elevated temperature", "TCO layer attacked by atomic hydrogen produced by reaction between moisture and reduced sodium at edge seal", "Moisture ingress through inadequate edge sealing — soda-lime glass has known moisture diffusion path at periphery"],
+          "actions": ["EL (electroluminescence) imaging survey on a sample of modules — focus on negative-string-end modules first", "IV-curve testing to characterise Voc and fill factor loss signature", "Check edge seal integrity on suspect modules", "Verify system voltage configuration — grounding one string end reduces PID driving voltage", "Note: Series 6 CuRe has improved edge sealing and redesigned back contact that significantly mitigates this mechanism"],
+          "degradation_rate_note": "Field data from a 2.3 MW CdTe plant after 6 years showed 43% power loss at negative string end vs 17% at positive end",
+          "sources": ["https://ieeexplore.ieee.org/document/7548311/", "https://www.irishellas.com/files/PVI_22_First_Solar_Reliability_WhitePaper_lowres.pdf"]
+        },
+        {
+          "id": "FS-CdTe-007",
+          "name": "CuRe vs. Legacy Cu Back Contact — Degradation Rate Context",
+          "category": "Degradation",
+          "severity": "INFO",
+          "frequency": "N/A — reference information",
+          "symptoms": ["N/A — use for benchmarking annual degradation rate"],
+          "root_causes": ["Original Series 6 (Cu back contact): copper migration along CdTe grain boundaries causes recombination centres, Voc and fill factor loss at rate ~0.5%/yr with ~2% initial stabilisation loss", "Series 6 CuRe (Group V dopant): copper replaced, eliminating migration pathway and initial stabilisation dip — stable from day one"],
+          "actions": ["Determine which back-contact technology the site uses before applying warranted degradation benchmark", "For pre-CuRe modules: expect first 30–90 days of production below P50 (initial stabilisation); compare against warranted stabilisation curve", "For CuRe modules: output should be stable from commissioning; any early PR decline requires investigation"],
+          "degradation_benchmarks": {
+            "Series_6_Cu_warranted": "0.55%/yr with ~2% first-year stabilisation loss",
+            "Series_6_CuRe_warranted": "0.2%/yr with near-zero stabilisation",
+            "excess_decline_threshold": "PR decline >1%/yr requires priority investigation: module EL/IV testing, soiling, inverter efficiency trending, irradiance sensor drift check"
+          },
+          "sources": ["https://www.pv-tech.org/first-solar-touts-its-cure-technology-delivering-module-degradation-rates-of-only-0-2-per-year/", "https://www.pv-magazine.com/2021/04/19/first-solar-claims-lowest-module-degradation-rate-in-the-industry/", "https://www.firstsolar.com/-/media/First-Solar/Technical-Documents/Series-6-CuRe/Series-6-CuRe-Datasheet.ashx"]
+        },
+        {
+          "id": "FS-CdTe-008",
+          "name": "Temperature Coefficient Advantage — CdTe vs c-Si",
+          "category": "Performance Characterisation",
+          "severity": "INFO",
+          "frequency": "N/A — reference for performance benchmarking",
+          "symptoms": ["CdTe plant PR appears to outperform c-Si benchmark in summer — this is expected, not a fault"],
+          "root_causes": ["CdTe Pmax temperature coefficient: −0.28%/°C vs c-Si −0.35 to −0.50%/°C — CdTe loses less power per degree of cell temperature rise"],
+          "actions": ["Do not apply c-Si PR benchmarks directly to CdTe plants — the expected PR is higher in hot conditions", "Summer PR declining toward c-Si levels may signal module degradation or soiling eroding the thermal advantage — investigate", "Annual energy advantage of CdTe over equivalent c-Si: +4 to +9% in hot climates"],
+          "temperature_coefficients": {
+            "CdTe_Pmax": "-0.28 %/°C",
+            "mono_cSi_Pmax": "-0.35 to -0.50 %/°C",
+            "annual_energy_advantage_hot_climate": "+4 to +9% vs c-Si"
+          },
+          "sources": ["https://www.firstsolar.com/-/media/First-Solar/Technical-Documents/Series-6-CuRe/Series-6-CuRe-Datasheet.ashx", "https://www.pv-tech.org/technical-papers/performance-characterization-and-superior-energy-yield-of-first-solar-pv-power-plants-in-hightemperature-conditions/"]
+        },
+        {
+          "id": "FS-CdTe-009",
+          "name": "Hot Spot in Thin-Film CdTe",
+          "category": "Thermal / Reliability",
+          "severity": "MEDIUM",
+          "frequency": "Uncommon",
+          "symptoms": ["Elevated cell temperature visible on IR thermography", "Temperature gradient smaller than in c-Si (glass-glass encapsulation reduces surface delta-T)", "Power loss without Isc degradation"],
+          "root_causes": ["Local defect in TCO or back contact causing current to flow across resistive zone", "Monolithic cell structure — hot spot can propagate to adjacent cells within module more readily than in c-Si"],
+          "actions": ["Use high-sensitivity IR camera (NETD <50 mK) due to smaller surface temperature gradients vs c-Si", "Perform thermographic survey under standard field conditions (>600 W/m² irradiance)", "Identify affected modules for IV-curve testing to quantify fill factor loss", "Note: CdTe has better partial shading tolerance than c-Si (linear shading response), but sustained reverse bias can cause stress in thin-film cell structure"],
+          "sources": ["https://www.sciencedirect.com/article/abs/pii/S1369800115301992"]
+        }
+      ]
+    },
+
+    {
+      "technology": "Mono-crystalline Silicon — PERC / TOPCon / HJT",
+      "manufacturers": ["LONGi", "JA Solar", "Trina Solar", "Jinko Solar", "Canadian Solar", "REC Group", "Risen", "Astronergy", "Maxeon (HJT)"],
+      "temp_coeff_pmax_pct_per_c": -0.35,
+      "typical_degradation_pct_per_year": 0.55,
+      "pid_risk": "Moderate to High (PERC) / Low (TOPCon, HJT)",
+      "lid_effect": "Negative — LID 1–3% in first 50 kWh/m² (PERC also has LETID)",
+      "issues": [
+        {
+          "id": "MOD-cSi-001",
+          "name": "LID — Light Induced Degradation",
+          "severity": "LOW",
+          "frequency": "Universal in PERC mono-Si",
+          "symptoms": ["PR 1–3% below nameplate in first 4–8 weeks of operation", "Stabilises after ~50 kWh/m² cumulative irradiance"],
+          "root_causes": ["Boron-oxygen defect formation in p-type silicon under illumination"],
+          "actions": ["Expected behaviour — no field action required", "Account for LID in first-year energy yield predictions (adjust by 1–2%)"],
+          "note": "TOPCon and HJT modules have negligible LID — much less than standard PERC",
+          "energy_impact": "1–3% in first weeks — stabilises permanently"
+        },
+        {
+          "id": "MOD-cSi-002",
+          "name": "LETID — Light and Elevated Temperature Induced Degradation",
+          "severity": "MEDIUM",
+          "frequency": "Common in PERC (first 2–3 years)",
+          "symptoms": ["PR declines progressively in summer months over first 2–3 years beyond LID", "Particularly pronounced in hot climates (>35°C operating cell temperature)", "Partial recovery in winter"],
+          "root_causes": ["Hydrogenated boron-oxygen defects activated at elevated cell temperatures (>50°C) under illumination", "More severe in high-power PERC with dense cell packing"],
+          "actions": ["Monitor year-on-year PR corrected for irradiance — decline >1%/year in years 1–3 may indicate LETID", "Check if module manufacturer applies LeTID mitigation (light soaking at factory)", "Raise potential warranty claim if degradation exceeds 2% in first year"],
+          "note": "LETID partially recovers over time — full stabilisation typically by year 3–5",
+          "energy_impact": "0.5–2% additional degradation beyond LID — largely recoverable by year 5"
+        },
+        {
+          "id": "MOD-cSi-003",
+          "name": "PID — Potential Induced Degradation",
+          "severity": "HIGH",
+          "frequency": "Common in positive-grounded or ungrounded systems with old PERC modules",
+          "symptoms": ["Uniform PR decline across all modules in a string", "Decline worst in high-humidity summer months", "Lower-voltage strings (near negative rail) least affected"],
+          "root_causes": ["Negative potential on cell relative to frame drives sodium ions from glass into cell via EVA", "Accelerated by high humidity, high temperature, and high string voltage", "Risk varies by EVA formulation, glass composition, and cell design"],
+          "actions": ["PID recovery: apply DC reverse bias at night using PID recovery box (1–2 weeks typical)", "Long-term: replace EVA encapsulant with POE (polyolefin) which has much lower PID susceptibility", "For new systems: specify POE encapsulant or TOPCon/HJT modules which are PID-immune"],
+          "energy_impact": "Potentially severe: 10–30% loss in extreme cases; recovery typically 80–90% of lost output",
+          "warranty_reference": "Most manufacturers warrant PID loss <5% at 1000 V for 25 years — verify test certificate IEC 62804"
+        },
+        {
+          "id": "MOD-cSi-004",
+          "name": "Micro-cracking (Cell Cracking)",
+          "severity": "MEDIUM",
+          "frequency": "Common — especially glass-backsheet modules",
+          "symptoms": ["Dark branches or patches in EL imaging", "Power loss 3–15% depending on crack pattern", "Snail trails (discolouration along crack lines after years)"],
+          "root_causes": ["Hail impact", "Wind-induced flexing on modules with thin glass (<3.2 mm)", "Improper clamping — over-tightened or misplaced clamps", "Transport vibration"],
+          "actions": ["EL imaging at commissioning (baseline) and biannual thereafter", "Replace modules with 'inactive crack' patterns (EL shows cell area separated from bus bar)", "Verify clamp positions match manufacturer drawing (mid-frame only for most bifacial)"],
+          "energy_impact": "3–15% per affected module — large-area inactive cracks are most damaging"
+        },
+        {
+          "id": "MOD-cSi-005",
+          "name": "EVA Browning / Yellowing",
+          "severity": "MEDIUM",
+          "frequency": "Occasional — particularly in hot climates",
+          "symptoms": ["Yellow or brown discolouration visible through glass", "Uniform power loss across whole module (all cells affected equally)", "EL imaging normal — optical loss only"],
+          "root_causes": ["UV degradation of EVA encapsulant accelerated by high temperature and UV exposure", "Acetic acid release from EVA can cause corrosion of silver cell busbars", "More common in older (<2018) modules using standard EVA without UV stabiliser"],
+          "actions": ["No field repair possible — replace if power loss >5% attributable to browning", "Modern POE and UV-resistant EVA formulations largely eliminate this failure mode", "Document and submit warranty claim with Pmax measurements corrected for temperature"],
+          "energy_impact": "1–8% optical transmittance loss depending on severity"
+        },
+        {
+          "id": "MOD-cSi-006",
+          "name": "Backsheet Delamination / Cracking",
+          "severity": "HIGH",
+          "frequency": "Common on older glass-backsheet modules (pre-2020)",
+          "symptoms": ["White chalking or cracking visible on module rear", "Bubbling or delamination at module edges or corners", "Eventual moisture ingress causing corrosion of cell metallisation"],
+          "root_causes": ["Non-fluorinated (PPE, PET) backsheet UV degradation after 5–10 years", "Fluorinated backsheets (PVDF/KPK) much more resistant — now industry standard", "Thermal cycling stress at edges"],
+          "actions": ["Replace modules with active cracks in backsheet — moisture ingress risk causes accelerated further degradation", "Apply moisture barrier tape as emergency measure pending replacement (6-month maximum)", "For new procurement: require PVDF/PVDF or glass-glass construction"],
+          "energy_impact": "Initially low — but if unchecked, moisture ingress causes rapid degradation"
+        },
+        {
+          "id": "MOD-cSi-007",
+          "name": "Hotspot / Bypass Diode Failure",
+          "severity": "HIGH",
+          "frequency": "Common in partially shaded installations",
+          "symptoms": ["Bright hotspot in thermal imaging — dramatically hotter than surrounding cells", "Burn marks on rear of module or junction box", "Module power loss 5–30%"],
+          "root_causes": ["Persistent partial shading (bird droppings, leaves, lichen) causing reverse bias on shadowed cells", "Bypass diode open-circuit failure causing entire bypass group to run in reverse bias", "String mismatch with one module at lower irradiance"],
+          "actions": ["Thermal imaging identifies affected modules — 200–600 W/m² irradiance best for hotspot detection", "Remove shading source immediately", "Replace bypass diode if open-circuit (all three diodes simultaneously)", "Replace module if carbon track or burn marks visible on cells"],
+          "energy_impact": "HIGH for affected module — if bypass diode fails open: one-third of module bypassed"
+        },
+        {
+          "id": "MOD-cSi-008",
+          "name": "Snail Trails",
+          "severity": "LOW",
+          "frequency": "Common on older modules",
+          "symptoms": ["Dark brown or black lines following cell cracks, visible through glass after months/years", "Slight power loss — typically <3% on its own"],
+          "root_causes": ["Acetic acid from EVA reacts with silver cell busbars, depositing silver acetate along crack paths", "Purely aesthetic in early stages — indicates underlying micro-cracks"],
+          "actions": ["Snail trails themselves cause minimal power loss — focus on identifying underlying cracks via EL imaging", "Replace module if EL shows large inactive crack area (even if no visible snail trail yet)"],
+          "energy_impact": "Low on its own (<3%), but indicates micro-cracks which may worsen"
+        }
+      ]
+    },
+
+    {
+      "technology": "IBC — Interdigitated Back Contact",
+      "manufacturers": ["Maxeon (SunPower Maxeon 6, Maxeon 7)", "SunPower Performance"],
+      "temp_coeff_pmax_pct_per_c": -0.27,
+      "typical_degradation_pct_per_year": 0.25,
+      "pid_risk": "Very Low — back-contact architecture",
+      "lid_effect": "Minimal — n-type silicon base",
+      "issues": [
+        {
+          "id": "MOD-IBC-001",
+          "name": "Back-Contact Delamination",
+          "severity": "HIGH",
+          "frequency": "Rare — quality issue in earlier series",
+          "symptoms": ["Power loss without visible front-side damage", "EL imaging shows dark patterns originating at cell edges", "Blistering on module rear"],
+          "root_causes": ["Adhesive failure in back-contact structure under thermal cycling", "Moisture ingress at edge in humid climates"],
+          "actions": ["EL imaging to identify extent", "Replace affected modules", "File warranty claim — Maxeon provides 40-year product warranty"],
+          "energy_impact": "Potentially significant — back-contact failure removes entire cell groups"
+        },
+        {
+          "id": "MOD-IBC-002",
+          "name": "Long-Term Degradation",
+          "severity": "LOW",
+          "frequency": "Universal but very slow",
+          "symptoms": ["PR decline 0.2–0.3%/year — better than any other commercial technology"],
+          "root_causes": ["n-type silicon with back-contact architecture has inherently superior stability"],
+          "actions": ["Annual IV-curve sampling", "Maxeon warranty: 92% at year 25 (0.25%/year) — file claim if exceeded"],
+          "energy_impact": "Very low — best-in-class degradation rate"
+        }
+      ]
+    },
+
+    {
+      "technology": "Bifacial — Mono PERC / TOPCon Bifacial",
+      "manufacturers": ["LONGi Hi-MO 6/7 Bifacial", "Jinko Tiger Neo Bifacial", "JA Solar DeepBlue Bifacial", "Trina Vertex S+ Bifacial"],
+      "temp_coeff_pmax_pct_per_c": -0.34,
+      "typical_degradation_pct_per_year": 0.50,
+      "pid_risk": "Low to Moderate (TOPCon lower than PERC)",
+      "lid_effect": "Minimal for TOPCon / 1–2% for PERC bifacial",
+      "issues": [
+        {
+          "id": "MOD-BIF-001",
+          "name": "Rear-Side Soiling",
+          "severity": "MEDIUM",
+          "frequency": "Common — often overlooked",
+          "symptoms": ["Measured bifacial gain (5–15% expected) lower than modelled", "Albedo benefit not appearing in yield"],
+          "root_causes": ["Dust or concrete splatter on rear glass — often during installation", "Ground-mounted bifacial with insufficient elevation (>300 mm recommended)"],
+          "actions": ["Include rear glass cleaning in O&M programme — often forgotten", "Measure rear irradiance with albedometer to confirm actual bifacial gain", "Verify ground clearance and surface albedo matches model assumptions"],
+          "energy_impact": "Loss of 3–8% of expected bifacial gain"
+        },
+        {
+          "id": "MOD-BIF-002",
+          "name": "Improper Clamp Positioning (Bifacial-Specific)",
+          "severity": "HIGH",
+          "frequency": "Common — installation error",
+          "symptoms": ["EL imaging shows dark stressed cells along clamp contact areas", "Power loss localised to clamped rows", "Micro-cracking progresses over first year"],
+          "root_causes": ["Clamps placed on cell active area instead of on the frame-only zone", "Many bifacial modules have specific clamp zones — check manufacturer drawing", "Over-torqued clamps"],
+          "actions": ["Verify clamp positions match manufacturer mounting specification", "Use torque wrench at 20–25 Nm (manufacturer spec)", "Relocate misplaced clamps during next site visit and monitor with EL imaging"],
+          "energy_impact": "2–10% per clamped module if active area cracked"
+        }
+      ]
+    }
+  ],
+
+  "diagnostic_matrix": {
+    "description": "Observed SCADA symptom → most probable fault categories to investigate first (any brand)",
+    "entries": [
+      {
+        "scada_symptom": "Single inverter: MTTF < 5 days (>100 trips/year)",
+        "investigate_first": ["DC insulation fault (all brands)", "AC contactor wear (Sungrow SUN-003)", "Grid overvoltage (all brands)"],
+        "tool_required": "Inverter fault code export + Megger 1000 V DC"
+      },
+      {
+        "scada_symptom": "All inverters trip simultaneously",
+        "investigate_first": ["Grid undervoltage/overvoltage (all brands)", "MV protection relay operation"],
+        "tool_required": "DSO MV relay event log + power quality recorder"
+      },
+      {
+        "scada_symptom": "Inverter PR low but availability normal (running but underproducing)",
+        "investigate_first": ["Soiling (MOD-cSi/CdTe)", "Micro-cracking (MOD-cSi-004 / MOD-CdTe-006)", "PID (MOD-cSi-003)", "MPPT startup issue (SUN-005)"],
+        "tool_required": "IV-curve tracer + EL imager + thermal camera"
+      },
+      {
+        "scada_symptom": "PR decline Apr–Sep, full recovery after autumn rain",
+        "investigate_first": ["Soiling (all module types)"],
+        "tool_required": "Pre/post-rain specific yield comparison (no instruments needed)"
+      },
+      {
+        "scada_symptom": "DC insulation alarm on one inverter after rain",
+        "investigate_first": ["DC insulation fault (all brands)", "Junction box failure (MOD-CdTe-003 / MOD-cSi)"],
+        "tool_required": "Megger 1000 V DC per string; identify faulty MPPT from inverter log"
+      },
+      {
+        "scada_symptom": "Production de-rates mid-day in summer only",
+        "investigate_first": ["Inverter overtemperature (all brands)", "Grid overvoltage at peak export (all brands)"],
+        "tool_required": "Inverter internal temperature log + grid voltage log"
+      },
+      {
+        "scada_symptom": "Uniform PR decline across entire fleet (year-on-year, all inverters)",
+        "investigate_first": ["Module degradation — check technology (MOD-cSi-001 LID, MOD-cSi-002 LETID, MOD-CdTe-005)", "PID affecting entire plant (MOD-cSi-003)", "Pyranometer drift inflating GHI reference"],
+        "tool_required": "IV-curve sampling + irradiance-corrected PR trend + pyranometer recalibration"
+      },
+      {
+        "scada_symptom": "AFCI trip (Huawei or SMA) — no visible damage found",
+        "investigate_first": ["MC4 connector not fully engaged (HW-002, SMA-002)", "Long cable run capacitive false trigger"],
+        "tool_required": "MC4 pull-force test; visual inspection for carbon tracking"
+      },
+      {
+        "scada_symptom": "All Huawei inverters offline in monitoring but producing locally",
+        "investigate_first": ["SmartLogger failure (HW-003)", "4G SIM card or network issue"],
+        "tool_required": "SmartLogger reset; SIM signal check"
+      },
+      {
+        "scada_symptom": "One inverter consistently 5–15% below fleet PR across both years",
+        "investigate_first": ["Differential soiling", "Micro-cracking (EL imaging)", "Partial DC insulation fault"],
+        "tool_required": "EL imaging + IV-curve + insulation resistance test"
+      }
+    ]
+  },
+
+  "expected_seasonal_patterns": {
+    "description": "Normal seasonal behaviours that should NOT be flagged as underperformance — include these in report interpretations to avoid false alarms.",
+    "patterns": [
+      {
+        "id": "ESP-001",
+        "pattern": "Lower specific yield in winter months",
+        "category": "Normal — seasonal",
+        "explanation": "Winter months have shorter days and lower solar elevation angles, resulting in significantly less daily irradiation (GHI). Specific yield (kWh/kWp) will naturally be 30–60% lower than summer peak months depending on latitude. This is not underperformance.",
+        "correct_interpretation": "Compare per-inverter DEVIATION from fleet mean within the same month — not absolute values across seasons. If all inverters track together in winter, the plant is performing correctly.",
+        "kpi_impact": "Specific yield low; PR is largely weather-normalised and should be similar across seasons if plant is healthy.",
+        "diagnostic_test": "Check PR rather than absolute production. If monthly PR is consistent year-round (±5%), the plant is fine. Only investigate if one inverter diverges from fleet mean within the same month.",
+        "applicable_technologies": ["All"],
+        "flag_if": "One or more inverters show significantly LOWER yield relative to fleet peers in the same winter month — this IS underperformance vs peers.",
+        "do_not_flag_if": "All inverters show lower absolute yield in winter — this is expected."
+      },
+      {
+        "id": "ESP-002",
+        "pattern": "Higher soiling losses in summer / dry season",
+        "category": "Expected — seasonal O&M",
+        "explanation": "Dust, pollen and bird droppings accumulate faster in dry summer months with less rainfall to wash panels. A 2–8% soiling loss is typical in dry climates. This causes a gradual drop in specific yield and PR through the dry season that partially recovers with first autumn rains.",
+        "correct_interpretation": "Soiling is manageable, not a fault. It should appear as a gradual decline in fleet-mean specific yield from May onwards, with recovery after the first significant rain event.",
+        "kpi_impact": "PR degrades 0.5–2% per month without cleaning. Specific yield dips below seasonal baseline.",
+        "diagnostic_test": "Compare specific yield in the week immediately before and after a rain event (>5mm). A >3% yield step-change confirms active soiling. Plot rolling 7-day yield vs irradiation ratio.",
+        "applicable_technologies": ["All — CdTe more sensitive to dust on the TCO layer; bifacial loses bifacial gain preferentially on the rear"],
+        "flag_if": "Soiling exceeds 8% estimated loss per month, or if no cleaning programme exists at a site with measurable soiling rates.",
+        "do_not_flag_if": "Gradual summer yield decline is consistent across all inverters and followed by post-rain recovery."
+      },
+      {
+        "id": "ESP-003",
+        "pattern": "Higher PR in winter due to lower cell temperature",
+        "category": "Normal — beneficial seasonal effect",
+        "explanation": "PV module efficiency increases at lower cell temperatures. Temperature coefficient of power is typically -0.35 to -0.45%/°C for mono-Si, and -0.26%/°C for CdTe. In winter, modules may run 20–30°C cooler than summer peak, yielding 7–15% higher electrical conversion efficiency, which shows as higher PR.",
+        "correct_interpretation": "A higher PR in winter is expected and desirable — it does NOT offset the lower absolute production from reduced irradiation.",
+        "kpi_impact": "Monthly PR may be 5–10 percentage points higher in winter vs summer for the same plant.",
+        "diagnostic_test": "Plot PR vs ambient temperature to confirm negative correlation. Divergence from expected PR-temperature relationship may indicate a string fault masked by the temperature bonus.",
+        "applicable_technologies": ["CdTe: -0.26%/°C (largest relative winter benefit)", "Mono-Si PERC/TOPCon: -0.35 to -0.40%/°C", "HJT: -0.24 to -0.26%/°C (similar to CdTe)"],
+        "flag_if": "PR does NOT improve in winter compared to summer at a well-performing site — may indicate a persistent DC fault unrelated to temperature.",
+        "do_not_flag_if": "PR is noticeably higher in winter — this is the expected thermal gain."
+      },
+      {
+        "id": "ESP-004",
+        "pattern": "Morning / evening production ramp-up delay",
+        "category": "Normal — MPPT / irradiance threshold",
+        "explanation": "Inverters require minimum irradiance (~50 W/m²) before MPPT can lock onto the array voltage. At low sun angles, DC voltage may also be below the inverter's minimum start voltage. Production typically begins 20–40 minutes after sunrise and ends 20–40 minutes before sunset.",
+        "correct_interpretation": "The morning/evening 'shoulders' of the daily production curve will be missing or truncated. This is normal and not a fault.",
+        "kpi_impact": "Low impact in summer (short ramp-up vs long day). Greater proportional impact in winter when days are short.",
+        "diagnostic_test": "Compare irradiance vs production scatter plot — if production begins consistently at the same irradiance threshold (~50–100 W/m²), the start delay is due to MPPT, not a fault.",
+        "applicable_technologies": ["All — threshold varies by inverter minimum start voltage and MPP range"],
+        "flag_if": "Production consistently starts more than 1 hour after the irradiance threshold is met, or stops well before the threshold drops below minimum.",
+        "do_not_flag_if": "Production starts in the 30–45 minute window after irradiance rises above ~50 W/m²."
+      },
+      {
+        "id": "ESP-005",
+        "pattern": "Post-rain yield spike",
+        "category": "Expected — soiling washoff",
+        "explanation": "A significant rainfall event (>5mm) typically washes accumulated soiling off module surfaces, resulting in a noticeable yield improvement in the 1–3 days following rain. This manifests as a sudden increase in specific yield and PR that then gradually declines again as soiling re-accumulates.",
+        "correct_interpretation": "This is the clearest natural soiling measurement. The magnitude of the spike quantifies the pre-rain soiling loss.",
+        "kpi_impact": "Yield step-change of 2–8% is typical after effective rain washoff.",
+        "diagnostic_test": "Overlay rainfall data on daily specific yield chart. Consistent yield step-changes after rain events confirm soiling as the primary PR driver and quantify cleaning ROI.",
+        "applicable_technologies": ["All"],
+        "flag_if": "Post-rain yield improvement is absent at a site with known dust accumulation — may indicate stubborn contamination (bird droppings, adhesive dust) requiring mechanical cleaning.",
+        "do_not_flag_if": "Production improves measurably in the days after rainfall — this confirms the soiling hypothesis."
+      },
+      {
+        "id": "ESP-006",
+        "pattern": "Reduced production during and after extreme heat events",
+        "category": "Expected — thermal derating",
+        "explanation": "On very hot days (ambient >35°C), inverters may thermally derate output power to protect internal components (typically by 1–5% per degree above the rated ambient). Module power also drops due to temperature coefficient. Combined effect: plant output may be 10–20% below irradiation-predicted levels on the hottest summer days.",
+        "correct_interpretation": "Short-duration thermal derating during heat waves is designed-in behaviour. It is not a fault unless derating is more severe than expected, more frequent than weather justifies, or persists after the heat event ends.",
+        "kpi_impact": "Short-lived PR dip during peak summer heat. Not material to annual energy yield unless heat waves are prolonged.",
+        "diagnostic_test": "Cross-reference low-PR days against ambient temperature records. If PR dip matches temperature extremes, it is thermal derating. If PR is low on normal-temperature days, investigate further.",
+        "applicable_technologies": ["All — inverter derating curves differ by manufacturer; Sungrow and Huawei central inverters typically derate above 45°C ambient"],
+        "flag_if": "Thermal derating is triggered at normal ambient temperatures (< 30°C), suggesting a cooling system fault (blocked air filters, failed fans).",
+        "do_not_flag_if": "PR dips coincide with confirmed ambient temperature >35°C and recover immediately afterwards."
+      }
+    ]
+  },
+
+  "o_and_m_schedule": {
+    "description": "Recommended O&M inspection calendar — generic utility-scale PV",
+    "tasks": [
+      {"frequency": "Daily",        "task": "SCADA monitoring — inverter trips, data gaps, alarm review",                             "tools": "SCADA dashboard"},
+      {"frequency": "Monthly",      "task": "Pyranometer dome cleaning; soiling visual check",                                        "tools": "Lint-free cloth, IPA, binoculars"},
+      {"frequency": "Quarterly",    "task": "Site walkthrough — vegetation, junction box visual, bird deterrent check",               "tools": "Visual inspection"},
+      {"frequency": "Biannual",     "task": "Thermal imaging (modules + junction boxes); inverter air filter clean; MC4 inspection",  "tools": "IR camera, compressed air, torque wrench"},
+      {"frequency": "Annual",       "task": "Insulation resistance test all strings; IV-curve (5% sample); fan check; pyranometer calibration verify; AC/DC wiring inspection", "tools": "Megger, IV tracer, reference cell"},
+      {"frequency": "Every 2 years","task": "EL imaging campaign; pyranometer factory calibration; contactor resistance check on high-trip units", "tools": "EL imager, calibration lab"},
+      {"frequency": "Every 5 years","task": "100% IV-curve campaign; cable insulation survey; contactor replacement on inverters >300k operations", "tools": "IV tracer, Megger, spare contactors"}
+    ]
+  },
+
+  "scada_data_quality_rules": [
+    {
+      "id": "DQ-001",
+      "name": "Correlated Multi-Inverter Data Gaps = SCADA Fault",
+      "category": "Data Quality",
+      "severity": "HIGH",
+      "rule": "When multiple inverters across different PTRs share identical missing-data start/end timestamps, the cause is upstream (SCADA logger, communication link, network switch), not individual inverter hardware. Do not count as inverter downtime.",
+      "diagnostic": "Compare missing-data timestamps across all inverters. Correlated gaps = systemic SCADA/communication failure.",
+      "sources": ["8.2 France internal analysis — Milhac d'Auberoche 2022, Mas d'En Ramis 2024"]
+    },
+    {
+      "id": "DQ-002",
+      "name": "Missing% + Null% ≈ 100% for Full Month = Probable Full Inverter Outage",
+      "category": "Data Quality",
+      "severity": "HIGH",
+      "rule": "If (missing_pct + null_pct) ≈ 100% for irradiance > 50 W/m² over a full calendar month on a single inverter, flag as probable full inverter outage. Requires on-site logbook cross-check to distinguish genuine shutdown from communication blackout.",
+      "diagnostic": "Time-series inspection of missing + null rates per inverter per month. Combined 100% = inverter produced nothing all month.",
+      "sources": ["8.2 France internal analysis — Milhac d'Auberoche 2022"]
+    },
+    {
+      "id": "DQ-003",
+      "name": "Null Power with Zero Missing Data = Inverter Online But Not Producing",
+      "category": "Data Quality",
+      "severity": "HIGH",
+      "rule": "Null power (power = 0 at irradiance > 50 W/m²) with zero missing data means the inverter is communicating normally but not generating. Causes: grid protection trip, DC isolation open, thermal cutout. More actionable than a missing-data event — the fault is in the inverter or its circuit, not the communication.",
+      "diagnostic": "Check whether null periods are clustered at morning/evening transitions (MPPT startup threshold) or mid-day (protection trip).",
+      "sources": ["8.2 France internal analysis — Préchac 2023, Sablirot Sud 2023"]
+    },
+    {
+      "id": "DQ-004",
+      "name": "First-Month Null Rate 15–25% Declining to <10% = Staggered Commissioning",
+      "category": "Data Quality",
+      "severity": "INFO",
+      "rule": "At newly commissioned sites, a null-power rate of 15–25% in the first analysis month that drops to <10% in the second month indicates staggered inverter commissioning (inverters being progressively energised). Do not trigger false fault alarms during the first 4 weeks after commissioning.",
+      "sources": ["8.2 France internal analysis — Préchac 2023, Sablirot Sud 2023"]
+    },
+    {
+      "id": "DQ-005",
+      "name": "Seasonal SCADA Data Availability Collapse = Communication Infrastructure Fault",
+      "category": "Data Quality",
+      "severity": "HIGH",
+      "rule": "Seasonal SCADA data availability collapse (same calendar months across multiple years) affecting all inverters simultaneously is a SCADA/communication infrastructure fault. Check: (1) internet connection stability, (2) SCADA data logger buffer size — may overflow during high-production months, (3) seasonal temperature effects on communication hardware.",
+      "sources": ["8.2 France internal analysis — Mas d'En Ramis 2024"]
+    },
+    {
+      "id": "DQ-006",
+      "name": "Inverter PR > 110% = Asset Database Error",
+      "category": "Data Quality",
+      "severity": "HIGH",
+      "rule": "An inverter showing PR > 110% is a data quality error in the reference power figure, not genuine overperformance. Most common cause: incorrect or estimated installed capacity in asset database. Always verify PR denominators against the actual single-line diagram.",
+      "sources": ["8.2 France internal analysis — Mas d'En Ramis 2024 (PTR2 Inv06 showing PR 133–137%)"]
+    },
+    {
+      "id": "DQ-007",
+      "name": "PR > 3% Gap Between Independent Analyst and Client = Methodology Difference",
+      "category": "Data Quality",
+      "severity": "MEDIUM",
+      "rule": "When independent PR and client PR diverge by >3% consistently across months using the same input data, the discrepancy is methodological, not a plant fault. Investigate: (1) irradiation source differences (on-site pyranometer vs satellite), (2) irradiation weighting method (weighted by availability vs unweighted), (3) timestamp alignment between power and irradiance records.",
+      "sources": ["8.2 France internal analysis — Préchac 2023 (gap: 6.5 pp), Sablirot Sud 2023 (gap: 5.5 pp)"]
+    },
+    {
+      "id": "DQ-008",
+      "name": "Irradiance Sensor Drift — Systematic PR Bias",
+      "category": "Data Quality",
+      "severity": "HIGH",
+      "rule": "PV reference cells overestimate daily irradiance by >2% vs ISO 9060 Class A pyranometers due to cosine response and spectral mismatch — this makes plant PR appear lower than reality. Thermopile pyranometers drift +1 to +3%/year without heating/ventilation in humid climates, artificially degrading reported PR. Monthly comparison against PVGIS-SARAH3 satellite GHI is the primary QC tool.",
+      "diagnostic": "Monthly ratio of on-site irradiation to PVGIS-SARAH3 reference. Deviation >3% on a monthly basis indicates sensor drift or failure.",
+      "actions": ["Annual cleaning and calibration of irradiance sensors (IEC 61724-1 Class A: weekly cleaning, 2-year calibration cycle)", "For reference cell data: apply IEC 60904-7 spectral correction using measured air mass and precipitable water", "Replace secondary pyranometers (Class C) with ISO 9060 Class A instruments for contractual PR reporting"],
+      "sources": ["https://www.sevensensor.com/comparison-of-pyranometers-vs-reference-cell-solar-irradiance-sensors", "https://iea-pvps.org/wp-content/uploads/2020/01/Uncertainties_in_PV_System_Yield_Predictions_and_Assessments_by_Task_13.pdf"]
+    },
+    {
+      "id": "DQ-009",
+      "name": "Stuck/Frozen Value Detection — Modbus Plants",
+      "category": "Data Quality",
+      "severity": "HIGH",
+      "rule": "Modbus RTU/TCP (used by most utility-scale string inverters including Sungrow) does not embed data quality flags. If a sensor stops updating its register, the last valid value is returned indefinitely — the SCADA receives data but it is stale. Requires application-layer stuck-value detection.",
+      "diagnostic": "Apply frozen value test: if a channel returns the same value for K consecutive readings (e.g., K=5 at 5-min resolution = 25 min) during a period when the variable is expected to change (irradiance during variable cloud), flag as frozen. Exclude nighttime to avoid false positives on stable near-zero signals.",
+      "sources": ["https://norcalcontrols.net/scada-system-architecture-for-solar-pv/", "https://www.mercomindia.com/missing-scada-data-can-skew-solar-tracker-availability-metrics"]
+    },
+    {
+      "id": "DQ-010",
+      "name": "MPPT Overload From DC Wiring Error — Automated Detection Rule",
+      "category": "Diagnostics",
+      "severity": "HIGH",
+      "rule": "A single inverter with PR persistently 10–15% below the fleet average, without seasonal variation and without fault alarms, indicates a DC wiring configuration error (MPPT overload), not a module or inverter hardware fault. This condition can persist for years without O&M detection if automated alerting is absent.",
+      "diagnostic": "Automated alert: any inverter PR below 80% of fleet median for >30 consecutive days without active fault alarm should trigger a DC wiring audit.",
+      "sources": ["8.2 France internal analysis — Mas d'En Ramis 2024 (PTR3 Inv13: PR 65–67% vs fleet 75–82%)"]
+    }
+  ]
+}
