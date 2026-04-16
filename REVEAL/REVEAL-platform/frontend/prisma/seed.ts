@@ -292,29 +292,65 @@ function parseFrenchDate(value: string): Date {
 }
 
 async function main() {
-  await prisma.reportJob.deleteMany();
-  await prisma.report.deleteMany();
-  await prisma.solarInverterUnit.deleteMany();
-  await prisma.solarModuleType.deleteMany();
-  await prisma.portalSubmission.deleteMany();
-  await prisma.site.deleteMany();
-  await prisma.user.deleteMany();
-  await prisma.organization.deleteMany();
+  const demoSiteIds = sites.map((site) => site.id);
+  const demoUserIds = users.map((user) => user.id);
+  const demoOrganizationIds = organizations.map((organization) => organization.id);
+  const demoOrganizationNames = organizations.map((organization) => organization.name);
+
+  await prisma.reportJob.deleteMany({
+    where: { siteId: { in: demoSiteIds } },
+  });
+  await prisma.report.deleteMany({
+    where: { siteId: { in: demoSiteIds } },
+  });
+  await prisma.solarInverterUnit.deleteMany({
+    where: { siteId: { in: demoSiteIds } },
+  });
+  await prisma.solarModuleType.deleteMany({
+    where: { siteId: { in: demoSiteIds } },
+  });
+
+  // Preserve real production users and sites; seed should only refresh demo content.
+  await prisma.site.deleteMany({
+    where: { id: { in: demoSiteIds } },
+  });
+  await prisma.user.deleteMany({
+    where: { id: { in: demoUserIds } },
+  });
+  await prisma.organization.deleteMany({
+    where: {
+      OR: [
+        { id: { in: demoOrganizationIds } },
+        { name: { in: demoOrganizationNames } },
+      ],
+    },
+  });
 
   for (const organization of organizations) {
-    await prisma.organization.create({ data: organization });
+    await prisma.organization.upsert({
+      where: { name: organization.name },
+      update: {},
+      create: organization,
+    });
   }
 
   for (const user of users) {
-    await prisma.user.create({
-      data: {
+    await prisma.user.upsert({
+      where: { email: user.email },
+      update: {
+        password: user.password,
+        display_name: user.display_name,
+        plan_type: user.plan_type,
+        organizationId: user.organizationId,
+      },
+      create: {
         id: user.id,
         email: user.email,
         password: user.password,
         display_name: user.display_name,
         plan_type: user.plan_type,
         organizationId: user.organizationId,
-      },
+      }
     });
   }
 
@@ -323,8 +359,48 @@ async function main() {
       .filter((user) => user.siteIds.includes(site.id))
       .map((user) => ({ id: user.id }));
 
-    await prisma.site.create({
-      data: {
+    await prisma.site.upsert({
+      where: { id: site.id },
+      update: {
+        display_name: site.display_name,
+        country: site.country,
+        region: site.region,
+        cod: parseFrenchDate(site.cod),
+        technology: site.technology,
+        site_type: site.site_type,
+        status: site.status,
+        lat: site.lat,
+        lon: site.lon,
+        cap_ac_kw: site.cap_ac_kw,
+        cap_dc_kwp: site.cap_dc_kwp,
+        n_inverters: site.n_inverters,
+        inv_ac_kw: site.inv_ac_kw,
+        inv_model: site.inv_model,
+        n_modules: site.n_modules,
+        module_wp: site.module_wp,
+        module_brand: site.module_brand ?? null,
+        site_timezone: site.site_timezone ?? "Europe/Paris",
+        irradiance_basis: site.irradiance_basis ?? null,
+        module_tilt_deg: site.module_tilt_deg ?? null,
+        tariff_eur_mwh: site.tariff_eur_mwh ?? null,
+        dc_ac_ratio: site.dc_ac_ratio,
+        design_pr: site.design_pr,
+        operating_pr_target: site.operating_pr_target,
+        interval_min: site.interval_min,
+        irr_threshold: site.irr_threshold,
+        power_threshold: site.power_threshold,
+        data_dir: site.data_dir || null,
+        owner_id: site.owner_id ?? null,
+        plan_type: site.plan_type ?? null,
+        hub_height_m: site.hub_height_m ?? null,
+        tip_height_m: site.tip_height_m ?? null,
+        rotor_diameter_m: site.rotor_diameter_m ?? null,
+        expected_aep_gwh: site.expected_aep_gwh ?? null,
+        users: {
+          set: userConnections,
+        },
+      },
+      create: {
         id: site.id,
         display_name: site.display_name,
         country: site.country,
@@ -363,7 +439,7 @@ async function main() {
         users: {
           connect: userConnections,
         },
-      },
+      }
     });
   }
 
