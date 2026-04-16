@@ -108,6 +108,8 @@ export async function sendWelcomeEmail(email: string, name: string) {
 
   const appUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, "") || "https://dolfines-data-services-products.vercel.app";
   const firstName = name.trim().split(/\s+/)[0] || "there";
+  const logoUrl = `${appUrl}/brand/logo-white.png`;
+  const fontStack = `Montserrat, "Open Sans", Aptos, Calibri, Arial, sans-serif`;
 
   const nodemailer = await import("nodemailer");
   const transporter = nodemailer.createTransport({
@@ -123,21 +125,59 @@ export async function sendWelcomeEmail(email: string, name: string) {
   await transporter.sendMail({
     from: process.env.SMTP_FROM,
     to: email,
-    subject: "Welcome to the REVEAL platform",
-    text: `Welcome to REVEAL, ${firstName}.\n\nYour account is now active.\n\nYou can sign in here: ${appUrl}\n\nREVEAL supports solar PV and wind performance analysis, long-term normalization, electricity price forecasting, BESS retrofit screening and equipment intelligence.\n\nBest regards,\n8p2 Advisory`,
+    subject: "Welcome to REVEAL",
+    text: `Hello ${firstName},\n\nYour REVEAL account is now active.\n\nAccess REVEAL: ${appUrl}\n\nREVEAL supports solar PV and wind performance analysis, long-term normalization, electricity price forecasting, BESS retrofit screening and equipment intelligence.\n\nIf you have any questions, please contact us at consulting@8p2.fr.\n\nBest regards,\n8p2 Advisory\n\n8p2 Advisory, part of the Dolfines SA Group`,
     html: `
-      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0b2a3d">
-        <h2 style="margin:0 0 16px;color:#0b2a3d">Welcome to the REVEAL platform</h2>
-        <p>Hello ${firstName},</p>
-        <p>Your REVEAL account is now active.</p>
-        <p>
-          <a href="${appUrl}" style="display:inline-block;padding:12px 18px;background:#f39200;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600">
-            Open REVEAL
-          </a>
-        </p>
-        <p>REVEAL supports solar PV and wind performance analysis, long-term normalization, electricity price forecasting, BESS retrofit screening and equipment intelligence.</p>
-        <p>Best regards,<br />8p2 Advisory</p>
-      </div>
+      <!DOCTYPE html>
+      <html lang="en">
+        <body style="margin:0;padding:0;background:#dfe7ef;font-family:${fontStack};">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#dfe7ef;padding:28px 0;">
+            <tr>
+              <td align="center">
+                <table role="presentation" width="640" cellpadding="0" cellspacing="0" border="0" style="width:640px;max-width:640px;background:#0b2233;overflow:hidden;box-shadow:0 18px 48px rgba(8,20,30,0.18);">
+                  <tr>
+                    <td style="background:#0a2030;padding:28px 34px 26px 34px;font-family:${fontStack};">
+                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                        <tr>
+                          <td valign="top" align="left" style="padding-right:18px;">
+                            <div style="font-size:18px;line-height:1.55;color:#e6edf3;max-width:360px;font-family:${fontStack};">Renewable Energy Valuation, Evaluation and Analytics Lab</div>
+                          </td>
+                          <td valign="top" align="right" style="width:180px;">
+                            <img src="${logoUrl}" alt="8p2 Advisory" width="150" style="display:block;width:150px;height:auto;border:0;margin-left:auto;" />
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="background:#163247;padding:30px 54px 30px 54px;color:#f4f7fa;font-family:${fontStack};">
+                      <div style="font-size:27px;line-height:1.25;font-weight:700;color:#ffffff;margin:0 0 22px 0;font-family:${fontStack};">Welcome to the REVEAL platform</div>
+                      <div style="font-size:15px;line-height:1.8;color:#f0f5f8;margin:0 0 10px 0;font-family:${fontStack};">Hello ${firstName},</div>
+                      <div style="font-size:15px;line-height:1.8;color:#f0f5f8;margin:0 0 14px 0;font-family:${fontStack};">Your REVEAL account is now active.</div>
+                      <div style="font-size:15px;line-height:1.8;color:#d9e5ee;margin:0 0 24px 0;max-width:470px;font-family:${fontStack};">
+                        REVEAL supports solar PV and wind performance analysis, long-term normalization, electricity price forecasting, BESS retrofit screening and equipment intelligence.
+                      </div>
+                      <div style="margin:6px 0 24px 0;text-align:center;">
+                        <a href="${appUrl}" style="display:inline-block;color:#f39200;text-decoration:none;font-size:24px;line-height:1.2;font-weight:700;font-family:${fontStack};text-align:center;letter-spacing:0.02em;text-shadow:0 0 12px rgba(255,255,255,0.32), 0 0 24px rgba(255,255,255,0.16);">Access REVEAL</a>
+                      </div>
+                      <div style="font-size:15px;line-height:1.8;color:#d9e5ee;margin:0 0 18px 0;font-family:${fontStack};">
+                        If you have any questions, please contact us at
+                        <a href="mailto:consulting@8p2.fr" style="color:#f6ac45;text-decoration:none;font-weight:700;font-family:${fontStack};">consulting@8p2.fr</a>.
+                      </div>
+                      <div style="font-size:15px;line-height:1.8;color:#f0f5f8;font-family:${fontStack};">Best regards,<br />8p2 Advisory</div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="background:#0a2030;padding:16px 34px 18px 34px;font-size:12px;line-height:1.6;color:#a8bccb;font-family:${fontStack};">
+                      8p2 Advisory, part of the Dolfines SA Group
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+      </html>
     `,
   });
 
