@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { prisma } from "@/lib/prisma";
-import { hashPassword } from "@/lib/server/passwords";
+import { hashPassword, passwordMeetsPolicy, passwordPolicyMessage } from "@/lib/server/passwords";
 
 const RESET_TOKEN_TTL_MS = 1000 * 60 * 60;
 
@@ -61,8 +61,8 @@ export async function resetPassword(token: string, password: string) {
     return { ok: false as const, message: "Missing reset token." };
   }
 
-  if (trimmedPassword.length < 8) {
-    return { ok: false as const, message: "Password must be at least 8 characters." };
+  if (!passwordMeetsPolicy(trimmedPassword)) {
+    return { ok: false as const, message: passwordPolicyMessage() };
   }
 
   const tokenHash = hashToken(normalizedToken);

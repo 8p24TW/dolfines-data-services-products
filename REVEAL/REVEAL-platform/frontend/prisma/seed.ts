@@ -6,6 +6,7 @@ const prisma = new PrismaClient();
 const repoRoot = path.resolve(__dirname, "..", "..", "..");
 const repatRoot = path.join(repoRoot, "REVEAL");
 const scadaPvAnalysisRoot = path.join(repatRoot, "SCADA PV Analysis");
+const PRODUCTION_GUARD_FLAG = "ALLOW_PRODUCTION_DEMO_SEED";
 
 type DemoOrganization = {
   id: string;
@@ -291,7 +292,25 @@ function parseFrenchDate(value: string): Date {
   return new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
 }
 
+function isProductionLikeEnvironment() {
+  const markers = [
+    process.env.NODE_ENV,
+    process.env.VERCEL_ENV,
+    process.env.RAILWAY_ENVIRONMENT_NAME,
+  ]
+    .filter(Boolean)
+    .map((value) => String(value).toLowerCase());
+
+  return markers.some((value) => value === "production");
+}
+
 async function main() {
+  if (isProductionLikeEnvironment() && process.env[PRODUCTION_GUARD_FLAG] !== "true") {
+    throw new Error(
+      `Demo seed is blocked in production-like environments. Set ${PRODUCTION_GUARD_FLAG}=true only if you intentionally want to refresh demo content.`
+    );
+  }
+
   const demoSiteIds = sites.map((site) => site.id);
   const demoUserIds = users.map((user) => user.id);
   const demoOrganizationIds = organizations.map((organization) => organization.id);

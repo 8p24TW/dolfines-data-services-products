@@ -4,6 +4,15 @@ import { promisify } from "node:util";
 const scrypt = promisify(nodeScrypt);
 const HASH_PREFIX = "scrypt";
 const KEY_LENGTH = 64;
+const PASSWORD_POLICY = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{10,}$/;
+
+export function passwordMeetsPolicy(password: string) {
+  return PASSWORD_POLICY.test(password);
+}
+
+export function passwordPolicyMessage() {
+  return "Password must be at least 10 characters and include an uppercase letter, a lowercase letter, and a number.";
+}
 
 export async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");

@@ -9,6 +9,8 @@ import { BrandLockup } from "@/components/layout/BrandLockup";
 import { useTranslation } from "@/lib/i18n";
 
 const googleEnabled = process.env.NEXT_PUBLIC_GOOGLE_LOGIN_ENABLED === "true";
+const PASSWORD_HELP =
+  "At least 10 characters, including uppercase, lowercase, and a number.";
 
 const LOGIN_COPY = {
   en: {
@@ -26,6 +28,9 @@ const LOGIN_COPY = {
     google: "Continue with Google",
     helper:
       "Use any email address to create an account. Gmail, Outlook, Hotmail and corporate addresses are all supported.",
+    passwordHelp: PASSWORD_HELP,
+    confirmPassword: "Confirm password",
+    mismatch: "Passwords do not match.",
     powered: "Powered by 8p2 Advisory",
     invalid: "Incorrect email or password.",
     registerSuccess: "Account created. Signing you in now...",
@@ -46,6 +51,9 @@ const LOGIN_COPY = {
     google: "Continuer avec Google",
     helper:
       "Utilisez n'importe quelle adresse e-mail pour créer un compte. Gmail, Outlook, Hotmail et les adresses professionnelles sont pris en charge.",
+    passwordHelp: PASSWORD_HELP,
+    confirmPassword: "Confirmer le mot de passe",
+    mismatch: "Les mots de passe ne correspondent pas.",
     powered: "Powered by 8p2 Advisory",
     invalid: "E-mail ou mot de passe incorrect.",
     registerSuccess: "Compte créé. Connexion en cours...",
@@ -66,6 +74,9 @@ const LOGIN_COPY = {
     google: "Mit Google fortfahren",
     helper:
       "Sie können mit jeder E-Mail-Adresse ein Konto erstellen. Gmail, Outlook, Hotmail und Unternehmensadressen werden unterstützt.",
+    passwordHelp: PASSWORD_HELP,
+    confirmPassword: "Passwort bestätigen",
+    mismatch: "Die Passwörter stimmen nicht überein.",
     powered: "Powered by 8p2 Advisory",
     invalid: "Falsche E-Mail oder falsches Passwort.",
     registerSuccess: "Konto erstellt. Anmeldung läuft...",
@@ -80,6 +91,7 @@ export default function LoginPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -118,6 +130,11 @@ export default function LoginPage() {
     setError(null);
     setMessage(null);
     try {
+      if (password !== confirmPassword) {
+        setError(copy.mismatch);
+        return;
+      }
+
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -273,7 +290,24 @@ export default function LoginPage() {
               onChange={(event) => setPassword(event.target.value)}
               className="w-full rounded-xl border border-white/12 bg-white px-3 py-2.5 text-sm font-medium text-slate-950 placeholder:text-slate-500 focus:border-orange-DEFAULT focus:outline-none"
             />
+            {mode === "register" ? (
+              <p className="mt-2 text-xs text-slate-300/70">{copy.passwordHelp}</p>
+            ) : null}
           </div>
+
+          {mode === "register" ? (
+            <div>
+              <label className="mb-1 block text-xs font-bold uppercase tracking-[0.22em] text-slate-200/78">
+                {copy.confirmPassword}
+              </label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                className="w-full rounded-xl border border-white/12 bg-white px-3 py-2.5 text-sm font-medium text-slate-950 placeholder:text-slate-500 focus:border-orange-DEFAULT focus:outline-none"
+              />
+            </div>
+          ) : null}
 
           {message ? <p className="text-sm font-semibold text-emerald-300">{message}</p> : null}
           {error ? <p className="text-sm font-semibold text-red-400">{error}</p> : null}
@@ -305,6 +339,7 @@ export default function LoginPage() {
               setMode(mode === "signin" ? "register" : "signin");
               setError(null);
               setMessage(null);
+              setConfirmPassword("");
             }}
             className="w-full text-center text-sm font-medium text-slate-200/80 hover:text-white"
           >

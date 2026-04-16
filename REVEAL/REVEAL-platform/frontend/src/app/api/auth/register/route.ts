@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { hashPassword } from "@/lib/server/passwords";
+import { hashPassword, passwordMeetsPolicy, passwordPolicyMessage } from "@/lib/server/passwords";
 import { sendWelcomeEmail } from "@/lib/server/password-reset";
 
 const EXTERNAL_ORGANIZATION = "External Access";
@@ -20,9 +20,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if (password.length < 8) {
+    if (!passwordMeetsPolicy(password)) {
       return NextResponse.json(
-        { message: "Password must be at least 8 characters long." },
+        { message: passwordPolicyMessage() },
         { status: 400 }
       );
     }
