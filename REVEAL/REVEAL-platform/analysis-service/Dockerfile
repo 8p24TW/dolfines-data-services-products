@@ -15,17 +15,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxfixes3 libxkbcommon0 libxrandr2 shared-mime-info \
     && rm -rf /var/lib/apt/lists/*
 
-COPY ["REVEAL-platform/analysis-service/requirements.txt", "./requirements.txt"]
+COPY ["requirements.txt", "./requirements.txt"]
 RUN pip install --upgrade pip \
     && pip install -r requirements.txt \
     && python -m playwright install chromium
 
-COPY ["REVEAL-platform/analysis-service/app/", "./app/"]
-COPY ["REVEAL-platform/analysis-service/solar_engine/", "./solar_engine/"]
-COPY ["REVEAL-platform/analysis-service/data/", "./data/"]
-COPY ["SCADA PV Analysis/", "./legacy_scada_pv/"]
+COPY ["app/", "./app/"]
+COPY ["solar_engine/", "./solar_engine/"]
+COPY ["data/", "./data/"]
 
-RUN mkdir -p /app/cache /tmp/repat-analysis
+RUN mkdir -p /app/cache /tmp/reveal-analysis
 
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", \
