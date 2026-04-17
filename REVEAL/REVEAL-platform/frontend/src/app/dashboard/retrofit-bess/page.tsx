@@ -812,7 +812,7 @@ function RetrofitBessContent() {
 
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                   <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400">CAPEX</p>
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Est. CAPEX</p>
                     <p className="mt-2 text-xl font-semibold text-white">
                       EUR {result.placeholder_capex_eur.toLocaleString()}
                     </p>
@@ -1169,14 +1169,14 @@ function RetrofitBessContent() {
                     ) : null}
                     <p>
                       <span className="text-slate-400">Payback basis:</span>{" "}
-                      EUR {result.placeholder_capex_eur.toLocaleString()} / EUR {result.annual_revenue_uplift_eur.toLocaleString()} per year
+                      Est. CAPEX EUR {result.placeholder_capex_eur.toLocaleString()} / annual uplift EUR {result.annual_revenue_uplift_eur.toLocaleString()}
                     </p>
                     <p className="text-slate-400">
                       Annual uplift = {result.annual_shifted_energy_mwh.toFixed(1)} MWh/yr x {result.site_tariff_eur_mwh.toFixed(1)} EUR/MWh
                       = EUR {result.annual_revenue_uplift_eur.toLocaleString()}/yr.
                     </p>
                     <p className="mt-2 text-slate-400">
-                      Simple payback = placeholder CAPEX / annual uplift, where annual uplift = annual shifted energy x site tariff.
+                      Simple payback = estimated CAPEX / annual revenue uplift.
                     </p>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200">

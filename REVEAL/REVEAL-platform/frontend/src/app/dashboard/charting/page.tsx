@@ -24,7 +24,7 @@ type PlotOption = {
   capacityKwp?: number;
 };
 
-const DEFAULT_COLORS = ["#60a5fa", "#f59e0b", "#34d399", "#f472b6", "#a78bfa", "#f97316"];
+const DEFAULT_COLORS = ["#60a5fa", "#F39200", "#34d399", "#f472b6", "#a78bfa", "#f5b942"];
 const REFERENCE_IRRADIANCE_COLUMN = "reference_irradiance_era5_land";
 const REFERENCE_IRRADIANCE_SOURCE = "__reference_irradiance__";
 

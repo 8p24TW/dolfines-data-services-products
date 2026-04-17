@@ -25,8 +25,8 @@ import { api } from "@/lib/api";
 import type { PriceForecastResult, HourlyProfileResult, HourlyProfileRow, MarketSiteContext } from "@/types/market";
 
 // ─── Colour tokens ────────────────────────────────────────────────────────────
-const ORANGE = "#f07820";
-const AMBER  = "#f5b942";
+const ORANGE = "#F39200";
+const AMBER  = "#F5B942";
 const SKY    = "#38bdf8";
 const RED    = "#f87171";
 const GREEN  = "#34d399";

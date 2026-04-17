@@ -315,7 +315,7 @@ export default function LoginPage() {
           <Button
             variant="primary"
             size="lg"
-            className="w-full !bg-[#F39200] hover:!bg-[#F7B540]"
+            className="w-full !bg-[#F39200] hover:!bg-[#D97F00]"
             loading={submitting}
             onClick={mode === "signin" ? handleCredentialsSignIn : handleRegister}
           >

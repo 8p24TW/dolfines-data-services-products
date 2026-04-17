@@ -96,16 +96,14 @@ export default function SiteDetailPage({ params }: { params: { siteId: string } 
   const isWind = site.site_type === "wind";
   const heroImage = isWind ? "/brand/long-term-hero.jpg" : "/brand/reporting-hero.jpg";
   const expectedAepMWh = Math.round(((site.expected_aep_gwh ?? ((site.cap_ac_kw / 1000) * 33.5)) || 0) * 1000);
-  const metMastHeight = site.hub_height_m ? Math.max(80, Math.round(site.hub_height_m - 25)) : 95;
+  const metMastHeight = site.hub_height_m ? Math.max(80, Math.round(site.hub_height_m - 25)) : null;
   const windSpecs: Array<[string, string]> = [
     ["Technology", site.technology || "—"],
-    ["Hub height", `${Math.round(site.hub_height_m ?? 120)} m`],
-    ["Met mast height", `${metMastHeight} m`],
-    ["Blade tip height", `${Math.round(site.tip_height_m ?? 198)} m`],
-    ["Rotor diameter", `${Math.round(site.rotor_diameter_m ?? 136)} m`],
-    ["Unit rated power", `${site.inv_ac_kw || 4500} kW`],
-    ["Cut-in wind speed", "3.0 m/s"],
-    ["Cut-out wind speed", "25.0 m/s"],
+    ["Hub height", site.hub_height_m ? `${Math.round(site.hub_height_m)} m` : "—"],
+    ["Met mast height", metMastHeight ? `${metMastHeight} m` : "—"],
+    ["Blade tip height", site.tip_height_m ? `${Math.round(site.tip_height_m)} m` : "—"],
+    ["Rotor diameter", site.rotor_diameter_m ? `${Math.round(site.rotor_diameter_m)} m` : "—"],
+    ["Unit rated power", site.inv_ac_kw ? `${site.inv_ac_kw} kW` : "—"],
     ["SCADA interval", `${site.interval_min} min`],
   ];
   const solarSpecs: Array<[string, string | number]> = [
@@ -183,7 +181,7 @@ export default function SiteDetailPage({ params }: { params: { siteId: string } 
             <>
               <KpiChip label="Expected AEP" value={expectedAepMWh.toLocaleString()} unit="MWh" />
               <KpiChip label="Turbines" value={site.n_inverters} />
-              <KpiChip label="Rotor Diameter" value={Math.round(site.rotor_diameter_m ?? 136)} unit="m" />
+              <KpiChip label="Rotor Diameter" value={site.rotor_diameter_m ? Math.round(site.rotor_diameter_m) : "—"} unit={site.rotor_diameter_m ? "m" : undefined} />
             </>
           ) : (
             <>

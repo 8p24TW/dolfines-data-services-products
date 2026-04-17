@@ -42,10 +42,10 @@ export function Header() {
                 <Link
                   key={href}
                   href={href}
-                  className={`whitespace-nowrap rounded px-2.5 py-1.5 transition-colors ${
+                  className={`whitespace-nowrap px-2.5 py-1.5 transition-colors border-b-2 ${
                     pathname === href
-                      ? "text-white font-semibold bg-white/8"
-                      : "text-slate-300 hover:text-white hover:bg-white/5"
+                      ? "text-white font-semibold border-orange-DEFAULT"
+                      : "text-slate-300 hover:text-white border-transparent hover:border-white/20"
                   }`}
                 >
                   {label}
@@ -111,10 +111,10 @@ export function Header() {
                 key={href}
                 href={href}
                 onClick={() => setMenuOpen(false)}
-                className={`rounded px-3 py-2.5 text-sm transition-colors ${
+                className={`rounded px-3 py-2.5 text-sm transition-colors border-l-2 ${
                   pathname === href
-                    ? "bg-white/8 text-white font-semibold"
-                    : "text-slate-300 hover:text-white hover:bg-white/5"
+                    ? "border-orange-DEFAULT text-white font-semibold bg-white/5"
+                    : "border-transparent text-slate-300 hover:text-white hover:bg-white/5"
                 }`}
               >
                 {label}
