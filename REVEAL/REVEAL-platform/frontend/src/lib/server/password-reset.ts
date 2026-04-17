@@ -1,8 +1,22 @@
 import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, passwordMeetsPolicy, passwordPolicyMessage } from "@/lib/server/passwords";
 
 const RESET_TOKEN_TTL_MS = 1000 * 60 * 60;
+
+const LOGO_CID = "reveal-logo";
+
+function logoAttachment() {
+  const logoPath = path.join(process.cwd(), "public", "brand", "logo-white.png");
+  try {
+    const content = fs.readFileSync(logoPath);
+    return { filename: "logo-white.png", content, cid: LOGO_CID };
+  } catch {
+    return null;
+  }
+}
 
 function hashToken(token: string) {
   return crypto.createHash("sha256").update(token).digest("hex");
@@ -108,7 +122,7 @@ export async function sendWelcomeEmail(email: string, name: string) {
 
   const appUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, "") || "https://dolfines-data-services-products.vercel.app";
   const firstName = name.trim().split(/\s+/)[0] || "there";
-  const logoUrl = `${appUrl}/brand/logo-white.png`;
+  const logoSrc = `cid:${LOGO_CID}`;
   const f = `Montserrat,Aptos,Calibri,Arial,sans-serif`;
 
   const nodemailer = await import("nodemailer");
@@ -122,10 +136,13 @@ export async function sendWelcomeEmail(email: string, name: string) {
     },
   });
 
+  const logo = logoAttachment();
+
   await transporter.sendMail({
     from: process.env.SMTP_FROM,
     to: email,
     subject: "Welcome to REVEAL",
+    attachments: logo ? [logo] : [],
     text: [
       `Hello ${firstName},`,
       ``,
@@ -167,7 +184,7 @@ export async function sendWelcomeEmail(email: string, name: string) {
               <div style="font-family:${f};font-size:9px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:#7A9BB0;margin:0;">Renewable Energy Valuation, Evaluation and Analytics Lab</div>
             </td>
             <td valign="middle" align="right" style="padding-left:20px;">
-              <img src="${logoUrl}" alt="8p2 Advisory" width="150" style="display:block;width:150px;height:auto;border:0;" />
+              <img src="${logoSrc}" alt="8p2 Advisory" width="150" style="display:block;width:150px;height:auto;border:0;" />
             </td>
           </tr>
         </table>
@@ -298,8 +315,7 @@ async function sendPasswordResetEmail(email: string, resetUrl: string) {
     return false;
   }
 
-  const appUrl = process.env.NEXTAUTH_URL?.replace(/\/$/, "") || "https://dolfines-data-services-products.vercel.app";
-  const logoUrl = `${appUrl}/brand/logo-white.png`;
+  const logoSrc = `cid:${LOGO_CID}`;
   const f = `Montserrat,Aptos,Calibri,Arial,sans-serif`;
 
   const nodemailer = await import("nodemailer");
@@ -313,10 +329,13 @@ async function sendPasswordResetEmail(email: string, resetUrl: string) {
     },
   });
 
+  const logo = logoAttachment();
+
   await transporter.sendMail({
     from: process.env.SMTP_FROM,
     to: email,
     subject: "Reset your REVEAL password",
+    attachments: logo ? [logo] : [],
     text: [
       `A password reset was requested for your REVEAL account.`,
       ``,
@@ -354,7 +373,7 @@ async function sendPasswordResetEmail(email: string, resetUrl: string) {
               <div style="font-family:${f};font-size:9px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:#7A9BB0;margin:0;">Renewable Energy Valuation, Evaluation and Analytics Lab</div>
             </td>
             <td valign="middle" align="right" style="padding-left:20px;">
-              <img src="${logoUrl}" alt="8p2 Advisory" width="150" style="display:block;width:150px;height:auto;border:0;" />
+              <img src="${logoSrc}" alt="8p2 Advisory" width="150" style="display:block;width:150px;height:auto;border:0;" />
             </td>
           </tr>
         </table>
