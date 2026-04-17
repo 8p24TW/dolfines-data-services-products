@@ -1,7 +1,7 @@
-const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL ?? "http://localhost:8000";
+const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL ?? "http://localhost:8080";
 
 function isLocalPythonUrl(value: string) {
-  return /localhost:8000|127\.0\.0\.1:8000/i.test(value);
+  return /localhost(:\d+)?|127\.0\.0\.1(:\d+)?/i.test(value);
 }
 
 export async function proxyToPythonService(path: string, formData: FormData) {
@@ -11,10 +11,19 @@ export async function proxyToPythonService(path: string, formData: FormData) {
     );
   }
 
-  const response = await fetch(`${PYTHON_SERVICE_URL}${path}`, {
-    method: "POST",
-    body: formData,
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 540_000); // 9-minute timeout
+
+  let response: Response;
+  try {
+    response = await fetch(`${PYTHON_SERVICE_URL}${path}`, {
+      method: "POST",
+      body: formData,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!response.ok) {
     const message = await response.text();

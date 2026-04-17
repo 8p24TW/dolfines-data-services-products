@@ -3,6 +3,7 @@ import { getCurrentUserRecord } from "@/lib/server/auth";
 import { mapReportJob } from "@/lib/server/site-mapper";
 
 export const runtime = "nodejs";
+export const maxDuration = 600; // 10-minute Vercel function timeout for SSE streaming
 
 export async function GET(request: Request, context: { params: { jobId: string } }) {
   try {

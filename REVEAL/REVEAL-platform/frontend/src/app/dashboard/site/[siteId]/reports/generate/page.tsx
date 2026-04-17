@@ -493,6 +493,7 @@ function GenerateReportPageContent({ params }: { params: { siteId: string } }) {
   const [reportDate, setReportDate] = useState("");
   const [columnMappings, setColumnMappings] = useState<Record<string, AnalysisColumnMapping>>({});
   const [detectedMappings, setDetectedMappings] = useState<Record<string, ColumnDetectionResult>>({});
+  const [detectionError, setDetectionError] = useState<string | null>(null);
   const [worksheetLoadingFile, setWorksheetLoadingFile] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
@@ -950,12 +951,13 @@ function GenerateReportPageContent({ params }: { params: { siteId: string } }) {
         setPreviewProgress(10);
         setPreviewProgressLabel("Preparing the heat-map preview");
       }
-      const form = new FormData();
-      form.append("siteId", params.siteId);
-      form.append("columnMappings", JSON.stringify(columnMappings));
-      form.append("siteConfigOverrides", JSON.stringify(siteConfigOverrides));
-      files.forEach((file) => form.append("files", file));
-      const result = await runAnalysis(form);
+      const result = await runAnalysis({
+        files,
+        site,
+        columnMappings: columnMappings as Record<string, unknown>,
+        siteConfigOverrides: siteConfigOverrides as Record<string, unknown>,
+        lang,
+      });
       setAnalysisResult(result);
       if (assumptionsConfirmed) {
         savePerformancePreviewSnapshot(params.siteId, result);
@@ -1013,39 +1015,44 @@ function GenerateReportPageContent({ params }: { params: { siteId: string } }) {
     if (!site) {
       throw new Error("Site configuration is not available yet.");
     }
-    const form = new FormData();
-    form.append("file", file, file.name);
-    form.append("siteType", site.site_type);
-    if (worksheet) {
-      form.append("worksheet", worksheet);
-    }
-    return detectColumns(form);
+    return detectColumns({ file, siteType: site.site_type, worksheet });
   }
 
   async function autoDetectColumns(nextFiles: File[]) {
+    setDetectionError(null);
     if (!site || nextFiles.length === 0) {
       setDetectedMappings({});
       setColumnMappings({});
       return;
     }
 
-    const detections = await Promise.all(
-      nextFiles.map(async (file) => [file.name, await detectFileColumns(file)] as const)
-    );
+    try {
+      const detections = await Promise.all(
+        nextFiles.map(async (file) => [file.name, await detectFileColumns(file)] as const)
+      );
 
-    const detectionMap = Object.fromEntries(detections);
-    setDetectedMappings(detectionMap);
-    setColumnMappings(
-      Object.fromEntries(
-        detections.map(([filename, detection]) => [
-          filename,
-          {
-            ...detection.mapping,
-            worksheet: detection.selected_worksheet ?? undefined,
-          },
-        ])
-      )
-    );
+      const detectionMap = Object.fromEntries(detections);
+      setDetectedMappings(detectionMap);
+      setColumnMappings(
+        Object.fromEntries(
+          detections.map(([filename, detection]) => [
+            filename,
+            {
+              ...detection.mapping,
+              worksheet: detection.selected_worksheet ?? undefined,
+            },
+          ])
+        )
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Column detection failed.";
+      const isLikelyTooLarge = /413|too large|payload|body/i.test(msg);
+      setDetectionError(
+        isLikelyTooLarge
+          ? "The file is too large to process automatically. Try splitting the file into smaller periods and uploading one at a time."
+          : `REVEAL could not read the uploaded file: ${msg}`
+      );
+    }
   }
 
   async function handleWorksheetChange(filename: string, worksheet: string) {
@@ -1275,6 +1282,13 @@ function GenerateReportPageContent({ params }: { params: { siteId: string } }) {
                   </div>
                 ) : null}
               </div>
+
+              {detectionError ? (
+                <div className="mt-5 rounded-[22px] border border-red-300/25 bg-red-500/10 px-5 py-4">
+                  <p className="text-sm font-semibold text-red-100">Column detection failed</p>
+                  <p className="mt-1 text-xs leading-6 text-red-100/80">{detectionError}</p>
+                </div>
+              ) : null}
 
               {files.length > 0 && site ? (
                 <div className="mt-5">
