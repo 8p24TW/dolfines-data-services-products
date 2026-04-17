@@ -719,10 +719,7 @@ export default function LongTermModellingPage({ params }: { params: { siteId: st
 
       const nextDetections = await Promise.all(
         acceptedFiles.map(async (file) => {
-          const form = new FormData();
-          form.append("file", file, file.name);
-          form.append("siteType", site.site_type);
-          const detection = await detectColumns(form);
+          const detection = await detectColumns({ file, siteType: site.site_type });
           return [file.name, detection] as const;
         })
       );

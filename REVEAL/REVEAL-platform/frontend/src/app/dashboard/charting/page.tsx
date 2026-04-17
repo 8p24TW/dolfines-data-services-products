@@ -762,13 +762,7 @@ export default function ChartingPage() {
     setChartError(null);
     setDetectionProgress(12);
     setDetectionLabel(worksheet ? `Analysing worksheet ${worksheet}…` : "Starting file analysis…");
-    const form = new FormData();
-    form.append("file", selected);
-    form.append("site_type", selectedSite?.site_type ?? "solar");
-    if (worksheet) {
-      form.append("worksheet", worksheet);
-    }
-    const result = await detectColumns(form);
+    const result = await detectColumns({ file: selected, siteType: selectedSite?.site_type ?? "solar", worksheet });
     setDetection(result);
     setSelectedWorksheet(result.selected_worksheet ?? worksheet ?? "");
     return result;
