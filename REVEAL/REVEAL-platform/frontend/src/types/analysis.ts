@@ -15,6 +15,7 @@ export interface WaterfallItem {
   label: string;
   value_mwh: number;
   type: "base" | "loss" | "gain";
+  color?: string; // optional hex override
 }
 
 export interface PunchlistItem {

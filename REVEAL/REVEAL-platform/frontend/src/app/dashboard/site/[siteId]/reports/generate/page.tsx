@@ -1800,23 +1800,42 @@ function GenerateReportPageContent({ params }: { params: { siteId: string } }) {
                         <div className="mt-3 space-y-3">
                           {topPunchlist.length > 0 ? (
                             topPunchlist.map((item, index) => (
-                              <div key={`${item.category}-${index}`} className="rounded-2xl border border-white/8 bg-[rgba(255,255,255,0.03)] p-4">
+                              <div
+                                key={`${item.category}-${index}`}
+                                className={`rounded-2xl border p-4 ${
+                                  item.priority === "HIGH"
+                                    ? "border-rose-500/40 bg-rose-500/10 shadow-[0_0_0_1px_rgba(244,63,94,0.12)]"
+                                    : item.priority === "MEDIUM"
+                                      ? "border-amber-400/30 bg-amber-400/6"
+                                      : "border-white/8 bg-[rgba(255,255,255,0.03)]"
+                                }`}
+                              >
                                 <div className="flex flex-wrap items-center gap-3">
+                                  {item.priority === "HIGH" && (
+                                    <svg className="h-4 w-4 shrink-0 text-rose-400" viewBox="0 0 20 20" fill="currentColor">
+                                      <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                                    </svg>
+                                  )}
                                   <span
-                                    className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${
+                                    className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] ${
                                       item.priority === "HIGH"
-                                        ? "border border-rose-300/25 bg-rose-400/12 text-rose-50"
+                                        ? "border border-rose-400/40 bg-rose-500/20 text-rose-200"
                                         : item.priority === "MEDIUM"
-                                          ? "border border-amber-300/25 bg-amber-400/12 text-amber-50"
-                                          : "border border-sky-300/25 bg-sky-400/12 text-sky-50"
+                                          ? "border border-amber-300/30 bg-amber-400/12 text-amber-100"
+                                          : "border border-sky-300/25 bg-sky-400/10 text-sky-100"
                                     }`}
                                   >
                                     {item.priority}
                                   </span>
-                                  <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">{item.category}</span>
+                                  <span className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${item.priority === "HIGH" ? "text-rose-200/70" : "text-white/45"}`}>{item.category}</span>
                                 </div>
-                                <p className="mt-3 text-sm font-semibold text-white">{item.finding}</p>
+                                <p className={`mt-3 text-sm font-semibold ${item.priority === "HIGH" ? "text-rose-50" : "text-white"}`}>{item.finding}</p>
                                 <p className="mt-2 text-sm leading-7 text-slate-200/82">{item.recommendation}</p>
+                                {item.impact_eur !== null && item.impact_eur > 0 && (
+                                  <p className="mt-2 text-xs font-semibold text-orange-200/80">
+                                    Est. impact: €{item.impact_eur.toLocaleString()} / yr
+                                  </p>
+                                )}
                               </div>
                             ))
                           ) : (

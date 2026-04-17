@@ -268,6 +268,9 @@ def _build_loss_diagnosis(
     stuck_inverters_count: int,
     design_pr: float,
     temperature_loss_mwh: float,
+    clipping_diag: dict | None = None,
+    cap_dc_kwp: float = 0.0,
+    cap_ac_kw: float = 0.0,
 ) -> dict[str, Any]:
     total_actual = sum(max(float(item.get("E_act_mwh", 0.0)), 0.0) for item in pr_monthly_rows)
     total_reference = sum(max(float(item.get("E_ref_mwh", 0.0)), 0.0) for item in pr_monthly_rows)
@@ -350,7 +353,22 @@ def _build_loss_diagnosis(
             string_loss = min(remaining_gap, remaining_gap * _clamp(spread / 350.0, 0.2, 0.45))
 
     module_soiling_loss = 0.0
-    recoverable_total = min(total_gap, availability_loss + curtailment_loss + module_soiling_loss + string_loss)
+    snow_loss_mwh = 0.0
+    site_trip_loss_mwh = 0.0
+
+    # Inverter clipping estimate: fraction of timesteps near AC cap × surplus DC/AC headroom
+    clipping_d = clipping_diag or {}
+    site_near_clip_pct = float(clipping_d.get("site_near_clip_pct", 0.0))
+    dc_ac_ratio = cap_dc_kwp / max(cap_ac_kw, 1.0) if cap_ac_kw > 0 else 1.0
+    clipping_loss_mwh = round(
+        total_actual * (site_near_clip_pct / 100.0) * max(dc_ac_ratio - 1.0, 0.0) / max(dc_ac_ratio, 1.0),
+        2,
+    )
+
+    recoverable_total = min(
+        total_gap,
+        availability_loss + curtailment_loss + module_soiling_loss + string_loss + clipping_loss_mwh,
+    )
     temperature_loss = max(temperature_loss_mwh, 0.0)
     irradiance_impact = max(total_reference * 0.06, 0.0)
     design_yield = total_reference + irradiance_impact + temperature_loss
@@ -364,70 +382,91 @@ def _build_loss_diagnosis(
             "label": "Design yield",
             "value_mwh": round(design_yield, 2),
             "classification": "non_recoverable",
-            "color": "slate",
+            "color": "#1e3a5f",
             "commentary": "Starting point before weather and operating losses are separated. This is the design-level yield used to bridge toward actual production.",
         },
         {
             "label": "Irradiance impact",
             "value_mwh": round(irradiance_impact, 2),
             "classification": "non_recoverable",
-            "color": "slate",
+            "color": "#64748b",
             "commentary": "Weather-driven resource impact between the design expectation and the measured irradiation conditions over the analysed period.",
         },
         {
             "label": "Temperature loss",
             "value_mwh": round(temperature_loss, 2),
             "classification": "non_recoverable",
-            "color": "slate",
+            "color": "#94a3b8",
             "commentary": "Loss estimated from measured module temperature versus STC when module temperature is available.",
         },
         {
             "label": "Weather-corrected yield",
             "value_mwh": round(weather_corrected_yield, 2),
             "classification": "non_recoverable",
-            "color": "slate",
+            "color": "#2563eb",
             "commentary": "Expected yield once irradiance and temperature have been applied to the design expectation.",
         },
         {
             "label": "Inverter losses",
             "value_mwh": round(availability_loss, 2),
             "classification": "recoverable",
-            "color": "blue",
+            "color": "#1d4ed8",
             "commentary": "Estimated from the production gap coinciding with depressed fleet availability. These losses typically point to inverter trips, equipment downtime, or operational stoppages.",
         },
         {
-            "label": "Grid curtailment",
+            "label": "Site trips",
+            "value_mwh": round(site_trip_loss_mwh, 2),
+            "classification": "recoverable",
+            "color": "#3b82f6",
+            "commentary": "Losses attributed to whole-site shutdown events (grid faults, protection relay trips, emergency stops). Currently 0 until event-log parsing is implemented.",
+        },
+        {
+            "label": "Inverter clipping",
+            "value_mwh": round(clipping_loss_mwh, 2),
+            "classification": "non_recoverable",
+            "color": "#7c3aed",
+            "commentary": "Estimated from the fraction of timesteps where site output reaches 97% of AC nameplate, scaled by the DC/AC overplant ratio. High clipping may indicate oversized DC arrays relative to grid connection.",
+        },
+        {
+            "label": "Grid curtailment & neg. hours",
             "value_mwh": round(curtailment_loss, 2),
             "classification": "recoverable",
-            "color": "amber",
-            "commentary": "Estimated where irradiation remains strong and site availability stays high, but output still drops below the weather-implied expectation.",
+            "color": "#d97706",
+            "commentary": "Estimated where irradiation remains strong and site availability stays high, but output still drops below the weather-implied expectation. Covers both grid export constraints and negative-price operating decisions.",
         },
         {
             "label": "Module soiling",
             "value_mwh": round(module_soiling_loss, 2),
             "classification": "recoverable",
-            "color": "violet",
+            "color": "#b45309",
             "commentary": "Additional soiling loss above the design allowance. This bucket should only be populated once REVEAL confirms excess PR loss around comparable irradiance periods before and after rain events.",
         },
         {
-            "label": "String losses",
+            "label": "Snow",
+            "value_mwh": round(snow_loss_mwh, 2),
+            "classification": "recoverable",
+            "color": "#0ea5e9",
+            "commentary": "Snow soiling and coverage losses. Currently 0 until REVEAL cross-references precipitation type and temperature data to isolate snow events.",
+        },
+        {
+            "label": "Faulty strings",
             "value_mwh": round(string_loss, 2),
             "classification": "recoverable",
-            "color": "violet",
-            "commentary": "Estimated from residual performance spread across inverters after downtime, curtailment, and assumed soiling have been isolated.",
+            "color": "#dc2626",
+            "commentary": "Estimated from residual performance spread across inverters after downtime, curtailment, and assumed soiling have been isolated. Points to string mismatch, DC wiring issues, or localized module underperformance.",
         },
         {
             "label": "Over / under performance",
             "value_mwh": round(over_under_performance, 2),
             "classification": "non_recoverable",
-            "color": "slate",
+            "color": "#475569",
             "commentary": "Residual unexplained bucket after the main non-recoverable and recoverable losses have been separated. This is the bucket to validate in the digital twin.",
         },
         {
             "label": "Actual yield",
             "value_mwh": round(total_actual, 2),
             "classification": "non_recoverable",
-            "color": "slate",
+            "color": "#059669",
             "commentary": "Final measured yield after all identified loss buckets are applied.",
         },
     ]
@@ -1020,6 +1059,7 @@ def run_pipeline(
             )
 
     punchlist = _build_preview_punchlist(pr_result, avail_result, dq_result, specific_yield_rows)
+    clipping = _build_clipping_diagnostics(df_pivot, df_irr, cap_ac, inv_ac)
     diagnosis = _build_loss_diagnosis(
         pr_monthly_rows=pr_monthly_rows,
         site_monthly_rows=site_monthly_rows,
@@ -1028,6 +1068,9 @@ def run_pipeline(
         stuck_inverters_count=int(len(stuck_report)),
         design_pr=float(design_pr),
         temperature_loss_mwh=float(pr_result.get("temperature_correction", {}).get("loss_mwh", 0.0) or 0.0),
+        clipping_diag=clipping,
+        cap_dc_kwp=float(cap_dc),
+        cap_ac_kw=float(cap_ac),
     )
     peer_groups = _build_peer_groups(
         pr_per_inverter=pr_result.get("per_inverter", {}),
@@ -1036,7 +1079,6 @@ def run_pipeline(
         piv=df_pivot,
         irr=df_irr,
     )
-    clipping = _build_clipping_diagnostics(df_pivot, df_irr, cap_ac, inv_ac)
 
     return {
         "summary": {
@@ -1078,6 +1120,7 @@ def run_pipeline(
             {
                 "label": item["label"],
                 "value_mwh": item["value_mwh"],
+                "color": item.get("color"),
                 "type": (
                     "base"
                     if item["label"] in {"Design yield", "Weather-corrected yield", "Actual yield"}

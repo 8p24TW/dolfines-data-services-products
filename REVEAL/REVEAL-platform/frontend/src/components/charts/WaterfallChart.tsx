@@ -93,7 +93,15 @@ export function WaterfallChart({ data }: WaterfallChartProps) {
           {bars.map((b, i) => (
             <Cell
               key={i}
-              fill={b.type === "base" ? "#003366" : b.type === "loss" ? "#C62828" : "#70AD47"}
+              fill={
+                b.color
+                  ? b.color
+                  : b.type === "base"
+                    ? "#1e3a5f"
+                    : b.type === "gain"
+                      ? "#059669"
+                      : "#C62828"
+              }
             />
           ))}
         </Bar>
