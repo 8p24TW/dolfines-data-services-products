@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, passwordMeetsPolicy, passwordPolicyMessage } from "@/lib/server/passwords";
 import { sendWelcomeEmail } from "@/lib/server/password-reset";
+import { ensureDemoSiteForUser } from "@/lib/server/demo-site";
 
 const EXTERNAL_ORGANIZATION = "External Access";
 
@@ -57,6 +58,10 @@ export async function POST(request: Request) {
 
     void sendWelcomeEmail(user.email, user.display_name).catch((mailError) => {
       console.error("welcome-email-error", mailError);
+    });
+
+    void ensureDemoSiteForUser(user.id).catch((siteError) => {
+      console.error("demo-site-connect-error", siteError);
     });
 
     return NextResponse.json({
