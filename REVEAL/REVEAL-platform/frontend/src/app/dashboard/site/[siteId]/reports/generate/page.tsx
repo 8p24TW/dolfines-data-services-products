@@ -1046,12 +1046,7 @@ function GenerateReportPageContent({ params }: { params: { siteId: string } }) {
       );
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Column detection failed.";
-      const isLikelyTooLarge = /413|too large|payload|body/i.test(msg);
-      setDetectionError(
-        isLikelyTooLarge
-          ? "The file is too large to process automatically. Try splitting the file into smaller periods and uploading one at a time."
-          : `REVEAL could not read the uploaded file: ${msg}`
-      );
+      setDetectionError(`Column detection error: ${msg}`);
     }
   }
 

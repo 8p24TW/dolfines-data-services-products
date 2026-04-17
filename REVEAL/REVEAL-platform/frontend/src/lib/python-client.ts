@@ -13,13 +13,15 @@
 import type { AnalysisResult, ColumnDetectionResult } from "@/types/analysis";
 import type { Site } from "@/types/site";
 
-const DIRECT_URL =
-  typeof window !== "undefined"
-    ? (process.env.NEXT_PUBLIC_PYTHON_SERVICE_URL ?? "").replace(/\/$/, "")
-    : "";
+const DIRECT_URL = (process.env.NEXT_PUBLIC_PYTHON_SERVICE_URL ?? "").replace(/\/$/, "");
 
 export function canCallDirectly(): boolean {
   return Boolean(DIRECT_URL);
+}
+
+// Temporary diagnostic — remove once direct upload is confirmed working
+if (typeof window !== "undefined") {
+  console.log("[python-client] DIRECT_URL:", DIRECT_URL || "(empty — using Vercel proxy)");
 }
 
 async function directPost<T>(path: string, form: FormData): Promise<T> {
