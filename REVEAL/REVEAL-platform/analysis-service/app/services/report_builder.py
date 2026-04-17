@@ -213,12 +213,16 @@ def _try_generate_legacy_report(
             )
 
         if report_type == "comprehensive":
-            return _run_true_comprehensive_solar_report(
-                legacy_root=legacy_root,
-                data_dir=legacy_input_dir,
-                out_dir=out_dir,
-                output_format=output_format,
-            )
+            script_path = legacy_root / "pvpat_scada_analysis.py"
+            if script_path.exists():
+                return _run_true_comprehensive_solar_report(
+                    legacy_root=legacy_root,
+                    data_dir=legacy_input_dir,
+                    out_dir=out_dir,
+                    output_format=output_format,
+                )
+            # PVPAT script not available on this deployment — fall through to the
+            # solar-engine rich SCADA analysis report (same template used for monthly)
 
         module = importlib.import_module("report.build_scada_analysis_html")
         build_scada_analysis_html = getattr(module, "build_scada_analysis_html")

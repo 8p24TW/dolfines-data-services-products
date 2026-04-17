@@ -791,6 +791,19 @@ function GenerateReportPageContent({ params }: { params: { siteId: string } }) {
       })
       .sort((a, b) => a.mttf_hours - b.mttf_hours);
   }, [analysisResult]);
+
+  const inverterDiagnostics = useMemo(() => {
+    if (!analysisResult) return [];
+    const startMap = new Map(analysisResult.start_stop.map((item) => [item.inv_id, item]));
+    return [...analysisResult.mttf.by_inverter]
+      .sort((a, b) => a.mttf_hours - b.mttf_hours)
+      .map((item) => ({
+        inv_id: item.inv_id,
+        mttf_hours: Math.round(item.mttf_hours),
+        n_failures: item.n_failures,
+        start_dev_abs: Math.abs(startMap.get(item.inv_id)?.start_dev ?? 0),
+      }));
+  }, [analysisResult]);
   const step1Configured = analysisChosen && languageChosen;
   const previewReady = analysisSignature === previewSignature && Boolean(analysisResult) && !isRunningAnalysis;
   const previewSettled = previewReady || Boolean(analysisError);
@@ -2308,57 +2321,71 @@ function GenerateReportPageContent({ params }: { params: { siteId: string } }) {
 
                       <AnalysisSection
                         id="Section C"
-                        title="Detailed inverter diagnostics annex"
-                        description="These annex-style sections carry more of the analytical depth from the comprehensive PVPAT analysis into the app itself, with cleaner visuals for REVEAL."
+                        title="Inverter diagnostics"
+                        description="MTTF, morning start behaviour, and clipping exposure for all inverters — ranked worst-first so underperformers are immediately visible."
                         collapsed={collapsedAnalysisSections.inverter}
                         onToggle={() => setCollapsedAnalysisSections((prev) => ({ ...prev, inverter: !prev.inverter }))}
                       >
-                        <div className="grid gap-4 xl:grid-cols-2">
-                          <MetricBars
-                            title="Lowest MTTF units"
-                            description="These are the least reliable inverters by mean time to failure. Frequent failure events point toward recoverable availability losses."
-                            rows={mttfRanking.map((item) => ({
-                              label: item.inv_id,
-                              value: item.mttf_hours,
-                              secondary: `${item.n_failures} failure events`,
-                            }))}
-                            colorClass="bg-[linear-gradient(90deg,rgba(251,146,60,0.96),rgba(239,68,68,0.96))]"
-                            valueSuffix=" h"
-                          />
-
-                          <MetricBars
-                            title="Start-delay outliers"
-                            description="Late-start signatures often reveal threshold, wake-up, or control issues that would not be obvious from a simple monthly KPI view."
-                            rows={startStopOutliers.map((item) => ({
-                              label: item.inv_id,
-                              value: Math.abs(item.start_dev),
-                              secondary: `Average start ${item.start_label} · deviation ${item.start_dev.toFixed(1)} min`,
-                            }))}
-                            colorClass="bg-[linear-gradient(90deg,rgba(96,165,250,0.96),rgba(14,165,233,0.96))]"
-                            valueSuffix=" min"
-                          />
-                        </div>
+                        <ChartShell
+                          title="MTTF and start deviation — all inverters"
+                          description="Bars show mean time between failures (h) on the left axis. The line shows absolute start-time deviation vs fleet mean (min) on the right. Inverters are sorted by MTTF, worst first."
+                          heightClass="h-[360px]"
+                        >
+                          <ResponsiveContainer width="100%" height="100%">
+                            <ComposedChart data={inverterDiagnostics} margin={{ top: 16, right: 48, left: 8, bottom: 64 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.12)" />
+                              <XAxis
+                                dataKey="inv_id"
+                                tick={{ fill: "#cbd5e1", fontSize: 10 }}
+                                axisLine={{ stroke: "rgba(255,255,255,0.16)" }}
+                                tickLine={false}
+                                angle={-35}
+                                textAnchor="end"
+                                interval={0}
+                              />
+                              <YAxis
+                                yAxisId="left"
+                                tick={{ fill: "#cbd5e1", fontSize: 11 }}
+                                axisLine={{ stroke: "rgba(255,255,255,0.16)" }}
+                                tickLine={false}
+                                label={{ value: "MTTF (h)", angle: -90, position: "insideLeft", dy: 36, fill: "#cbd5e1", fontSize: 11 }}
+                              />
+                              <YAxis
+                                yAxisId="right"
+                                orientation="right"
+                                tick={{ fill: "#cbd5e1", fontSize: 11 }}
+                                axisLine={{ stroke: "rgba(255,255,255,0.16)" }}
+                                tickLine={false}
+                                label={{ value: "Start dev (min)", angle: 90, position: "insideRight", dy: -36, fill: "#cbd5e1", fontSize: 11 }}
+                              />
+                              <Tooltip content={<RevealTooltip />} cursor={false} />
+                              <Legend wrapperStyle={{ color: "#e2e8f0", fontSize: 12, paddingTop: 8 }} />
+                              <Bar yAxisId="left" dataKey="mttf_hours" name="MTTF (h)" fill="rgba(251,146,60,0.78)" radius={[4, 4, 0, 0]} />
+                              <Line yAxisId="right" type="monotone" dataKey="start_dev_abs" name="Start dev (min)" stroke="#60a5fa" strokeWidth={2.2} dot={{ r: 3, fill: "#60a5fa" }} />
+                            </ComposedChart>
+                          </ResponsiveContainer>
+                        </ChartShell>
 
                         <div className="mt-4 grid gap-4 xl:grid-cols-2">
                           <ChartShell
-                            title="Near-clipping frequency by irradiance"
-                            description="This mirrors the clipping section from the comprehensive analysis. It shows whether the site is regularly operating close to the AC ceiling under strong irradiance."
+                            title="Near-clipping frequency by irradiance bin"
+                            description="Shows how often the site approaches its AC ceiling across irradiance bands. High values in the upper bins indicate the DC array regularly saturates the inverters."
                           >
                             <ResponsiveContainer width="100%" height="100%">
-                              <BarChart data={clippingBins} margin={{ top: 20, right: 10, left: 8, bottom: 16 }}>
+                              <BarChart data={clippingBins} margin={{ top: 20, right: 10, left: 8, bottom: 28 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.12)" />
                                 <XAxis
                                   dataKey="label"
                                   tick={{ fill: "#cbd5e1", fontSize: 11 }}
                                   axisLine={{ stroke: "rgba(255,255,255,0.16)" }}
                                   tickLine={false}
-                                  label={{ value: "Irradiance bin (W/m²)", position: "insideBottom", offset: -6, fill: "#cbd5e1", fontSize: 11 }}
+                                  label={{ value: "Irradiance bin (W/m²)", position: "insideBottom", offset: -10, fill: "#cbd5e1", fontSize: 11 }}
                                 />
                                 <YAxis
                                   tick={{ fill: "#cbd5e1", fontSize: 11 }}
                                   axisLine={{ stroke: "rgba(255,255,255,0.16)" }}
                                   tickLine={false}
-                                  label={{ value: "Near-clipping frequency (%)", angle: -90, position: "insideLeft", dy: 60, fill: "#cbd5e1", fontSize: 11 }}
+                                  label={{ value: "Near-clip (%)", angle: -90, position: "insideLeft", dy: 44, fill: "#cbd5e1", fontSize: 11 }}
                                 />
                                 <Tooltip content={<RevealTooltip valueSuffix="%" />} cursor={false} />
                                 <Bar dataKey="near_clip_pct" name="Near-clipping" fill="rgba(245,158,11,0.82)" radius={[5, 5, 0, 0]} />
@@ -2366,125 +2393,94 @@ function GenerateReportPageContent({ params }: { params: { siteId: string } }) {
                             </ResponsiveContainer>
                           </ChartShell>
 
-                          <div className="rounded-[24px] border border-white/10 bg-[rgba(255,255,255,0.04)] p-5">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/55">Peer grouping and priority units</p>
-                            <div className="mt-4 space-y-3">
-                              {peerGroupRows.slice(0, 12).map((item) => (
-                                <div key={item.inv_id} className="rounded-2xl border border-white/8 bg-white/5 p-4">
-                                  <div className="flex flex-wrap items-center justify-between gap-3">
-                                    <p className="font-semibold text-white">{item.inv_id}</p>
-                                    <span className="rounded-full border border-white/12 bg-white/6 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/82">
-                                      {item.group}
-                                    </span>
-                                  </div>
-                                  <p className="mt-3 text-sm leading-7 text-slate-200/84">
-                                    PR {item.pr_pct.toFixed(1)}% · Availability {item.avail_pct.toFixed(1)}% · Start deviation {item.start_dev_min.toFixed(1)} min · Variability CV {item.variability_cv.toFixed(2)}
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="mt-4">
-                          <MetricBars
-                            title="Top inverters by near-clipping occurrence"
-                            description="These inverters spend the most time close to their AC ceiling and deserve follow-up where clipping, export limits, or design saturation are suspected."
-                            rows={clippingInverters.map((item) => ({
-                              label: item.inv_id,
-                              value: item.near_clip_pct,
-                              secondary: "Share of valid daytime intervals near the AC ceiling",
-                            }))}
-                            colorClass="bg-[linear-gradient(90deg,rgba(245,158,11,0.96),rgba(249,115,22,0.96))]"
-                            valueSuffix="%"
-                          />
+                          <ChartShell
+                            title="Near-clipping occurrence — per inverter"
+                            description="Inverters most frequently operating near their AC ceiling. Units at the top are candidates for DC/AC ratio review or export-limit investigation."
+                          >
+                            <ResponsiveContainer width="100%" height="100%">
+                              <BarChart
+                                data={[...clippingInverters].sort((a, b) => b.near_clip_pct - a.near_clip_pct)}
+                                layout="vertical"
+                                margin={{ top: 8, right: 24, left: 8, bottom: 8 }}
+                              >
+                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.12)" />
+                                <XAxis
+                                  type="number"
+                                  tick={{ fill: "#cbd5e1", fontSize: 11 }}
+                                  axisLine={{ stroke: "rgba(255,255,255,0.16)" }}
+                                  tickLine={false}
+                                  label={{ value: "Near-clip (%)", position: "insideBottom", offset: -4, fill: "#cbd5e1", fontSize: 11 }}
+                                />
+                                <YAxis
+                                  type="category"
+                                  dataKey="inv_id"
+                                  width={64}
+                                  tick={{ fill: "#cbd5e1", fontSize: 10 }}
+                                  axisLine={{ stroke: "rgba(255,255,255,0.16)" }}
+                                  tickLine={false}
+                                />
+                                <Tooltip content={<RevealTooltip valueSuffix="%" />} cursor={false} />
+                                <Bar dataKey="near_clip_pct" name="Near-clipping %" fill="rgba(245,158,11,0.82)" radius={[0, 4, 4, 0]} />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </ChartShell>
                         </div>
                       </AnalysisSection>
 
                       <AnalysisSection
                         id="Section D"
-                        title="Reliability benchmark and quantified loss punchlist"
-                        description="These tables convert the technical diagnosis into owner-facing reliability and value language, using MTTF benchmarking and tariff-weighted loss impacts."
+                        title="Loss deep-dive and recovery actions"
+                        description="Each loss category is expressed in energy and approximate value at the confirmed site tariff, with a specific action so recoverable losses can be prioritised and taken into the digital twin."
                         collapsed={collapsedAnalysisSections.actions}
                         onToggle={() => setCollapsedAnalysisSections((prev) => ({ ...prev, actions: !prev.actions }))}
                       >
-                        <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-                          <div className="rounded-[24px] border border-white/10 bg-[rgba(255,255,255,0.04)] p-5">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/55">MTTF versus benchmark</p>
-                            <p className="mt-2 text-sm leading-7 text-slate-200/82">
-                              REVEAL classifies inverter reliability against a simple industry-style operating benchmark:
-                              below 750 h is weak, 750-1500 h is watch-list territory, and above 1500 h is comparatively resilient. We can tighten these thresholds later by OEM and climate.
-                            </p>
-                            <div className="mt-4 space-y-3">
-                              {mttfBenchmarkedRows.slice(0, 10).map((item) => (
-                                <div key={item.inv_id} className="rounded-2xl border border-white/8 bg-white/5 p-4">
-                                  <div className="flex flex-wrap items-center justify-between gap-3">
-                                    <p className="font-semibold text-white">{item.inv_id}</p>
-                                    <span
-                                      className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${
-                                        item.status === "Above industry benchmark"
-                                          ? "border border-emerald-300/25 bg-emerald-400/12 text-emerald-50"
-                                          : item.status === "Watch list"
-                                            ? "border border-amber-300/25 bg-amber-400/12 text-amber-50"
-                                            : "border border-red-300/25 bg-red-500/12 text-red-50"
-                                      }`}
-                                    >
-                                      {item.status}
-                                    </span>
-                                  </div>
-                                  <p className="mt-3 text-sm leading-7 text-slate-200/84">
-                                    MTTF {item.mttf_hours.toFixed(0)} h across {item.n_failures} recorded failure event{item.n_failures === 1 ? "" : "s"}.
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div className="rounded-[24px] border border-white/10 bg-[rgba(255,255,255,0.04)] p-5">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/55">Main loss sections and recommended actions</p>
-                            <p className="mt-2 text-sm leading-7 text-slate-200/82">
-                              This is the owner-facing punchlist. REVEAL expresses each loss section in energy, approximate value, and next action so recoverable losses can be prioritized properly.
-                            </p>
-                            <div className="mt-4 overflow-x-auto">
-                              <table className="min-w-full border-separate border-spacing-y-3 text-sm">
-                                <thead>
-                                  <tr className="text-left text-[11px] uppercase tracking-[0.18em] text-white/45">
-                                    <th className="px-3 py-2">Loss section</th>
-                                    <th className="px-3 py-2">Class</th>
-                                    <th className="px-3 py-2">MWh</th>
-                                    <th className="px-3 py-2">kEUR</th>
-                                    <th className="px-3 py-2">Recommended action</th>
+                        <div className="rounded-[24px] border border-white/10 bg-[rgba(255,255,255,0.04)] p-5">
+                          <div className="mt-2 overflow-x-auto">
+                            <table className="min-w-full border-separate border-spacing-y-3 text-sm">
+                              <thead>
+                                <tr className="text-left text-[11px] uppercase tracking-[0.18em] text-white/45">
+                                  <th className="px-3 py-2">Loss category</th>
+                                  <th className="px-3 py-2">Class</th>
+                                  <th className="px-3 py-2">MWh</th>
+                                  <th className="px-3 py-2">kEUR</th>
+                                  <th className="px-3 py-2">Specific action</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {lossActionRows.map((item) => (
+                                  <tr key={item.label} className="align-top text-slate-100">
+                                    <td className="rounded-l-2xl border-y border-l border-white/8 bg-white/5 px-3 py-3 font-semibold text-white">
+                                      <div className="flex items-center gap-2">
+                                        {item.color && (
+                                          <span className="inline-block h-3 w-3 shrink-0 rounded-full" style={{ background: item.color }} />
+                                        )}
+                                        {item.label}
+                                      </div>
+                                    </td>
+                                    <td className="border-y border-white/8 bg-white/5 px-3 py-3">
+                                      <span
+                                        className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${
+                                          item.classification === "recoverable"
+                                            ? "border border-emerald-300/25 bg-emerald-400/12 text-emerald-50"
+                                            : item.classification === "screened"
+                                              ? "border border-red-300/25 bg-red-500/12 text-red-50"
+                                              : "border border-slate-300/20 bg-slate-400/10 text-slate-100"
+                                        }`}
+                                      >
+                                        {item.classification.replace("_", " ")}
+                                      </span>
+                                    </td>
+                                    <td className="border-y border-white/8 bg-white/5 px-3 py-3 font-semibold tabular-nums">{item.value_mwh.toFixed(1)}</td>
+                                    <td className="border-y border-white/8 bg-white/5 px-3 py-3 font-semibold tabular-nums">{item.value_keur.toFixed(1)}</td>
+                                    <td className="rounded-r-2xl border-y border-r border-white/8 bg-white/5 px-3 py-3 leading-7 text-slate-200/84">{item.action}</td>
                                   </tr>
-                                </thead>
-                                <tbody>
-                                  {lossActionRows.map((item) => (
-                                    <tr key={item.label} className="rounded-2xl border border-white/8 bg-white/5 align-top text-slate-100">
-                                      <td className="rounded-l-2xl px-3 py-3 font-semibold text-white">{item.label}</td>
-                                      <td className="px-3 py-3">
-                                        <span
-                                          className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${
-                                            item.classification === "recoverable"
-                                              ? "border border-emerald-300/25 bg-emerald-400/12 text-emerald-50"
-                                              : item.classification === "screened"
-                                                ? "border border-red-300/25 bg-red-500/12 text-red-50"
-                                                : "border border-slate-300/20 bg-slate-400/10 text-slate-100"
-                                          }`}
-                                        >
-                                          {item.classification.replace("_", " ")}
-                                        </span>
-                                      </td>
-                                      <td className="px-3 py-3 font-semibold">{item.value_mwh.toFixed(1)}</td>
-                                      <td className="px-3 py-3 font-semibold">{item.value_keur.toFixed(1)}</td>
-                                      <td className="rounded-r-2xl px-3 py-3 text-slate-200/84">{item.action}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                            <p className="mt-3 text-xs leading-6 text-white/55">
-                              Value conversion uses the confirmed site tariff of {tariffEurMwh.toFixed(1)} EUR/MWh. This is a first-order owner view, not yet a price-shape or market-dispatch valuation.
-                            </p>
+                                ))}
+                              </tbody>
+                            </table>
                           </div>
+                          <p className="mt-3 text-xs leading-6 text-white/45">
+                            Value conversion uses the confirmed site tariff of {tariffEurMwh.toFixed(1)} EUR/MWh. This is a first-order owner view — not yet a price-shape or market-dispatch valuation. Recoverable losses are the primary target for the digital-twin pass.
+                          </p>
                         </div>
                       </AnalysisSection>
 
@@ -2539,36 +2535,53 @@ function GenerateReportPageContent({ params }: { params: { siteId: string } }) {
 
                       <AnalysisSection
                         id="Section F"
-                        title="Irradiance and assumptions annex"
-                        description="This section carries the assumptions and limitations that sit behind the current diagnosis, including what is and is not yet benchmarked against an external weather reference."
+                        title="Data quality and analytical assumptions"
+                        description="Input data completeness, screened anomalies, and the key assumptions behind the current diagnosis. Use this to judge how much weight to place on each loss bucket."
                         collapsed={collapsedAnalysisSections.availability}
                         onToggle={() => setCollapsedAnalysisSections((prev) => ({ ...prev, availability: !prev.availability }))}
                       >
-                        <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
-                          <div className="rounded-[24px] border border-white/10 bg-[rgba(255,255,255,0.04)] p-5">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/55">Irradiance check versus reference</p>
-                            <div className="mt-4 space-y-3 text-sm leading-7 text-slate-200/84">
-                              <p>
-                                REVEAL now fetches ERA precipitation in-app for the performance workflow so heavy rain and potential cleaning events can be reviewed directly alongside the technical diagnosis.
-                              </p>
-                              <p>
-                                For now, REVEAL still uses the measured irradiance series directly for PR and availability-linked interpretation, while the formal irradiance-reference correlation remains in the Long-Term workflow.
-                              </p>
-                              <p>
-                                So the new rain context is there to support excess-soiling interpretation, but it is not yet a full in-app irradiance bankability calibration on its own.
-                              </p>
-                            </div>
+                        {/* KPI row */}
+                        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+                          <div className="rounded-[20px] border border-white/10 bg-[rgba(255,255,255,0.04)] p-4">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/45">Power completeness</p>
+                            <p className={`mt-3 text-2xl font-bold tabular-nums ${(analysisResult?.data_quality.overall_power_pct ?? 0) >= 90 ? "text-emerald-300" : (analysisResult?.data_quality.overall_power_pct ?? 0) >= 75 ? "text-amber-300" : "text-rose-300"}`}>
+                              {analysisResult?.data_quality.overall_power_pct.toFixed(1) ?? "—"}%
+                            </p>
+                            <p className="mt-1 text-xs text-white/45">of daytime window covered</p>
                           </div>
-
-                          <div className="rounded-[24px] border border-white/10 bg-[rgba(255,255,255,0.04)] p-5">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/55">Data limitations and assumptions</p>
-                            <div className="mt-4 space-y-3">
-                              {dataLimitations.map((line, index) => (
-                                <div key={`limitation-${index}`} className="rounded-2xl border border-white/8 bg-white/5 p-4 text-sm leading-7 text-slate-200/84">
-                                  {line}
-                                </div>
-                              ))}
+                          <div className="rounded-[20px] border border-white/10 bg-[rgba(255,255,255,0.04)] p-4">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/45">Irradiance completeness</p>
+                            <p className={`mt-3 text-2xl font-bold tabular-nums ${(analysisResult?.data_quality.irradiance_pct ?? 0) >= 90 ? "text-emerald-300" : (analysisResult?.data_quality.irradiance_pct ?? 0) >= 75 ? "text-amber-300" : "text-rose-300"}`}>
+                              {analysisResult?.data_quality.irradiance_pct.toFixed(1) ?? "—"}%
+                            </p>
+                            <p className="mt-1 text-xs text-white/45">GHI signal available</p>
+                          </div>
+                          <div className="rounded-[20px] border border-white/10 bg-[rgba(255,255,255,0.04)] p-4">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/45">Frozen inverter streams</p>
+                            <p className={`mt-3 text-2xl font-bold tabular-nums ${(analysisResult?.data_quality.stuck_inverters_count ?? 0) === 0 ? "text-emerald-300" : "text-amber-300"}`}>
+                              {analysisResult?.data_quality.stuck_inverters_count ?? 0}
+                            </p>
+                            <p className="mt-1 text-xs text-white/45">screened before diagnosis</p>
+                          </div>
+                          <div className="rounded-[20px] border border-white/10 bg-[rgba(255,255,255,0.04)] p-4">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/45">ERA precipitation</p>
+                            <p className={`mt-3 text-2xl font-bold ${analysisResult?.weather.error ? "text-rose-300" : "text-emerald-300"}`}>
+                              {analysisResult?.weather.error ? "Error" : "Loaded"}
+                            </p>
+                            <p className="mt-1 text-xs text-white/45">
+                              {analysisResult?.weather.error ? "rain context unavailable" : `${weatherEvents.length} event${weatherEvents.length === 1 ? "" : "s"} detected`}
+                            </p>
+                          </div>
+                        </div>
+                        {/* Assumptions list */}
+                        <div className="mt-4 space-y-3">
+                          {dataLimitations.map((line, index) => (
+                            <div key={`limitation-${index}`} className="rounded-2xl border border-white/8 bg-white/5 p-4 text-sm leading-7 text-slate-200/84">
+                              {line}
                             </div>
+                          ))}
+                          <div className="rounded-2xl border border-white/8 bg-white/5 p-4 text-sm leading-7 text-slate-200/84">
+                            REVEAL uses the measured on-site irradiance directly for PR and loss calculation. Irradiance-reference correlation against satellite data (ERA5, SARAH-3) lives in the Long-Term Modelling workflow and is not yet embedded in the performance diagnosis.
                           </div>
                         </div>
                       </AnalysisSection>

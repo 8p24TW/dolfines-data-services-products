@@ -643,7 +643,7 @@ def _build_clipping_diagnostics(
         pct = 100.0 * near.sum() / max(v.sum(), 1)
         inv_rows.append({"inv_id": str(col), "near_clip_pct": round(float(pct), 2)})
 
-    inv_rows = sorted(inv_rows, key=lambda item: item["near_clip_pct"], reverse=True)[:12]
+    inv_rows = sorted(inv_rows, key=lambda item: item["near_clip_pct"], reverse=True)
     return {
         "site_near_clip_pct": round(float(site_near_clip_pct), 2),
         "by_irradiance_bin": by_bin,
